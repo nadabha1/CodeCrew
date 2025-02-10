@@ -4,8 +4,16 @@ import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:provider/provider.dart';
 import './providers/auth_provider.dart';
 
+
 void main() {
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
