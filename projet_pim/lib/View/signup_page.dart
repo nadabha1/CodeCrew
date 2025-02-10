@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Providers/auth_provider.dart'; // Correct path
+import '../Providers/auth_provider.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -77,6 +77,7 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       );
 
+      // Delay navigation to avoid context issues
       Future.delayed(Duration(seconds: 2), () {
         Navigator.pushReplacementNamed(context, "/login");
       });
@@ -95,8 +96,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -227,23 +226,28 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
                 SizedBox(height: 40),
-                authProvider.isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: () => _registerUser(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF2C2C54), // Navy blue button color
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          textStyle: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        child: Center(child: Text("Done")),
-                      ),
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return authProvider.isLoading
+                        ? Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                            onPressed: () => _registerUser(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Color(0xFF2C2C54), // Navy blue button color
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              textStyle: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            child: Center(child: Text("Done")),
+                          );
+                  },
+                ),
                 SizedBox(height: 20),
                 Center(
                   child: TextButton(
