@@ -18,19 +18,22 @@ class AuthService {
     }
   }
 
-  Future<String> forgotPassword(String email) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/forgot-password'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
+Future<String> forgotPassword(String email) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/forgot-password'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'email': email}),
+  );
 
-    if (response.statusCode == 201) {
-      return jsonDecode(response.body)['message'];
-    } else {
-      throw Exception('Failed to send OTP');
-    }
+  if (response.statusCode == 201 || response.statusCode == 200) {
+    return jsonDecode(response.body)['message'] ?? 'OTP sent successfully';
+  } else {
+    final errorResponse = jsonDecode(response.body);
+    final errorMessage = errorResponse['error'] ?? 'Failed to send OTP';
+    throw Exception(errorMessage);
   }
+}
+
 
   Future<String> verifyOtp(String email, String otp) async {
     final response = await http.post(

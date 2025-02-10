@@ -248,22 +248,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           );
                   },
                 ),
-                SizedBox(height: 20),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Cancel button action
-                    },
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
                 Center(
                   child: GestureDetector(
                     onTap: () {

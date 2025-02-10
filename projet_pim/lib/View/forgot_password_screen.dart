@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'reset_password_screen.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   final _emailController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
     void _sendOtp() async {
-  try {
-    await authProvider.forgotPassword(_emailController.text);
+  if (_emailController.text.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('OTP sent to your email')),
+      const SnackBar(content: Text('Please enter your email')),
+    );
+    return;
+  }
+
+  try {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.forgotPassword(_emailController.text);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('OTP sent to your email')),
     );
 
-    // Navigate to Reset Password Screen
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -26,10 +32,14 @@ class ForgotPasswordScreen extends StatelessWidget {
     );
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(e.toString())),
+      SnackBar(content: Text('Error: ${e.toString()}')),
     );
   }
 }
+
+
+ 
+
 
 
     return Scaffold(
@@ -41,7 +51,7 @@ class ForgotPasswordScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
-            Text(
+            const Text(
               "Forgot Password",
               style: TextStyle(
                 fontSize: 34,
@@ -49,17 +59,17 @@ class ForgotPasswordScreen extends StatelessWidget {
                 color: Colors.black,
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
 
             // Subtitle
-            Text(
+            const Text(
               "Enter your email to receive a password reset OTP",
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[700],
+                color: Colors.grey,
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
 
             // Email Input
             TextField(
@@ -76,14 +86,14 @@ class ForgotPasswordScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: EdgeInsets.symmetric(
+                contentPadding: const EdgeInsets.symmetric(
                   vertical: 16,
                   horizontal: 16,
                 ),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Send OTP Button
             ElevatedButton(
@@ -93,17 +103,17 @@ class ForgotPasswordScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   vertical: 16,
                 ),
-                textStyle: TextStyle(
+                textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              child: Center(child: Text('Send OTP')),
+              child: const Center(child: Text('Send OTP')),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
 
             // Cancel Button
             TextButton(

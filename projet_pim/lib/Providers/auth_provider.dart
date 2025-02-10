@@ -36,15 +36,20 @@ class AuthProvider with ChangeNotifier {
   }
 
   /// Handles forgot password functionality
-  Future<void> forgotPassword(String email) async {
-    try {
-      await _authService.forgotPassword(email);
-    } catch (e) {
-      rethrow;
-    }
+Future<void> forgotPassword(String email) async {
+  try {
+    final message = await _authService.forgotPassword(email);
+    debugPrint('Forgot Password Success: $message');
+  } catch (e) {
+    debugPrint('Error in forgotPassword: $e');
+    rethrow;
   }
+}
 
-  /// Handles password reset functionality
+
+  /// Handles password 
+  /// 
+  ///  functionality
   Future<void> resetPassword(String email, String otp, String newPassword) async {
     try {
       await _authService.resetPasswordWithOtp(email, otp, newPassword);

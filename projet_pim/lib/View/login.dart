@@ -56,6 +56,7 @@ class _LoginViewState extends State<LoginView> {
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Title
                   const Text(
@@ -103,7 +104,26 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
+
+                  // Forgot Password Link
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/forgot-password');
+                      },
+                      child: const Text(
+                        "Forgot password?",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 14,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
 
                   // Login Button
                   loginViewModel.isLoading
@@ -119,10 +139,39 @@ class _LoginViewState extends State<LoginView> {
                             ),
                           ),
                           child: const Text(
-                            "Next",
+                            "Login",
                             style: TextStyle(fontSize: 18),
                           ),
                         ),
+                  const SizedBox(height: 20),
+
+                  // Signup Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Don't have an account?",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacementNamed(context, "/signup");
+                        },
+                        child: const Text(
+                          "Sign up",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
 
                   // Error Message
                   if (loginViewModel.errorMessage != null) ...[
