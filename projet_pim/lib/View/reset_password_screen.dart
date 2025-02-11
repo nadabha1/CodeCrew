@@ -1,6 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import 'package:http/http.dart' as http;
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
@@ -17,21 +17,36 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _isOtpVerified = false;
   bool _isLoading = false;
 
-  void _verifyOtp() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  // Base URL for the API
+  final String baseUrl = "http://10.0.2.2:3000/auth"; // Replace with your API base URL
 
+  // Function to verify OTP
+  Future<void> _verifyOtp() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await authProvider.verifyOtp(widget.email, _otpController.text);
-      setState(() {
-        _isOtpVerified = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP verified successfully')),
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': widget.email,
+          'otp': _otpController.text,
+        }),
       );
+
+      if (response.statusCode == 201||response.statusCode == 200) {
+        setState(() {
+          _isOtpVerified = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP verified successfully')),
+        );
+      } else {
+        final error = jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
+        throw Exception(error);
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error verifying OTP: ${e.toString()}')),
@@ -43,23 +58,32 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
   }
 
-  void _resetPassword() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
+  // Function to reset password
+  Future<void> _resetPassword() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await authProvider.resetPassword(
-        widget.email,
-        _otpController.text,
-        _passwordController.text,
+      final response = await http.post(
+        Uri.parse('$baseUrl/reset-password-with-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': widget.email,
+          'otp': _otpController.text,
+          'password': _passwordController.text,
+        }),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset successful')),
-      );
-      Navigator.pushReplacementNamed(context, '/login');
+
+      if (response.statusCode == 201||response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password reset successful')),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        final error = jsonDecode(response.body)['error'] ?? 'Error resetting password';
+        throw Exception(error);
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error resetting password: ${e.toString()}')),
@@ -174,9 +198,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                         ),
                         child: Center(
-                          child: Text(_isOtpVerified
-                              ? 'Reset Password'
-                              : 'Verify OTP'),
+                          child: Text(
+                            _isOtpVerified ? 'Reset Password' : 'Verify OTP',
+                          ),
                         ),
                       ),
               ],

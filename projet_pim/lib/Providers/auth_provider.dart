@@ -37,14 +37,23 @@ class AuthProvider with ChangeNotifier {
 
   /// Handles forgot password functionality
 Future<void> forgotPassword(String email) async {
+  final String apiUrl = 'http://10.0.2.2:3000/auth/forgot-password'; // Remplace avec l'URL de ton API
+
   try {
-    final message = await _authService.forgotPassword(email);
-    debugPrint('Forgot Password Success: $message');
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send OTP. Please try again later.');
+    }
   } catch (e) {
-    debugPrint('Error in forgotPassword: $e');
-    rethrow;
+    throw Exception('Error: ${e.toString()}');
   }
 }
+
 
 
   /// Handles password 

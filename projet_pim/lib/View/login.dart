@@ -127,22 +127,22 @@ class _LoginViewState extends State<LoginView> {
 
                   // Login Button
                   loginViewModel.isLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: () => loginViewModel.login(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple.shade900,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 50, vertical: 15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                          ),
-                          child: const Text(
-                            "Login",
-                            style: TextStyle(fontSize: 18),
-                          ),
-                        ),
+    ? const CircularProgressIndicator()
+    : ElevatedButton(
+        onPressed: () => loginViewModel.login(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.purple.shade900,
+          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+        ),
+        child: const Text(
+          "Login",
+          style: TextStyle(fontSize: 18),
+        ),
+      ),
+
                   const SizedBox(height: 20),
 
                   // Signup Link
