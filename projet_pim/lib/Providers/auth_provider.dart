@@ -61,7 +61,27 @@ Future<void> forgotPassword(String email) async {
   ///  functionality
   Future<void> resetPassword(String email, String otp, String newPassword) async {
     try {
+<<<<<<< Updated upstream
       await _authService.resetPasswordWithOtp(email, otp, newPassword);
+=======
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp}),
+      );
+
+      _setLoading(false);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _isOtpVerified = true;
+        notifyListeners();
+        _showMessage(context, "OTP verified successfully");
+      } else {
+        final error = jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
+        throw Exception(error);
+      }
+      
+>>>>>>> Stashed changes
     } catch (e) {
       rethrow;
     }
