@@ -71,6 +71,7 @@ class AuthProvider with ChangeNotifier {
         final error = jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
         throw Exception(error);
       }
+      
     } catch (e) {
       _setLoading(false);
       _showMessage(context, "Error verifying OTP: ${e.toString()}");
