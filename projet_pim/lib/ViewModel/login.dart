@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,10 +67,8 @@ class LoginViewModel extends ChangeNotifier {
         Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => UserProfileScreen(
-                      userId: _id!,
-                      token: _token!, 
-                    ),
+                    builder: (context) => HomeScreen(
+                      userId: _id!                    ),
                   ),
                 );
         } else {
