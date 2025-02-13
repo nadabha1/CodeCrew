@@ -5,8 +5,13 @@ import '../Providers/carnet_provider.dart';
 class AddPlaceScreenStep2 extends StatefulWidget {
   final String carnetId;
   final String placeName;
+  final String placeAddress;
 
-  AddPlaceScreenStep2({required this.carnetId, required this.placeName});
+  AddPlaceScreenStep2({
+    required this.carnetId,
+    required this.placeName,
+    required this.placeAddress,
+  });
 
   @override
   _AddPlaceScreenStep2State createState() => _AddPlaceScreenStep2State();
@@ -14,22 +19,27 @@ class AddPlaceScreenStep2 extends StatefulWidget {
 
 class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   final TextEditingController _descriptionController = TextEditingController();
-  int _cost = 5; // Default cost in Coins
+  int _cost = 5;
   List<String> _selectedCategories = [];
-  List<String> _images = []; // Store image URLs
+  List<String> _images = []; 
 
-  // 🎨 Define Categories with Icons
+  // Categories with Icons & Custom Colors
   final List<Map<String, dynamic>> categories = [
-    {'icon': Icons.restaurant, 'name': 'Food'},
-    {'icon': Icons.shopping_bag, 'name': 'Shopping'},
-    {'icon': Icons.park, 'name': 'Nature'},
-    {'icon': Icons.museum, 'name': 'Culture'},
+    {'icon': Icons.restaurant, 'name': 'Food', 'color': Colors.red},
+    {'icon': Icons.shopping_bag, 'name': 'Shopping', 'color': Colors.blue},
+    {'icon': Icons.park, 'name': 'Nature', 'color': Colors.green},
+    {'icon': Icons.museum, 'name': 'Culture', 'color': Colors.orange},
+    {'icon': Icons.fitness_center, 'name': 'Sports', 'color': Colors.purple},
+    {'icon': Icons.local_bar, 'name': 'Nightlife', 'color': Colors.pink},
+    {'icon': Icons.hotel, 'name': 'Hotels', 'color': Colors.indigo},
+    {'icon': Icons.directions_bus, 'name': 'Transport', 'color': Colors.brown},
+    {'icon': Icons.theater_comedy, 'name': 'Entertainment', 'color': Colors.teal},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFCEFEF), // Light pastel background
+      backgroundColor: Color(0xFFFCEFEF),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -37,65 +47,59 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           children: [
             SizedBox(height: 40),
 
-            // 📌 Display Selected Place Name (Styled)
+            // 📌 Display Selected Place
             Text(
-              "Adding place: ${widget.placeName}",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
+              widget.placeName,
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.purple),
             ),
-            SizedBox(height: 15),
+            Text(
+              widget.placeAddress,
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            SizedBox(height: 20),
 
-            // 📌 Categories Section (with Icons)
+            // 📌 Categories Section
             Text(
               "Categories of the address",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
 
-            // 🏷 Categories Selection with Icons
-            Wrap(
-              spacing: 12,
-              runSpacing: 10,
-              children: categories.map((category) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (_selectedCategories.contains(category['name'])) {
-                        _selectedCategories.remove(category['name']);
-                      } else {
-                        _selectedCategories.add(category['name']);
-                      }
-                    });
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _selectedCategories.contains(category['name'])
-                          ? Colors.purple[200]
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.shade300,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(category['icon'], size: 30, color: Colors.purple),
-                        SizedBox(height: 5),
-                        Text(category['name']),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+            // 🏷 Scrollable Categories Selection with Icons & Custom Colors
+            Container(
+              height: 80, // Increased height for better spacing
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: categories.map((category) {
+                    bool isSelected = _selectedCategories.contains(category['name']);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      child: ChoiceChip(
+                        avatar: Icon(category['icon'], 
+                          color: isSelected ? Colors.white : category['color'], 
+                          size: 20),
+                        label: Text(category['name']),
+                        selected: isSelected,
+                        selectedColor: category['color'], // Custom category color
+                        backgroundColor: Colors.white,
+                        labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedCategories.add(category['name']);
+                            } else {
+                              _selectedCategories.remove(category['name']);
+                            }
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
+
             SizedBox(height: 20),
 
             // 📝 Description Input
@@ -103,7 +107,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               controller: _descriptionController,
               decoration: InputDecoration(
                 hintText: "Enter a description...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 fillColor: Colors.white,
                 filled: true,
               ),
@@ -111,7 +115,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
             ),
             SizedBox(height: 20),
 
-            // 💰 Unlock Cost Slider
+            // 💰 Unlock Cost
             Text(
               "Price to unlock: $_cost Coins",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -136,11 +140,26 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
             SizedBox(height: 10),
             Row(
               children: [
-                _buildImagePicker(),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Icon(Icons.add, size: 30, color: Colors.grey),
+                ),
                 SizedBox(width: 10),
-                _buildImagePicker(),
-                SizedBox(width: 10),
-                _buildImagePicker(),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                ),
               ],
             ),
             SizedBox(height: 20),
@@ -150,22 +169,14 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey.shade400,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  onPressed: () => Navigator.pop(context),
                   child: Text("Previous", style: TextStyle(color: Colors.white)),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
                   onPressed: () async {
                     final carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
                     await carnetProvider.addPlaceToCarnet(
@@ -178,6 +189,10 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                     );
                     Navigator.pop(context);
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
                   child: Text("Finish", style: TextStyle(color: Colors.white)),
                 ),
               ],
@@ -185,27 +200,6 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           ],
         ),
       ),
-    );
-  }
-
-  // 📷 Image Picker Placeholder (Modify to use actual image picker)
-  Widget _buildImagePicker() {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Icon(Icons.add_a_photo, size: 30, color: Colors.grey),
     );
   }
 }
