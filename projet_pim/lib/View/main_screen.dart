@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/home_screen.dart';
-import 'package:projet_pim/View/login.dart';
 import 'package:projet_pim/View/user_profile.dart';
 
 class MainScreen extends StatefulWidget {
+  final String userId;
+  final String token;
+
+  const MainScreen({required this.userId, required this.token, Key? key})
+      : super(key: key);
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -11,13 +16,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // List of pages
-  final List<Widget> _pages = [
-    LoginView(),       // Home Page
-    Placeholder(),      // Add Explore Page Later
-    Placeholder(),      // Add Messages Page Later
-    UserProfileScreen(userId: 'exampleId', token: 'exampleToken'), // Profile Page
-  ];
+  List<Widget> _pages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeScreen(userId: widget.userId), // ✅ Pass userId dynamically
+      Placeholder(), // Placeholder for Explore Page (Replace with actual widget)
+      Placeholder(), // Placeholder for Messages Page (Replace with actual widget)
+      UserProfileScreen(userId: widget.userId, token: widget.token), // ✅ Pass both userId & token
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -28,12 +38,12 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: _pages[_selectedIndex], // ✅ Show selected page dynamically
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: Colors.purple,  // Active color
-        unselectedItemColor: Colors.grey,  // Inactive color
+        selectedItemColor: Colors.purple, // ✅ Active color
+        unselectedItemColor: Colors.grey, // ✅ Inactive color
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         items: [

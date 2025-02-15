@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Flutter Signup App",
       theme: ThemeData(primarySwatch: Colors.blue),
-      home:  MainScreen(), // ✅ Using 'const' when possible
+      home:  LoginView(), // ✅ Using 'const' when possible
       routes: {
         '/home': (context) =>  HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
         '/signup': (context) =>  SignUpPage(),
