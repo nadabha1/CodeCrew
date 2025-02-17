@@ -1,90 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Providers/UserPreferences.dart';
+import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
+import 'package:projet_pim/View/UserPreferences/FinalConfirmationPage.dart';
+import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
+import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
+import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
+import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
+import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
+import 'package:projet_pim/View/main_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:projet_pim/Providers/auth_provider.dart';
+import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/View/home_screen.dart';
+import 'package:projet_pim/View/login.dart';
+import 'package:projet_pim/View/signup_page.dart';
+import 'package:projet_pim/View/forgot_password_screen.dart';
+import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/View/user_profile.dart';
+import 'package:projet_pim/ViewModel/login.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<UserPreferences>(
+            create: (_) => UserPreferences()), // ✅ Added UserPreferences
+
+        ChangeNotifierProvider<LoginViewModel>(
+            create: (_) => LoginViewModel()..loadToken()),
+        ChangeNotifierProvider<CarnetProvider>(
+            create: (_) =>
+                CarnetProvider()), // ✅ Ensuring CarnetProvider is included
+      ],
+      child: const MyApp(), // ✅ Using 'const' for optimization
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      debugShowCheckedModeBanner: false,
+      title: "Flutter Signup App",
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: LoginView(), // ✅ Using 'const' when possible
+      routes: {
+        '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
+        '/signup': (context) => SignUpPage(),
+        '/gender-selection': (context) => GenderSelectionPage(),
+        '/activity-selection': (context) => ActivitySelectionPage(),
+        '/event-preference': (context) => EventPreferencePage(),
+        '/social-interaction': (context) => SocialInteractionPage(),
+        '/preferred-event-time': (context) => PreferredEventTimePage(),
+        '/final-confirmation': (context) => FinalConfirmationPage(),
+        '/forgot-password': (context) => ForgotPasswordScreen(),
+        '/reset-password': (context) => ResetPasswordScreen(email: ''),
+        '/login': (context) => LoginView(),
+        '/profile': (context) => const UserProfileScreen(
+              userId: 'exampleId',
+              token: 'exampleToken',
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const UserProfileScreen(
-                      userId: '67a7648c3019d91316bcf00d',
-                      token:
-                          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InNhbG1vdXRhYSIsInN1YiI6IjY3YTg5YzYxMzI2ZjQ2ODFmOWQyMmUwZSIsImlhdCI6MTczOTEwMzQwNiwiZXhwIjoxNzM5MTA3MDA2fQ.kB_P5G5z7opGtC5aH-ECcMn6zSRt5VMPiQkRpCfQCdM', // Ajoute le token ici
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              child: const Text('Go to User Profile'),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+        '/add-place': (context) => AddPlaceScreen(carnetId: ''), // ✅ New Route
+      },
     );
   }
 }
