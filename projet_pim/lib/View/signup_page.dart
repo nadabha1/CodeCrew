@@ -18,31 +18,23 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isConfirmPasswordObscured = true;
 
   void _registerUser(BuildContext context) async {
-    // Check if any field is empty
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Please fill all the fields!",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("Please fill all the fields!"),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // Check if passwords match
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Passwords do not match!",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("Passwords do not match!"),
           backgroundColor: Colors.red,
         ),
       );
@@ -51,45 +43,26 @@ class _SignUpPageState extends State<SignUpPage> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Processing your request..."),
-        duration: Duration(seconds: 2),
-      ),
-    );
-
     bool success = await authProvider.registerUser(
       nameController.text,
       emailController.text,
       passwordController.text,
     );
 
-    ScaffoldMessenger.of(context).clearSnackBars();
-
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Signup successful!",
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-        ),
+            content: Text("Signup successful!"), backgroundColor: Colors.green),
       );
 
-      // Delay navigation to avoid context issues
       Future.delayed(Duration(seconds: 2), () {
-        Navigator.pushReplacementNamed(context, "/login");
+        Navigator.pushReplacementNamed(context, "/gender-selection");
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Signup failed. Please try again!",
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-        ),
+            content: Text("Signup failed. Please try again!"),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -100,7 +73,6 @@ class _SignUpPageState extends State<SignUpPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background with purple and pink shapes
           Positioned(
             top: -100,
             left: -100,
@@ -108,9 +80,7 @@ class _SignUpPageState extends State<SignUpPage> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: Color(0xFFE8EAF6), // Light purple
-                shape: BoxShape.circle,
-              ),
+                  color: Color(0xFFE8EAF6), shape: BoxShape.circle),
             ),
           ),
           Positioned(
@@ -120,9 +90,7 @@ class _SignUpPageState extends State<SignUpPage> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: Color(0xFFF8BBD0), // Light pink
-                shape: BoxShape.circle,
-              ),
+                  color: Color(0xFFF8BBD0), shape: BoxShape.circle),
             ),
           ),
           SingleChildScrollView(
@@ -131,136 +99,51 @@ class _SignUpPageState extends State<SignUpPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 80),
-                Text(
-                  "Create\nAccount",
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+                Text("Create\nAccount",
+                    style:
+                        TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
                 SizedBox(height: 40),
                 TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: "Name",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+                    controller: nameController,
+                    decoration: _inputDecoration("Name")),
                 SizedBox(height: 20),
                 TextField(
-                  controller: emailController,
-                  decoration: InputDecoration(
-                    labelText: "Email",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
+                    controller: emailController,
+                    decoration: _inputDecoration("Email")),
                 SizedBox(height: 20),
                 TextField(
                   controller: passwordController,
                   obscureText: _isPasswordObscured,
-                  decoration: InputDecoration(
-                    labelText: "Password",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordObscured
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordObscured = !_isPasswordObscured;
-                        });
-                      },
-                    ),
-                  ),
+                  decoration: _passwordDecoration("Password", () {
+                    setState(() {
+                      _isPasswordObscured = !_isPasswordObscured;
+                    });
+                  }),
                 ),
                 SizedBox(height: 20),
                 TextField(
                   controller: confirmPasswordController,
                   obscureText: _isConfirmPasswordObscured,
-                  decoration: InputDecoration(
-                    labelText: "Confirm Password",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isConfirmPasswordObscured
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isConfirmPasswordObscured =
-                              !_isConfirmPasswordObscured;
-                        });
-                      },
-                    ),
-                  ),
+                  decoration: _passwordDecoration("Confirm Password", () {
+                    setState(() {
+                      _isConfirmPasswordObscured = !_isConfirmPasswordObscured;
+                    });
+                  }),
                 ),
                 SizedBox(height: 40),
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    return authProvider.isLoading
-                        ? Center(child: CircularProgressIndicator())
-                        : ElevatedButton(
-                            onPressed: () => _registerUser(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Color(0xFF2C2C54), // Navy blue button color
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              textStyle: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            child: Center(child: Text("Done")),
-                          );
-                  },
+                ElevatedButton(
+                  onPressed: () => _registerUser(context),
+                  style: _buttonStyle(),
+                  child: Center(child: Text("Done")),
                 ),
                 Center(
                   child: GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacementNamed(context, "/login"); // Navigate to Login
-                    },
-                    child: Text(
-                      "Already have an account? Login",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 16,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
+                    onTap: () =>
+                        Navigator.pushReplacementNamed(context, "/login"),
+                    child: Text("Already have an account? Login",
+                        style: TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline)),
                   ),
                 ),
               ],
@@ -268,6 +151,39 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         ],
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+    );
+  }
+
+  InputDecoration _passwordDecoration(
+      String label, VoidCallback toggleVisibility) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      suffixIcon: IconButton(
+        icon: Icon(Icons.visibility),
+        onPressed: toggleVisibility,
+      ),
+    );
+  }
+
+  ButtonStyle _buttonStyle() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: Color(0xFF2C2C54),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      padding: EdgeInsets.symmetric(vertical: 16),
     );
   }
 }

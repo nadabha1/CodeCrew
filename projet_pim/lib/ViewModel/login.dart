@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:projet_pim/View/home_screen.dart';
-import 'package:projet_pim/View/main_screen.dart';
-import 'package:projet_pim/View/user_profile.dart';
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:projet_pim/View/main_screen.dart';
 
 class LoginViewModel extends ChangeNotifier {
   String _email = "";
@@ -12,8 +10,7 @@ class LoginViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   String? _token;
-  String? _id;
-
+  String? _userId;
 
   // Getters
   String get email => _email;
@@ -21,7 +18,7 @@ class LoginViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get token => _token;
-  String? get id => _id;
+  String? get userId => _userId;
 
   // Setters
   void setEmail(String value) {
@@ -37,10 +34,10 @@ class LoginViewModel extends ChangeNotifier {
   /// Login method to authenticate the user
   Future<void> login(BuildContext context) async {
     _setLoading(true);
-    _errorMessage = null; // Reset error message before login
+    _errorMessage = null;
     notifyListeners();
 
-    const String apiUrl = "http://10.0.2.2:3000/auth/login"; // Adjust as needed
+    const String apiUrl = "http://10.0.2.2:3000/auth/login"; // Localhost for emulator
 
     try {
       final response = await http.post(
@@ -49,78 +46,82 @@ class LoginViewModel extends ChangeNotifier {
         body: jsonEncode({"email": _email, "password": _password}),
       );
 
-      // Log API response for debugging
-      debugPrint("Response Code: ${response.statusCode}");
-      debugPrint("Response Body: ${response.body}");
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = jsonDecode(response.body);
 
         if (data.containsKey("accessToken") && data["accessToken"] != null) {
           _token = data["accessToken"];
-          _id = data["id"];
-          
-          await _saveToken(_token!);
-          _errorMessage = null; // Clear error if login is successful
-                await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+          _userId = data["id"];
 
-      // Navigate to profile screen after login
-        Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MainScreen(
-                      userId: _id! , token: _token!,                   ),
-                  ),
-                );
+          await _saveSession(_token!, _userId!); // ✅ Save session
+
+          _errorMessage = null;
+          notifyListeners();
+
+          // Navigate to Home Page after login
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainScreen(),
+            ),
+          );
         } else {
-          _errorMessage = "Login failed: Missing token!";
+          _errorMessage = "Login failed: Token missing!";
         }
       } else {
         _errorMessage = _parseError(response.body);
       }
     } catch (e) {
-      debugPrint("Error: $e");
-      _errorMessage = "Error connecting to server. Please try again later.";
+      _errorMessage = "Connection error. Please try again.";
     }
 
     _setLoading(false);
     notifyListeners();
   }
 
-  /// Save token to shared preferences
-  Future<void> _saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("jwt_token", token);
-  }
+  /// ✅ Save user session (ID & Token)
+  Future<void> _saveSession(String token, String userId) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString("jwt_token", token);
+  await prefs.setString("user_id", userId);
+  print("✅ Session saved: Token=$token, UserID=$userId");  // Debug log
+}
 
-  /// Load token from shared preferences
-  Future<void> loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString("jwt_token");
-    notifyListeners();
-  }
 
-  /// Logout and clear token
-  Future<void> logout() async {
+  /// ✅ Load session (Retrieve saved ID & Token)
+  Future<void> loadSession() async {
+  final prefs = await SharedPreferences.getInstance();
+  _token = prefs.getString("jwt_token");
+  _userId = prefs.getString("user_id");
+  notifyListeners();
+  print("🔄 Session loaded: Token=$_token, UserID=$_userId");  // Debug log
+}
+
+
+  /// ✅ Logout and clear session
+  Future<void> logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove("jwt_token");
+    await prefs.remove("user_id");
+
     _token = null;
+    _userId = null;
     notifyListeners();
+
+    // Navigate back to Login page
+    Navigator.pushReplacementNamed(context, "/login");
   }
 
-  /// Helper to toggle the loading state
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
 
-  /// Parse error message from API response
   String _parseError(String responseBody) {
     try {
       final Map<String, dynamic> errorData = jsonDecode(responseBody);
       return errorData["message"] ?? "An unknown error occurred.";
     } catch (e) {
-      debugPrint("Error parsing error message: $e");
       return "An error occurred. Please try again.";
     }
   }

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:projet_pim/ViewModel/user_service.dart'; // Ton service qui gère les appels API
+import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
+import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/ViewModel/login.dart';
+import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:provider/provider.dart'; // Assure-toi d'importer le modèle Carnet
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
-  final String token; // Ajoute un token si l'API nécessite une authentification
+  final String token;
 
   const UserProfileScreen({required this.userId, required this.token, Key? key})
       : super(key: key);
@@ -15,20 +20,33 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
+  List<Carnet> userCarnet = [];
 
   @override
   void initState() {
     super.initState();
     fetchUser();
+
   }
 
   Future<void> fetchUser() async {
     try {
+      // Appel pour récupérer les données utilisateur
       UserService userService = UserService();
       Map<String, dynamic> user =
           await userService.getUserById(widget.userId, widget.token);
+      print('sayeeeeeeeee');
+      print(user);
+      userData = user;
+
+
+      // Appel pour récupérer le carnet de l'utilisateur
+      CarnetService carnetService = CarnetService();
+      List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
+
       setState(() {
         userData = user;
+        userCarnet = carnet; // Met à jour le carnet de l'utilisateur
         isLoading = false;
       });
     } catch (e) {
@@ -44,14 +62,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(160),
+        preferredSize: const Size.fromHeight(180),
         child: ClipRRect(
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(30),
             bottomRight: Radius.circular(30),
           ),
           child: AppBar(
-            backgroundColor: const Color(0xFFDBD9FE),
+            backgroundColor: const Color.fromRGBO(219, 217, 254, 1),
             elevation: 0,
             flexibleSpace: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -59,12 +77,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Transform.translate(
-                    offset: const Offset(0, 20), // Descend la photo de profil
+                    offset: const Offset(0, 20),
                     child: CircleAvatar(
                       radius: 40,
                       backgroundImage: userData?['profilePicture'] != null
                           ? NetworkImage(userData!['profilePicture'])
-                          : const AssetImage('assets/default_avatar.png')
+                          : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
                   ),
@@ -77,11 +95,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                   Text(
-                    userData?['jobTitle'] ?? 'Métier non spécifié',
+                    userData?['bio'] ?? 'bio non spécifié',
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 16,
                     ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.work, // Icône représentant un métier
+                        size: 20, // Taille de l'icône
+                        color: Colors.black54, // Couleur de l'icône
+                      ),
+                      const SizedBox(
+                          width: 4), // Espace entre l'icône et le texte
+                      Text(
+                        userData?['job'] ??
+                            'Métier non spécifié', // Texte du métier
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -104,6 +142,75 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ],
               ),
             ),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Container pour le fond
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 1), // Ajoute du padding autour du contenu
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(
+                          255, 250, 195, 166), // Couleur de fond orange
+                      borderRadius: BorderRadius.circular(
+                          8), // Optionnel : arrondir les coins
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          '💰', // Emoji de coin
+                          style: TextStyle(
+                            fontSize: 20, // Taille de l'emoji
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 0.1),
+                        // Affichage du nombre de coins
+                        Text(
+                          '${userData?['coins'] ?? 0}', // Nombre de coins
+                          style: const TextStyle(
+                            fontSize: 20, // Taille du texte
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFD4F98F), // Couleur verte des coins
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 280),
+                  // Icone des paramètres
+                  IconButton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () async {
+                      final updatedData = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfileScreen(
+                            userData: userData,
+                            userId: widget.userId,
+                            token: widget.token,
+                            name: userData?['name'] ?? '',
+                            job: userData?['job'] ?? '',
+                            location: userData?['location'] ?? '',
+                          ),
+                        ),
+                      );
+
+                      // Si des données sont mises à jour, on met à jour l'état
+                      if (updatedData != null) {
+                        setState(() {
+                          userData = updatedData;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -118,10 +225,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        _StatItem(count: '122', label: 'followers'),
-                        _StatItem(count: '67', label: 'following'),
-                        _StatItem(count: '37K', label: 'likes'),
+                      children: [
+                        _StatItem(
+                          count: (userData?['followers'] is List)
+                              ? userData!['followers'].isNotEmpty
+                                  ? userData!['followers'].length.toString()
+                                  : '0'
+                              : '0',
+                          label: 'Followers',
+                        ),
+                        _StatItem(
+                          count: (userData?['following'] is List)
+                              ? userData!['following'].isNotEmpty
+                                  ? userData!['following'].length.toString()
+                                  : '0'
+                              : '0',
+                          label: 'Following',
+                        ),
+                        _StatItem(
+                          count: userData?['likes']?.toString() ?? '0',
+                          label: 'Likes',
+                        ),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -134,27 +258,35 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // 📌 Section Carnet d’Adresses
+                    // 📌 Section Carnet d’Adresses avec les données du carnet
                     SizedBox(
-                      height: 180, // Hauteur ajustée pour les cartes
-                      child: ListView(
+                      height: 180,
+                      child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        children: const [
-                          AddressCard(
-                            name: 'Maison de Sophie',
-                            location: 'Paris, France',
-                          ),
-                          AddressCard(
-                            name: 'Villa Palm',
-                            location: 'Miami, USA',
-                          ),
-                          AddressCard(
-                            name: 'Penthouse Vue Mer',
-                            location: 'Nice, France',
-                          ),
-                        ],
+                        itemCount: userCarnet.isNotEmpty
+                            ? userCarnet[0].places.length
+                            : 0,
+                        itemBuilder: (context, index) {
+                          return AddressCard(
+                            name: userCarnet[0]
+                                .places[index]
+                                .name, // Access 'name' directly from the Place object
+                            location: userCarnet[0].places[index].latitude !=
+                                        null &&
+                                    userCarnet[0].places[index].longitude !=
+                                        null
+                                ? '${userCarnet[0].places[index].latitude}, ${userCarnet[0].places[index].longitude}'
+                                : 'Location not available', // You can adjust how you display the location
+                          );
+                        },
                       ),
                     ),
+IconButton(
+  icon: Icon(Icons.logout, color: Colors.red),
+  onPressed: () {
+    Provider.of<LoginViewModel>(context, listen: false).logout(context);
+  },
+),
 
                     const SizedBox(height: 32),
                     const Text(
@@ -170,43 +302,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFF3C7F9),
-              Color(0xFFFE9332),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people),
-              label: 'Friends',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.location_on),
-              label: 'Places',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.more_horiz),
-              label: 'More',
-            ),
-          ],
-        ),
-      ),
+            
     );
   }
 }
@@ -229,15 +325,14 @@ class AddressCard extends StatelessWidget {
       curve: Curves.easeInOut,
       margin: const EdgeInsets.only(right: 12),
       width: 150,
-      height: 100, // Taille ajustée pour un bon rendu
+      height: 100,
       decoration: BoxDecoration(
-        color: const Color.fromARGB(197, 248, 196, 255), // Couleur de fond unie
+        color: const Color.fromARGB(197, 248, 196, 255),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Nom en haut
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -250,8 +345,6 @@ class AddressCard extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-
-          // Lieu en bas
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Row(
@@ -274,7 +367,6 @@ class AddressCard extends StatelessWidget {
   }
 }
 
-// 📌 Widget des stats (followers, likes, etc.)
 class _StatItem extends StatelessWidget {
   final String count;
   final String label;
@@ -303,7 +395,6 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-// 📌 Widget pour la publication
 class _PublicationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

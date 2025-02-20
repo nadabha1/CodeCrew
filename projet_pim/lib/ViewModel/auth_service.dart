@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  final String baseUrl = 'http://10.0.2.2:3000/auth'; // Replace with your backend URL
-
+  //final String baseUrl ='http://localhost:3000/auth'; // Replace with your backend URL
+final String baseUrl =
+      "http://10.0.2.2:3000/auth"; 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/login'),
@@ -18,22 +19,21 @@ class AuthService {
     }
   }
 
-Future<String> forgotPassword(String email) async {
-  final response = await http.post(
-    Uri.parse('$baseUrl/forgot-password'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'email': email}),
-  );
+  Future<String> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
 
-  if (response.statusCode == 201 || response.statusCode == 200) {
-    return jsonDecode(response.body)['message'] ?? 'OTP sent successfully';
-  } else {
-    final errorResponse = jsonDecode(response.body);
-    final errorMessage = errorResponse['error'] ?? 'Failed to send OTP';
-    throw Exception(errorMessage);
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return jsonDecode(response.body)['message'] ?? 'OTP sent successfully';
+    } else {
+      final errorResponse = jsonDecode(response.body);
+      final errorMessage = errorResponse['error'] ?? 'Failed to send OTP';
+      throw Exception(errorMessage);
+    }
   }
-}
-
 
   Future<String> verifyOtp(String email, String otp) async {
     final response = await http.post(
@@ -50,23 +50,23 @@ Future<String> forgotPassword(String email) async {
     }
   }
 
-  Future<String> resetPasswordWithOtp(String email, String otp, String newPassword) async {
-  final response = await http.post(
-    Uri.parse('$baseUrl/reset-password-with-otp'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'email': email,
-      'otp': otp,
-      'password': newPassword,
-    }),
-  );
+  Future<String> resetPasswordWithOtp(
+      String email, String otp, String newPassword) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/reset-password-with-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'otp': otp,
+        'password': newPassword,
+      }),
+    );
 
-  if (response.statusCode == 201) {
-    final data = jsonDecode(response.body);
-    return data['message'];
-  } else {
-    throw Exception('Failed to reset password: ${response.body}');
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data['message'];
+    } else {
+      throw Exception('Failed to reset password: ${response.body}');
+    }
   }
-}
-
 }
