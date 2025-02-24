@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Providers/auth_provider.dart';
+import '../Providers/UserPreferences.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -8,41 +10,34 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController nameController     = TextEditingController();
+  final TextEditingController emailController    = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
-  bool _isPasswordObscured = true;
-  bool _isConfirmPasswordObscured = true;
+  bool _isPasswordObscured         = true;
+  bool _isConfirmPasswordObscured  = true;
+  bool _isVerificationPending      = false;
+  Timer? _verificationTimer;
 
   void _registerUser(BuildContext context) async {
-    // Check if any field is empty
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Please fill all the fields!",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("Veuillez remplir tous les champs!", style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // Check if passwords match
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Passwords do not match!",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("Les mots de passe ne correspondent pas!", style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
@@ -51,9 +46,10 @@ class _SignUpPageState extends State<SignUpPage> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+    // Affichage d'un SnackBar temporaire pendant le traitement
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Processing your request..."),
+        content: Text("Traitement de votre demande..."),
         duration: Duration(seconds: 2),
       ),
     );
@@ -62,36 +58,96 @@ class _SignUpPageState extends State<SignUpPage> {
       nameController.text,
       emailController.text,
       passwordController.text,
+      Provider.of<UserPreferences>(context, listen: false),
     );
 
     ScaffoldMessenger.of(context).clearSnackBars();
 
     if (success) {
+      setState(() {
+        _isVerificationPending = true;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Signup successful!",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("Inscription réussie! Veuillez vérifier votre email.", style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
       );
-
-      // Delay navigation to avoid context issues
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.pushReplacementNamed(context, "/login");
-      });
+      _startVerificationCheck();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Signup failed. Please try again!",
-            style: TextStyle(color: Colors.white),
-          ),
+          content: Text("L'inscription a échoué. Veuillez réessayer.", style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
     }
+  }
+
+  // Démarrer la vérification périodique de l'email toutes les 5 secondes
+  void _startVerificationCheck() {
+    _verificationTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
+      await _checkVerificationStatus();
+    });
+  }
+
+  // Vérifier le statut de vérification de l'email
+  Future<void> _checkVerificationStatus() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    bool isVerified = await authProvider.checkUserVerification(emailController.text);
+    if (isVerified) {
+      _verificationTimer?.cancel();
+      setState(() {
+        _isVerificationPending = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Email vérifié avec succès!", style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Future.delayed(Duration(seconds: 1), () {
+        Navigator.pushReplacementNamed(context, "/gender-selection");
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _verificationTimer?.cancel();
+    super.dispose();
+  }
+
+  // Méthode de décoration pour les champs de saisie
+  InputDecoration _buildInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey),
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
+  // Décoration spécifique pour les champs mot de passe avec bouton de visibilité
+  InputDecoration _buildPasswordDecoration(String label, bool isObscured, VoidCallback toggleVisibility) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey),
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      suffixIcon: IconButton(
+        icon: Icon(isObscured ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+        onPressed: toggleVisibility,
+      ),
+    );
   }
 
   @override
@@ -100,7 +156,7 @@ class _SignUpPageState extends State<SignUpPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background with purple and pink shapes
+          // Formes de fond
           Positioned(
             top: -100,
             left: -100,
@@ -108,7 +164,7 @@ class _SignUpPageState extends State<SignUpPage> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: Color(0xFFE8EAF6), // Light purple
+                color: Color(0xFFE8EAF6), // Violet clair
                 shape: BoxShape.circle,
               ),
             ),
@@ -120,7 +176,7 @@ class _SignUpPageState extends State<SignUpPage> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: Color(0xFFF8BBD0), // Light pink
+                color: Color(0xFFF8BBD0), // Rose clair
                 shape: BoxShape.circle,
               ),
             ),
@@ -132,7 +188,7 @@ class _SignUpPageState extends State<SignUpPage> {
               children: [
                 SizedBox(height: 80),
                 Text(
-                  "Create\nAccount",
+                  "Créer\nCompte",
                   style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
@@ -142,119 +198,66 @@ class _SignUpPageState extends State<SignUpPage> {
                 SizedBox(height: 40),
                 TextField(
                   controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: "Name",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+                  decoration: _buildInputDecoration("Nom"),
                 ),
                 SizedBox(height: 20),
                 TextField(
                   controller: emailController,
-                  decoration: InputDecoration(
-                    labelText: "Email",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+                  decoration: _buildInputDecoration("Email"),
                   keyboardType: TextInputType.emailAddress,
                 ),
                 SizedBox(height: 20),
                 TextField(
                   controller: passwordController,
                   obscureText: _isPasswordObscured,
-                  decoration: InputDecoration(
-                    labelText: "Password",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordObscured
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordObscured = !_isPasswordObscured;
-                        });
-                      },
-                    ),
-                  ),
+                  decoration: _buildPasswordDecoration("Mot de passe", _isPasswordObscured, () {
+                    setState(() {
+                      _isPasswordObscured = !_isPasswordObscured;
+                    });
+                  }),
                 ),
                 SizedBox(height: 20),
                 TextField(
                   controller: confirmPasswordController,
                   obscureText: _isConfirmPasswordObscured,
-                  decoration: InputDecoration(
-                    labelText: "Confirm Password",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isConfirmPasswordObscured
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isConfirmPasswordObscured =
-                              !_isConfirmPasswordObscured;
-                        });
-                      },
-                    ),
-                  ),
+                  decoration: _buildPasswordDecoration("Confirmer le mot de passe", _isConfirmPasswordObscured, () {
+                    setState(() {
+                      _isConfirmPasswordObscured = !_isConfirmPasswordObscured;
+                    });
+                  }),
                 ),
                 SizedBox(height: 40),
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    return authProvider.isLoading
-                        ? Center(child: CircularProgressIndicator())
-                        : ElevatedButton(
-                            onPressed: () => _registerUser(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Color(0xFF2C2C54), // Navy blue button color
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              textStyle: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                _isVerificationPending
+                    ? Center(
+                        child: Column(
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 10),
+                            Text(
+                              "Veuillez vérifier votre email pour continuer",
+                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                             ),
-                            child: Center(child: Text("Done")),
-                          );
-                  },
-                ),
+                          ],
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () => _registerUser(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF2C2C54), // Bouton bleu marine
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        child: Center(child: Text("S'inscrire")),
+                      ),
+                SizedBox(height: 20),
                 Center(
                   child: GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacementNamed(context, "/login"); // Navigate to Login
-                    },
+                    onTap: () => Navigator.pushReplacementNamed(context, "/login"),
                     child: Text(
-                      "Already have an account? Login",
+                      "Vous avez déjà un compte ? Connectez-vous",
                       style: TextStyle(
                         color: Colors.blue,
                         fontSize: 16,
