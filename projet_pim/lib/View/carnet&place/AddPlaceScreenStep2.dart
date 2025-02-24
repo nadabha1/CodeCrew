@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:projet_pim/View/main_screen.dart';
 import 'package:provider/provider.dart';
 import '../../Providers/carnet_provider.dart';
 
@@ -194,27 +193,18 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-  final carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
-  await carnetProvider.addPlaceToCarnet(
-    widget.carnetId,
-    widget.placeName,
-    _descriptionController.text,
-    _selectedCategories,
-    _cost,
-    _images,
-    context,
-    "userId_value", // 🔥 Replace with actual userId from session
-    "token_value",
-  );
-
-  // ✅ Instead of pop, navigate to MainScreen safely
-  Navigator.pushAndRemoveUntil(
-    context,
-    MaterialPageRoute(builder: (context) => MainScreen()),
-    (route) => false, // Remove all previous routes
-  );
-},
-
+                    final carnetProvider =
+                        Provider.of<CarnetProvider>(context, listen: false);
+                    await carnetProvider.addPlaceToCarnet(
+                      widget.carnetId,
+                      widget.placeName,
+                      _descriptionController.text,
+                      _selectedCategories,
+                      _cost,
+                      _images,
+                    );
+                    Navigator.pop(context);
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(

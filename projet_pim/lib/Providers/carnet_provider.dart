@@ -45,51 +45,37 @@ class CarnetProvider with ChangeNotifier {
   }
 
   // Add a new place to an existing carnet
-  // Add a new place to an existing carnet
-Future<void> addPlaceToCarnet(
-  String carnetId,
-  String name,
-  String description,
-  List<String> categories,
-  int cost,
-  List<String> images,
-  BuildContext context, // ✅ Pass the context to navigate back
-  String userId,  // ✅ Ensure userId is passed
-  String token,   // ✅ Ensure token is passed
-) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/carnets/$carnetId/places'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': name,
-        'description': description,
-        'categories': categories,
-        'unlockCost': cost,
-        'images': images,
-      }),
-    );
+  Future<void> addPlaceToCarnet(
+    String carnetId,
+    String name,
+    String description,
+    List<String> categories,
+    int cost,
+    List<String> images,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/carnets/$carnetId/places'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'description': description,
+          'categories': categories,
+          'unlockCost': cost,
+          'images': images,
+        }),
+      );
 
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      await fetchCarnets(); // ✅ Refresh the list
-
-      // ✅ Navigate back to MainScreen with the correct userId and token
-      Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainScreen(),
-            ),
-          );
-    } else {
-      throw Exception("Failed to add place: ${response.body}");
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        fetchCarnets(); // Refresh the list
+      } else {
+        throw Exception("Failed to add place: ${response.body}");
+      }
+    } catch (e) {
+      print("Error in addPlaceToCarnet: $e");
+      throw Exception("Failed to add place");
     }
-  } catch (e) {
-    print("Error in addPlaceToCarnet: $e");
-    throw Exception("Failed to add place");
   }
-}
-
-
 
   // Store the user's carnet data
   Map<String, dynamic>? _userCarnet;

@@ -79,6 +79,7 @@ Future<void> fetchFollowerData() async {
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
+
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
@@ -279,6 +280,31 @@ Future<void> fetchFollowerData() async {
   ],
 ),
 
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _StatItem(
+                          count: (userData?['followers'] is List)
+                              ? userData!['followers'].isNotEmpty
+                                  ? userData!['followers'].length.toString()
+                                  : '0'
+                              : '0',
+                          label: 'Followers',
+                        ),
+                        _StatItem(
+                          count: (userData?['following'] is List)
+                              ? userData!['following'].isNotEmpty
+                                  ? userData!['following'].length.toString()
+                                  : '0'
+                              : '0',
+                          label: 'Following',
+                        ),
+                        _StatItem(
+                          count: userData?['likes']?.toString() ?? '0',
+                          label: 'Likes',
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 32),
                     const Text(
                       'Carnet d’adresses',

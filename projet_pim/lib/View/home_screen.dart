@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
+import '../Providers/carnet_provider.dart';
+import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
+import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -13,14 +18,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> users = [];
   bool isLoading = true;
+  CarnetProvider? provider;
 
   @override
   void initState() {
     super.initState();
     fetchUsers();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reloadData());
   }
 
-  // ✅ Fetch users excluding the current user
+  void _reloadData() async {
+    if (provider != null) {
+      await provider!.fetchCarnetsExcludingUser(widget.userId);
+      await provider!.fetchUnlockedPlaces(widget.userId);
+      if (mounted) setState(() {});
+    }
+  }
+
   Future<void> fetchUsers() async {
     try {
       UserService userService = UserService();
@@ -37,114 +51,168 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    provider ??= Provider.of<CarnetProvider>(context, listen: true);
+    final otherCarnets =
+        provider!.carnets.where((c) => c.owner != widget.userId).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4FC),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
-            // 🔹 HEADER SECTION
-            Padding(
-              padding: EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Hello, Traveler! 👋",
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 5),
-                      Text("Find people who share your interests"),
-                    ],
-                  ),
-                  CircleAvatar(
-                    backgroundImage: AssetImage('assets/default_profile.png'),
-                    radius: 24,
-                  ),
-                ],
-              ),
-            ),
-
-            // 🔹 TRAVELER CATEGORIES (Horizontal Scroll)
-            Container(
-              height: 40,
-              margin: EdgeInsets.symmetric(horizontal: 20),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _categoryChip("Photographers"),
-                  _categoryChip("Hikers"),
-                  _categoryChip("Foodies"),
-                  _categoryChip("Solo Travelers"),
-                  _categoryChip("Backpackers"),
-                ],
-              ),
-            ),
-            SizedBox(height: 10),
-
-            // 🔹 DISCOVER TRAVELERS TITLE
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                "Find Your Similar Traveler",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            SizedBox(height: 10),
-
-            // 🔹 USERS LIST (Traveler Cards)
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : users.isEmpty
-                      ? Center(child: Text("No travelers found"))
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 15),
-                          itemCount: users.length,
-                          itemBuilder: (context, index) {
-                            final user = users[index];
-                            return GestureDetector(
-                              onTap: () {
-                                print(user['_id']);
-                                // ✅ Navigate to user's profile
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TravelerProfileScreen(
-                                      travelerId: user['_id']   ,
-                                      loggedInUserId: this.widget.userId,                                 ),
-                                  ),
-                                );
-                              },
-                              child: _userCard(user),
-                            );
-                          },
-                        ),
-            ),
+            _buildHeader(),
+            _buildTravelerSection(),
+            _buildCarnetSection(otherCarnets),
           ],
         ),
       ),
-    );
-  }
-
-  // 🔹 Traveler Category Chip
-  Widget _categoryChip(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Chip(
-        label: Text(label),
-        backgroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(horizontal: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFD4F98F),
+        child: Icon(Icons.add),
+        onPressed: _handleFloatingButton,
       ),
     );
   }
 
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Color(0xFFDBD9FE),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Hello, Traveler! 👋", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              SizedBox(height: 5),
+              Text("Find people & explore new places!"),
+            ],
+          ),
+          CircleAvatar(
+            backgroundImage: AssetImage('assets/default_profile.png'),
+            radius: 24,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTravelerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.all(20),
+          child: Text("Find Your Similar Traveler", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        ),
+        isLoading
+            ? Center(child: CircularProgressIndicator())
+            : users.isEmpty
+                ? Center(child: Text("No travelers found"))
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      final user = users[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TravelerProfileScreen(
+                                travelerId: user['_id'],
+                                loggedInUserId: widget.userId,
+                              ),
+                            ),
+                          );
+                        },
+                        child: _userCard(user),
+                      );
+                    },
+                  ),
+      ],
+    );
+  }
+
+  Widget _buildCarnetSection(List<dynamic> otherCarnets) {
+    return Padding(
+      padding: EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Explore Nearby Carnets", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
+          otherCarnets.isEmpty
+              ? Center(child: Text("No carnets available"))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: otherCarnets.length,
+                  itemBuilder: (context, index) {
+                    final carnet = otherCarnets[index];
+                    return Card(
+                      margin: EdgeInsets.symmetric(vertical: 10),
+                      child: ExpansionTile(
+                        title: Text(carnet.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        children: carnet.places.map<Widget>((place) {
+                          bool isUnlocked = provider!.isPlaceUnlocked(place.id);
+                          return ListTile(
+                            title: Text(place.name),
+                            subtitle: Text(place.description),
+                            leading: Icon(
+                              isUnlocked ? Icons.lock_open : Icons.lock,
+                              color: isUnlocked ? Colors.green : Colors.red,
+                            ),
+                            onTap: isUnlocked
+                                ? () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PlaceDetailsScreen(place: place),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+
+  void _handleFloatingButton() async {
+    await provider!.checkUserCarnet(widget.userId);
+    if (provider!.userCarnet == null || !provider!.userCarnet!['hasCarnet']) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreateCarnetScreen(userId: widget.userId),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddPlaceScreenStep1(
+            carnetId: provider!.userCarnet!['carnet']['_id'],
+          ),
+        ),
+      );
+    }
+  }
+  
   // 🔹 User Traveler Card (Styled like TripGlide)
   Widget _userCard(Map<String, dynamic> user) {
     return Card(

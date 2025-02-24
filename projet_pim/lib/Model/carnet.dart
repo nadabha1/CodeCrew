@@ -23,6 +23,8 @@ class Place {
     return Place(
       id: json['_id'],
       name: json['name'],
+      latitude: json['latitude'],
+      longitude: json['longitude'],
       description: json['description'],
       categories: List<String>.from(json['categories']),
       unlockCost: json['unlockCost'],
@@ -45,16 +47,14 @@ class Carnet {
   });
 
   factory Carnet.fromJson(Map<String, dynamic> json) {
-  var placesList = (json['places'] as List)
-      .map((i) => Place.fromJson(i))
-      .toList();
+    var placesList =
+        (json['places'] as List).map((i) => Place.fromJson(i)).toList();
 
-  return Carnet(
-    id: json['_id'],
-    title: json['title'],
-      owner: json['owner'] ?? "",  // 🔥 Ensure owner is never null
-    places: placesList,
-  );
-}
-
+    return Carnet(
+      id: json['_id'],
+      title: json['title'],
+      owner: json['owner'],
+      places: placesList,
+    );
+  }
 }

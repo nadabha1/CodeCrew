@@ -3,13 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
 
 class CarnetService {
-  //final String baseUrl = 'http://localhost:3000/carnets';
-final String baseUrl =
-      "http://10.0.2.2:3000/carnets"; 
+  final String baseUrl = 'http://localhost:3000/carnets';
+
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
-          await http.get(Uri.parse('http://10.0.2.2:3000/carnets'));
+          await http.get(Uri.parse('http://localhost:3000/carnets'));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -40,31 +39,38 @@ final String baseUrl =
     }
   }
 
-Future<dynamic> getUserCarnet(String userId) async {
-  try {
-    final response = await http.get(
-      Uri.parse("$baseUrl/user/$userId"),
-    ).timeout(const Duration(seconds: 10));
+  /* Future<void> unlockPlace(
+      String carnetId, int placeIndex, String userId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/$carnetId/unlock'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'placeIndex': placeIndex,
+      }),
+    );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      var data = json.decode(response.body);
-
-      // 🔥 Fix: Ensure always returning a List
-      if (data is List) {
-        return data; // Return as a list
-      } else if (data is Map<String, dynamic>) {
-        return [data]; // Convert single object to a list
-      } else {
-        throw Exception("Unexpected API response format: $data");
-      }
-    } else {
-      throw Exception("Error ${response.statusCode}: ${response.body}");
+    if (response.statusCode != 200) {
+      throw Exception('Failed to unlock place');
     }
-  } catch (e) {
-    return {'error': 'Failed to fetch user carnet: $e'};
-  }
-}
+  }*/
 
+  Future<List<Carnet>> getUserCarnet(String userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        // Si un carnet existe pour l'utilisateur, on le retourne sous forme de liste
+        return [Carnet.fromJson(data)];
+      } else {
+        throw Exception('Failed to load carnet: ${response.body}');
+      }
+    } catch (e) {
+      print("Error in getUserCarnet: $e");
+      throw Exception('Network error: Unable to fetch user carnet.');
+    }
+  }
 
   Future<void> unlockPlace(String userId, String placeId) async {
     try {

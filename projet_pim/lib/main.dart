@@ -29,8 +29,11 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
-        ChangeNotifierProvider<LoginViewModel>(create: (_) => LoginViewModel()..loadSession()),
-        ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),  
+        ChangeNotifierProvider<LoginViewModel>(
+            create: (_) => LoginViewModel()..loadSession()),
+        ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
+        ChangeNotifierProvider<UserProvider>(
+            create: (_) => UserProvider()), // Add UserProvider here
       ],
       child: MyApp(userId: userId, token: token),
     ),
@@ -41,7 +44,7 @@ class MyApp extends StatelessWidget {
   final String? userId;
   final String? token;
 
-  const MyApp({super.key, this.userId, this.token});
+  const MyApp({Key? key, this.userId, this.token}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +53,10 @@ class MyApp extends StatelessWidget {
       title: "Flutter App",
       theme: ThemeData(primarySwatch: Colors.blue),
       home: userId != null && token != null
-          ? MainScreen()  // ✅ If session exists, go to MainScreen
+          ? MainScreen() // ✅ If session exists, go to MainScreen
           : LoginView(), // Otherwise, show login screen
       routes: {
-       '/home': (context) => HomeScreen(userId: userId!),
+        '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
         '/signup': (context) => SignUpPage(),
         '/gender-selection': (context) => GenderSelectionPage(),
         '/activity-selection': (context) => ActivitySelectionPage(),
@@ -71,6 +74,5 @@ class MyApp extends StatelessWidget {
         '/add-place': (context) => AddPlaceScreen(carnetId: ''), // ✅ New Route
       },
     );
-    
   }
 }

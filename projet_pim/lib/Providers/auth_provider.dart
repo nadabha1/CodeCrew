@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/user_model.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
@@ -19,9 +18,10 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
 
   bool get isLoading => _isLoading;
-  //final String baseUrl = "http://localhost:3000/auth"; // Remplace par ton URL de base
  final String baseUrl =
       "http://10.0.2.2:3000/auth"; // Remplace par ton URL de base
+//  final String baseUrl ="http://localhost:3000/auth"; // Remplace par ton URL de base
+
   /// Handles user login
   Future<void> login(String email, String password) async {
     try {
