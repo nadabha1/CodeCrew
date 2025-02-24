@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final String baseUrl =
@@ -67,6 +68,30 @@ class AuthService {
       return data['message'];
     } else {
       throw Exception('Failed to reset password: ${response.body}');
+    }
+  }
+
+  /// Interceptor pour récupérer automatiquement le token
+  Future<Map<String, dynamic>> _post(
+      String endpoint, Map<String, dynamic> body) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token'); // Récupération dynamique du token
+
+    final response = await http.post(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null)
+          'Authorization': 'Bearer $token', // Ajout du token ici
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body)['error'] ?? 'Request failed';
+      throw Exception(error);
     }
   }
 }

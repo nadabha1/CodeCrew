@@ -13,6 +13,7 @@ class User {
   final List<String> followers;
   final List<String> following;
   final int likes;
+  final int coins;
 
   User({
     required this.id,
@@ -29,6 +30,7 @@ class User {
     required this.followers,
     required this.following,
     required this.likes,
+    required this.coins,
   });
 
   // Factory method to create a User instance from JSON
@@ -52,6 +54,7 @@ class User {
           json['followers'] ?? []), // Assure une liste vide si null
       following: List<String>.from(json['following'] ?? []),
       likes: json['likes'] as int? ?? 0, // Si null, met 0
+      coins: json['likes'] as int? ?? 0, // Si null, met 0
     );
   }
 
@@ -72,6 +75,7 @@ class User {
       'followers': followers,
       'following': following,
       'likes': likes,
+      'coins': coins,
     };
   }
 }

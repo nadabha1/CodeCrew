@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+<key>LSApplicationQueriesSchemes</key>
+<array>
+   <string>http</string>
+  <string>https</string>
+  <string>tel</string>
+  <string>sms</string>
+  <string>mailto</string>
+  <string>googlemaps</string>
+</array>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Your message about location usage</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Your message about location usage</string>
+
 </dict>
 </plist>

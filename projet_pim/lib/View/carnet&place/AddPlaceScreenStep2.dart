@@ -6,11 +6,15 @@ class AddPlaceScreenStep2 extends StatefulWidget {
   final String carnetId;
   final String placeName;
   final String placeAddress;
+  final double latitude;
+  final double longitude;
 
   AddPlaceScreenStep2({
     required this.carnetId,
     required this.placeName,
     required this.placeAddress,
+    required this.latitude,
+    required this.longitude,
   });
 
   @override
@@ -23,7 +27,6 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   List<String> _selectedCategories = [];
   List<String> _images = [];
 
-  // Categories with Icons & Custom Colors
   final List<Map<String, dynamic>> categories = [
     {'icon': Icons.restaurant, 'name': 'Food', 'color': Colors.red},
     {'icon': Icons.shopping_bag, 'name': 'Shopping', 'color': Colors.blue},
@@ -50,8 +53,6 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 40),
-
-            // 📌 Display Selected Place
             Text(
               widget.placeName,
               style: TextStyle(
@@ -64,17 +65,13 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             SizedBox(height: 20),
-
-            // 📌 Categories Section
             Text(
               "Categories of the address",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
-
-            // 🏷 Scrollable Categories Selection with Icons & Custom Colors
             Container(
-              height: 80, // Increased height for better spacing
+              height: 80,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -90,8 +87,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                             size: 20),
                         label: Text(category['name']),
                         selected: isSelected,
-                        selectedColor:
-                            category['color'], // Custom category color
+                        selectedColor: category['color'],
                         backgroundColor: Colors.white,
                         labelStyle: TextStyle(
                             color: isSelected ? Colors.white : Colors.black),
@@ -110,10 +106,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                 ),
               ),
             ),
-
             SizedBox(height: 20),
-
-            // 📝 Description Input
             TextField(
               controller: _descriptionController,
               decoration: InputDecoration(
@@ -126,8 +119,6 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               maxLines: 3,
             ),
             SizedBox(height: 20),
-
-            // 💰 Unlock Cost
             Text(
               "Price to unlock: $_cost Coins",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -146,8 +137,6 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               },
             ),
             SizedBox(height: 20),
-
-            // 📷 Image Upload Section
             Text("Add photos",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
@@ -163,21 +152,9 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   ),
                   child: Icon(Icons.add, size: 30, color: Colors.grey),
                 ),
-                SizedBox(width: 10),
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                ),
               ],
             ),
             SizedBox(height: 20),
-
-            // 🔙 Previous Button | ✅ Finish Button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -202,6 +179,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                       _selectedCategories,
                       _cost,
                       _images,
+                      widget.latitude,
+                      widget.longitude,
                     );
                     Navigator.pop(context);
                   },

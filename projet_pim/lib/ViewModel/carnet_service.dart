@@ -61,14 +61,24 @@ class CarnetService {
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
-        // Si un carnet existe pour l'utilisateur, on le retourne sous forme de liste
+
+        // Vérifier si la réponse contient des carnets
+        if (data == null || (data is List && data.isEmpty)) {
+          // Si la liste est vide ou si les carnets n'existent pas, retourner une liste vide
+          return [];
+        }
+
+        // Sinon, créer et retourner les carnets
         return [Carnet.fromJson(data)];
       } else {
-        throw Exception('Failed to load carnet: ${response.body}');
+        // Afficher un message dans la console mais ne pas lancer une exception
+        print('Failed to load carnet: ${response.body}');
+        return [];
       }
     } catch (e) {
+      // Afficher l'erreur dans la console mais ne pas lancer d'exception
       print("Error in getUserCarnet: $e");
-      throw Exception('Network error: Unable to fetch user carnet.');
+      return [];
     }
   }
 
@@ -109,6 +119,24 @@ class CarnetService {
     } catch (e) {
       print("Erreur dans getUnlockedPlaces: $e");
       throw Exception('Erreur réseau : impossible de récupérer les places.');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllPlacesFromCarnets() async {
+    try {
+      List<dynamic> carnets = await getAllCarnets();
+
+      // Extraire toutes les places des carnets
+      List<Map<String, dynamic>> allPlaces = [];
+      for (var carnet in carnets) {
+        if (carnet['places'] != null) {
+          allPlaces.addAll(List<Map<String, dynamic>>.from(carnet['places']));
+        }
+      }
+      return allPlaces;
+    } catch (e) {
+      print("Error in getAllPlacesFromCarnets: $e");
+      throw Exception('Network error: Unable to fetch all places.');
     }
   }
 }

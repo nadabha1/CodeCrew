@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:provider/provider.dart';
 import '../Providers/carnet_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -76,6 +78,57 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  void _showConfirmUnlockDialog(String placeName, int placePrice, place) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Payment Confirmation"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Do you want to unlock '$placeName'?"),
+              SizedBox(height: 10),
+              Text("Price to unlock: $placePrice coins"),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Close the dialog
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+                // Proceed to unlock the place
+                try {
+                  await provider!.unlockPlace(
+                      widget.userId, place.id); // Use the instance method
+                  _showUnlockDialog(placeName);
+                  _reloadData();
+                } catch (e) {
+                  _showErrorDialog(e.toString());
+                }
+              },
+              child: Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openInGoogleMaps(double latitude, double longitude) async {
+    final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   @override
@@ -184,18 +237,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                             onPressed: isUnlocked
                                                 ? null
                                                 : () async {
-                                                    try {
-                                                      await carnetProvider
-                                                          .unlockPlace(
-                                                              widget.userId,
-                                                              place.id);
-                                                      _showUnlockDialog(
-                                                          place.name);
-                                                      _reloadData();
-                                                    } catch (e) {
-                                                      _showErrorDialog(
-                                                          e.toString());
-                                                    }
+                                                    _showConfirmUnlockDialog(
+                                                        place.name,
+                                                        place.unlockCost,
+                                                        place); // Pass the place
                                                   },
                                             child: Text(
                                               "Unlock (5 coins)",
@@ -221,6 +266,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   );
                                                 }
                                               : null,
+                                          onLongPress: () {
+                                            // Open place in Google Maps on long press
+                                            if (place.latitude != null &&
+                                                place.longitude != null) {
+                                              _openInGoogleMaps(place.latitude!,
+                                                  place.longitude!);
+                                            }
+                                          },
                                         );
                                       }).toList(),
                                     ),

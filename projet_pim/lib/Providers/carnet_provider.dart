@@ -7,10 +7,14 @@ import 'package:http/http.dart' as http;
 class CarnetProvider with ChangeNotifier {
   final CarnetService _carnetService = CarnetService();
   List<Carnet> _carnets = [];
+  List<Map<String, dynamic>> _places = [];
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   List<Carnet> get carnets => _carnets;
+  List<Map<String, dynamic>> get places => _places;
+
   final String baseUrl = 'http://localhost:3000'; // Backend URL
 
   // Fetch all carnets
@@ -49,6 +53,8 @@ class CarnetProvider with ChangeNotifier {
     List<String> categories,
     int cost,
     List<String> images,
+    double latitude,
+    double longitude,
   ) async {
     try {
       final response = await http.post(
@@ -60,6 +66,8 @@ class CarnetProvider with ChangeNotifier {
           'categories': categories,
           'unlockCost': cost,
           'images': images,
+          "latitude": latitude,
+          "longitude": longitude,
         }),
       );
 
@@ -195,5 +203,20 @@ class CarnetProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners(); // Notify UI to update
+  }
+
+  Future<void> fetchAllPlaces() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _places = await _carnetService.getAllPlacesFromCarnets();
+      print("Places récupérées : $_places");
+    } catch (e) {
+      print("Erreur lors de la récupération des places : $e");
+    }
+
+    _isLoading = false;
+    notifyListeners();
   }
 }
