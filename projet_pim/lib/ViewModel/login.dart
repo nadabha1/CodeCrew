@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/View/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:projet_pim/View/main_screen.dart';
@@ -107,8 +108,11 @@ class LoginViewModel extends ChangeNotifier {
     _userId = null;
     notifyListeners();
 
-    // Navigate back to Login page
-    Navigator.pushReplacementNamed(context, "/login");
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginView()),
+      (Route<dynamic> route) => false, // Remove all previous routes
+    );
   }
 
   void _setLoading(bool value) {

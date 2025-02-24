@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/theme_provider.dart';
 import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
 import 'package:projet_pim/View/UserPreferences/FinalConfirmationPage.dart';
@@ -25,6 +26,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString("jwt_token");
   String? userId = prefs.getString("user_id");
+  bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
 
   runApp(
     MultiProvider(
@@ -35,6 +37,8 @@ void main() async {
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
         ChangeNotifierProvider<UserProvider>(
             create: (_) => UserProvider()), // Add UserProvider here
+        ChangeNotifierProvider<ThemeProvider>(
+            create: (_) => ThemeProvider(isDarkMode)),
       ],
       child: MyApp(userId: userId, token: token),
     ),
@@ -49,31 +53,37 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Flutter App",
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: userId != null && token != null
-          ? MainScreen() // ✅ If session exists, go to MainScreen
-          : LoginView(), // Otherwise, show login screen
-      routes: {
-        '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
-        '/signup': (context) => SignUpPage(),
-        '/gender-selection': (context) => GenderSelectionPage(),
-        '/activity-selection': (context) => ActivitySelectionPage(),
-        '/event-preference': (context) => EventPreferencePage(),
-        '/social-interaction': (context) => SocialInteractionPage(),
-        '/preferred-event-time': (context) => PreferredEventTimePage(),
-        '/final-confirmation': (context) => FinalConfirmationPage(),
-        '/forgot-password': (context) => ForgotPasswordScreen(),
-        '/reset-password': (context) => ResetPasswordScreen(email: ''),
-        '/login': (context) => LoginView(),
-        '/profile': (context) => const UserProfileScreen(
-              userId: 'exampleId',
-              token: 'exampleToken',
-            ),
-        '/add-place': (context) => AddPlaceScreen(carnetId: ''), // ✅ New Route
-      },
-    );
+    return Consumer<ThemeProvider>(builder: (context, ThemeProvider, child) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: "Flutter App",
+        theme: ThemeData.light(),
+        darkTheme: ThemeData.dark(),
+        themeMode: ThemeProvider.themeMode,
+        // theme: ThemeData(primarySwatch: Colors.blue),
+        home: userId != null && token != null
+            ? MainScreen() // ✅ If session exists, go to MainScreen
+            : LoginView(), // Otherwise, show login screen
+        routes: {
+          '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
+          '/signup': (context) => SignUpPage(),
+          '/gender-selection': (context) => GenderSelectionPage(),
+          '/activity-selection': (context) => ActivitySelectionPage(),
+          '/event-preference': (context) => EventPreferencePage(),
+          '/social-interaction': (context) => SocialInteractionPage(),
+          '/preferred-event-time': (context) => PreferredEventTimePage(),
+          '/final-confirmation': (context) => FinalConfirmationPage(),
+          '/forgot-password': (context) => ForgotPasswordScreen(),
+          '/reset-password': (context) => ResetPasswordScreen(email: ''),
+          '/login': (context) => LoginView(),
+          '/profile': (context) => const UserProfileScreen(
+                userId: 'exampleId',
+                token: 'exampleToken',
+              ),
+          '/add-place': (context) =>
+              AddPlaceScreen(carnetId: ''), // ✅ New Route
+        },
+      );
+    });
   }
 }

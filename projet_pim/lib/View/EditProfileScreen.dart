@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:io'; // Pour gérer les fichiers
-import 'package:flutter/foundation.dart' as Foundation;
+import 'dart:io';
+import 'package:projet_pim/ViewModel/user_service.dart'; // Import the UserService
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String userId;
@@ -37,6 +38,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _profileImage;
 
   final ImagePicker _picker = ImagePicker();
+  final UserService userService = UserService(); // ✅ UserService Instance
 
   @override
   void initState() {
@@ -50,10 +52,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      // Sur iOS, on enregistre dans le répertoire des documents de l'application
       final directory = await getApplicationDocumentsDirectory();
       final newPath = '${directory.path}/${pickedFile.name}';
-
       final newImage = await File(pickedFile.path).copy(newPath);
 
       setState(() {
@@ -64,28 +64,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _updateProfile() async {
-    if (nameController.text.isEmpty ||
-        jobController.text.isEmpty ||
-        locationController.text.isEmpty ||
-        bioController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs.')),
-      );
-      return;
-    }
-
+  /// ✅ **Send Updated Data to API**
+  void _updateProfile() async {
     setState(() => isLoading = true);
 
-    try {
-      // Logique pour mettre à jour le profil (inclut l'upload de l'image)
-      // Appel API avec les nouvelles données et l'image.
-      // Remplace cette partie par ton appel à ton service backend.
-      print("Profil mis à jour avec image : ${_profileImage?.path}");
+    print("🔄 Updating Profile...");
+    print("📤 Sending Data:");
+    print("   - User ID: ${widget.userId}");
+    print("   - Token: ${widget.token}");
+    print("   - Name: ${nameController.text}");
+    print("   - Job: ${jobController.text}");
+    print("   - Location: ${locationController.text}");
+    print("   - Bio: ${bioController.text}");
+    print("   - Profile Image: ${_profileImage?.path ?? 'No Image Selected'}");
 
+    final result = await userService.updateUserProfile(
+      widget.userId,
+      widget.token,
+      nameController.text,
+      jobController.text,
+      locationController.text,
+      bioController.text,
+      //_profileImage?.path ?? '', // Pass image path or empty string
+    );
+
+    setState(() => isLoading = false);
+
+    if (result.containsKey('error')) {
+      print("❌ Error Updating Profile: ${result['error']}");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil mis à jour avec succès!')),
+        SnackBar(content: Text(result['error'])),
       );
+    } else {
+      print("✅ Profile Updated Successfully!");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
+
+      // ✅ Optionally navigate back or refresh data
       Navigator.pop(context, {
         'name': nameController.text,
         'job': jobController.text,
@@ -93,12 +109,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'bio': bioController.text,
         'profileImage': _profileImage?.path ?? widget.currentProfilePicture,
       });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la mise à jour: $e')),
-      );
-    } finally {
-      setState(() => isLoading = false);
     }
   }
 
@@ -122,7 +132,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     : (widget.currentProfilePicture != null &&
                             widget.currentProfilePicture!.isNotEmpty
                         ? NetworkImage(widget.currentProfilePicture!)
-                        : const AssetImage('assets/default_profile.png')
+                        : const AssetImage('assets/default_avatar.png')
                             as ImageProvider),
                 child: _profileImage == null
                     ? const Icon(Icons.camera_alt,

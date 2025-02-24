@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
 import 'package:projet_pim/Model/carnet.dart';
-import 'package:projet_pim/ViewModel/user_service.dart'; // Assure-toi d'importer le modèle Carnet
+import 'package:projet_pim/ViewModel/login.dart';
+import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Assure-toi d'importer le modèle Carnet
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -19,29 +23,67 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
   List<Carnet> userCarnet = [];
+  Map<String, dynamic>? travelerData;
 
   @override
   void initState() {
     super.initState();
     fetchUser();
+    fetchFollowerData();
+  }
+
+  Future<void> fetchFollowerData() async {
+    try {
+      UserService userService = UserService();
+      final prefs = await SharedPreferences.getInstance();
+      String? _userId = prefs.getString("user_id");
+
+      if (_userId == null) return;
+
+      // Fetch followers and following lists
+      List<String> followers = await userService.getFollowers(_userId);
+      List<String> following = await userService.getFollowing(_userId);
+
+      // Fetch follower and following counts
+      int followersCount = await userService.getFollowersCount(_userId);
+      int followingCount = await userService.getFollowingCount(_userId);
+
+      print(
+          'Followers count: $followersCount, Following count: $followingCount');
+
+      setState(() {
+        // Update userData instead of travelerData
+        userData?['followers'] = followers;
+        userData?['following'] = following;
+        userData?['followersCount'] =
+            followersCount.toString(); // Convert to string
+        userData?['followingCount'] = followingCount.toString();
+      });
+    } catch (e) {
+      print("❌ Error fetching followers/following: $e");
+    }
   }
 
   Future<void> fetchUser() async {
     try {
+      fetchFollowerData();
       // Appel pour récupérer les données utilisateur
       UserService userService = UserService();
       Map<String, dynamic> user =
           await userService.getUserById(widget.userId, widget.token);
+      print('sayeeeeeeeee');
+      print(user);
+      userData = user;
 
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
-
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
         isLoading = false;
       });
+      await fetchFollowerData(); // ✅ Fetch follower data after user data
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -178,27 +220,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   // Icone des paramètres
                   IconButton(
                     icon: const Icon(Icons.settings),
-                    onPressed: () async {
-                      final updatedData = await Navigator.push(
+                    onPressed: () {
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EditProfileScreen(
-                            userData: userData,
-                            userId: widget.userId,
-                            token: widget.token,
-                            name: userData?['name'] ?? '',
-                            job: userData?['job'] ?? '',
-                            location: userData?['location'] ?? '',
-                          ),
-                        ),
+                            builder: (context) =>
+                                SettingsScreen(userData: userData!)),
                       );
-
-                      // Si des données sont mises à jour, on met à jour l'état
-                      if (updatedData != null) {
-                        setState(() {
-                          userData = updatedData;
-                        });
-                      }
                     },
                   ),
                 ],
@@ -217,30 +245,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   children: [
                     const SizedBox(height: 16),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _StatItem(
-                          count: (userData?['followers'] is List)
-                              ? userData!['followers'].isNotEmpty
-                                  ? userData!['followers'].length.toString()
-                                  : '0'
-                              : '0',
+                          count: userData?['followersCount']?.toString() ??
+                              '0', // ✅ Use userData
                           label: 'Followers',
                         ),
+                        SizedBox(width: 20),
                         _StatItem(
-                          count: (userData?['following'] is List)
-                              ? userData!['following'].isNotEmpty
-                                  ? userData!['following'].length.toString()
-                                  : '0'
-                              : '0',
+                          count: userData?['followingCount']?.toString() ??
+                              '0', // ✅ Use userData
                           label: 'Following',
                         ),
+                        SizedBox(width: 20),
                         _StatItem(
                           count: userData?['likes']?.toString() ?? '0',
                           label: 'Likes',
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 32),
                     const Text(
                       'Carnet d’adresses',

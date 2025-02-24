@@ -3,9 +3,11 @@ import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/profile.dart';
 import 'package:provider/provider.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:projet_pim/ViewModel/user_service.dart'; // Import UserService for fetching users
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -17,11 +19,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   CarnetProvider? provider;
+  List<dynamic> users = [];
+  bool isLoadingUsers = true;
 
   void _reloadData() async {
     if (provider != null) {
       await provider!.fetchCarnetsExcludingUser(widget.userId);
       await provider!.fetchUnlockedPlaces(widget.userId);
+      await fetchUsers(); // Fetch users when data is reloaded
       if (mounted) setState(() {});
     }
   }
@@ -42,6 +47,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     provider = null;
     super.dispose();
+  }
+
+  Future<void> fetchUsers() async {
+    try {
+      UserService userService = UserService();
+      List<dynamic> fetchedUsers = await userService.getAllUsers(widget.userId);
+      setState(() {
+        users = fetchedUsers;
+        isLoadingUsers = false;
+      });
+    } catch (e) {
+      print("Error fetching users: $e");
+      setState(() => isLoadingUsers = false);
+    }
   }
 
   void _showUnlockDialog(String placeName) {
@@ -97,13 +116,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(), // Close the dialog
+              onPressed: () => Navigator.of(context).pop(),
               child: Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the dialog
-                // Proceed to unlock the place
                 try {
                   await provider!.unlockPlace(
                       widget.userId, place.id); // Use the instance method
@@ -144,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? const Center(child: CircularProgressIndicator())
             : ListView(
                 children: [
+                  // Existing carnet and place display section
                   Container(
                     padding: EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -283,9 +302,67 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
+
+                  // Display users section
+                  SizedBox(height: 20),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "Find Your Similar Traveler",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  isLoadingUsers
+                      ? const Center(child: CircularProgressIndicator())
+                      : users.isEmpty
+                          ? Center(child: Text("No travelers found"))
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: users.length,
+                              itemBuilder: (context, index) {
+                                final user = users[index];
+                                return GestureDetector(
+                                  onTap: () {
+                                    print(user['_id']);
+                                    // ✅ Navigate to user's profile
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            TravelerProfileScreen(
+                                          travelerId: user['_id'],
+                                          loggedInUserId: widget.userId,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: ListTile(
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 10),
+                                    title: Text(user['name']),
+                                    subtitle: Text(user['email']),
+                                    leading: CircleAvatar(
+                                      backgroundImage: user[
+                                                      'profileImageUrl'] !=
+                                                  null &&
+                                              user['profileImageUrl'].isNotEmpty
+                                          ? NetworkImage(
+                                              user['profileImageUrl'])
+                                          : AssetImage(
+                                                  'assets/default_profile.png')
+                                              as ImageProvider,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                 ],
               ),
       ),
+
+      // Floating Action Button (added here)
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color.fromARGB(255, 248, 214, 253),
         child: Icon(Icons.add),
