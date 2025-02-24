@@ -40,22 +40,31 @@ final String baseUrl =
     }
   }
 
-  Future<List<Carnet>> getUserCarnet(String userId) async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+Future<dynamic> getUserCarnet(String userId) async {
+  try {
+    final response = await http.get(
+      Uri.parse("$baseUrl/user/$userId"),
+    ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        // Si un carnet existe pour l'utilisateur, on le retourne sous forme de liste
-        return [Carnet.fromJson(data)];
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      var data = json.decode(response.body);
+
+      // 🔥 Fix: Ensure always returning a List
+      if (data is List) {
+        return data; // Return as a list
+      } else if (data is Map<String, dynamic>) {
+        return [data]; // Convert single object to a list
       } else {
-        throw Exception('Failed to load carnet: ${response.body}');
+        throw Exception("Unexpected API response format: $data");
       }
-    } catch (e) {
-      print("Error in getUserCarnet: $e");
-      throw Exception('Network error: Unable to fetch user carnet.');
+    } else {
+      throw Exception("Error ${response.statusCode}: ${response.body}");
     }
+  } catch (e) {
+    return {'error': 'Failed to fetch user carnet: $e'};
   }
+}
+
 
   Future<void> unlockPlace(String userId, String placeId) async {
     try {

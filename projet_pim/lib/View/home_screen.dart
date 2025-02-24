@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
-import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
-import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
-import 'package:provider/provider.dart';
-import '../Providers/carnet_provider.dart';
+import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -14,249 +11,216 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  CarnetProvider? provider;
-
-  void _reloadData() async {
-    if (provider != null) {
-      await provider!.fetchCarnetsExcludingUser(widget.userId);
-      await provider!.fetchUnlockedPlaces(widget.userId);
-      if (mounted) setState(() {});
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    provider ??= Provider.of<CarnetProvider>(context, listen: false);
-  }
+  List<dynamic> users = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _reloadData());
+    fetchUsers();
   }
 
-  @override
-  void dispose() {
-    provider = null;
-    super.dispose();
-  }
-
-  void _showUnlockDialog(String placeName) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Success!"),
-          content: Text("You have successfully unlocked $placeName!"),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Error"),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
+  // ✅ Fetch users excluding the current user
+  Future<void> fetchUsers() async {
+    try {
+      UserService userService = UserService();
+      List<dynamic> fetchedUsers = await userService.getAllUsers(widget.userId);
+      setState(() {
+        users = fetchedUsers;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching users: $e");
+      setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
-    final otherCarnets =
-        carnetProvider.carnets.where((c) => c.owner != widget.userId).toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4FC),
       body: SafeArea(
-        child: carnetProvider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🔹 HEADER SECTION
+            Padding(
+              padding: EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFDBD9FE),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Hello, Traveler! 👋",
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(Icons.menu, color: Colors.black, size: 28),
-                            CircleAvatar(
-                              backgroundImage:
-                                  AssetImage('assets/default_profile.png'),
-                              radius: 22,
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        Text(
-                          "Hey User!",
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          "Where's your next trip going to be?",
-                          style: TextStyle(fontSize: 16, color: Colors.brown),
-                        ),
-                      ],
-                    ),
+                      SizedBox(height: 5),
+                      Text("Find people who share your interests"),
+                    ],
                   ),
-                  SizedBox(height: 20),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text("Near Your Location",
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                  CircleAvatar(
+                    backgroundImage: AssetImage('assets/default_profile.png'),
+                    radius: 24,
                   ),
-                  otherCarnets.isEmpty
-                      ? Center(child: Text("No other carnets available"))
-                      : Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Other Carnets",
-                                style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 10),
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: NeverScrollableScrollPhysics(),
-                                itemCount: otherCarnets.length,
-                                itemBuilder: (context, index) {
-                                  final carnet = otherCarnets[index];
-                                  return Card(
-                                    margin: EdgeInsets.symmetric(vertical: 10),
-                                    child: ExpansionTile(
-                                      title: Text(
-                                        carnet.title,
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      children: carnet.places.map((place) {
-                                        bool isUnlocked = carnetProvider
-                                            .isPlaceUnlocked(place.id);
-                                        return ListTile(
-                                          title: Text(place.name),
-                                          subtitle: Text(place.description),
-                                          leading: Icon(
-                                            isUnlocked
-                                                ? Icons.lock_open
-                                                : Icons.lock,
-                                            color: isUnlocked
-                                                ? Colors.green
-                                                : Colors.red,
-                                          ),
-                                          trailing: ElevatedButton(
-                                            onPressed: isUnlocked
-                                                ? null
-                                                : () async {
-                                                    try {
-                                                      await carnetProvider
-                                                          .unlockPlace(
-                                                              widget.userId,
-                                                              place.id);
-                                                      _showUnlockDialog(
-                                                          place.name);
-                                                      _reloadData();
-                                                    } catch (e) {
-                                                      _showErrorDialog(
-                                                          e.toString());
-                                                    }
-                                                  },
-                                            child: Text(
-                                              "Unlock (5 coins)",
-                                              style: TextStyle(
-                                                  color: Colors.black),
-                                            ),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: isUnlocked
-                                                  ? const Color(0xFF9E9E9E)
-                                                  : const Color(0xFFD4F98F),
-                                              foregroundColor: Colors.black,
-                                            ),
-                                          ),
-                                          onTap: isUnlocked
-                                              ? () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          PlaceDetailsScreen(
-                                                              place: place),
-                                                    ),
-                                                  );
-                                                }
-                                              : null,
-                                        );
-                                      }).toList(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
                 ],
               ),
+            ),
+
+            // 🔹 TRAVELER CATEGORIES (Horizontal Scroll)
+            Container(
+              height: 40,
+              margin: EdgeInsets.symmetric(horizontal: 20),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _categoryChip("Photographers"),
+                  _categoryChip("Hikers"),
+                  _categoryChip("Foodies"),
+                  _categoryChip("Solo Travelers"),
+                  _categoryChip("Backpackers"),
+                ],
+              ),
+            ),
+            SizedBox(height: 10),
+
+            // 🔹 DISCOVER TRAVELERS TITLE
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                "Find Your Similar Traveler",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(height: 10),
+
+            // 🔹 USERS LIST (Traveler Cards)
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : users.isEmpty
+                      ? Center(child: Text("No travelers found"))
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(horizontal: 15),
+                          itemCount: users.length,
+                          itemBuilder: (context, index) {
+                            final user = users[index];
+                            return GestureDetector(
+                              onTap: () {
+                                print(user['_id']);
+                                // ✅ Navigate to user's profile
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TravelerProfileScreen(
+                                      travelerId: user['_id']   ,
+                                      loggedInUserId: this.widget.userId,                                 ),
+                                  ),
+                                );
+                              },
+                              child: _userCard(user),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color.fromARGB(255, 248, 214, 253),
-        child: Icon(Icons.add),
-        onPressed: () async {
-          await carnetProvider.checkUserCarnet(widget.userId);
-          if (carnetProvider.userCarnet == null ||
-              !carnetProvider.userCarnet!['hasCarnet']) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CreateCarnetScreen(userId: widget.userId),
+    );
+  }
+
+  // 🔹 Traveler Category Chip
+  Widget _categoryChip(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Chip(
+        label: Text(label),
+        backgroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  // 🔹 User Traveler Card (Styled like TripGlide)
+  Widget _userCard(Map<String, dynamic> user) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 3,
+      margin: EdgeInsets.only(bottom: 15),
+      child: Stack(
+        children: [
+          // Traveler Image
+          Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              image: DecorationImage(
+                image: user['profileImage'] != null
+                    ? NetworkImage(user['profileImage'])
+                    : AssetImage('assets/default_profile.png') as ImageProvider,
+                fit: BoxFit.cover,
               ),
-            );
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AddPlaceScreenStep1(
-                  carnetId: carnetProvider.userCarnet!['carnet']['_id'],
+            ),
+          ),
+
+          // Dark Gradient Overlay
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              gradient: LinearGradient(
+                colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
+            ),
+          ),
+
+          // Traveler Info (Name & Location)
+          Positioned(
+            left: 15,
+            bottom: 15,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user['name'] ?? 'Unknown',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            );
-          }
-        },
+                Row(
+                  children: [
+                    Icon(Icons.location_on, color: Colors.white, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      user['location'] ?? 'Unknown Location',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Favorite (Heart) Icon
+          Positioned(
+            right: 15,
+            top: 15,
+            child: Icon(
+              Icons.favorite_border,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ],
       ),
     );
   }

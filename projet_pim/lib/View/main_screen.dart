@@ -36,7 +36,7 @@ class _MainScreenState extends State<MainScreen> {
         Navigator.pushReplacementNamed(context, "/login");
       } else {
         _pages = [
-          HomeScreen(userId: _userId!), // ✅ Pass dynamic userId
+          HomeScreen(userId: _userId!,), // ✅ Pass dynamic userId
           Placeholder(), // Explore (To be replaced)
           Placeholder(), // Messages (To be replaced)
           UserProfileScreen(userId: _userId!, token: _token!), // ✅ Pass userId & token

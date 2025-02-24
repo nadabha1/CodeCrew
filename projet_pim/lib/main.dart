@@ -10,7 +10,6 @@ import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
-import 'package:projet_pim/View/loginScreen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/View/signup_page.dart';
 import 'package:projet_pim/View/user_profile.dart';
@@ -42,7 +41,7 @@ class MyApp extends StatelessWidget {
   final String? userId;
   final String? token;
 
-  const MyApp({Key? key, this.userId, this.token}) : super(key: key);
+  const MyApp({super.key, this.userId, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +53,7 @@ class MyApp extends StatelessWidget {
           ? MainScreen()  // ✅ If session exists, go to MainScreen
           : LoginView(), // Otherwise, show login screen
       routes: {
-       '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
+       '/home': (context) => HomeScreen(userId: userId!),
         '/signup': (context) => SignUpPage(),
         '/gender-selection': (context) => GenderSelectionPage(),
         '/activity-selection': (context) => ActivitySelectionPage(),
