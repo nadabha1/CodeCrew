@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:projet_pim/View/home_screen.dart';
-import 'package:projet_pim/View/user_profile.dart';
+import 'package:projet_pim/View/login.dart';
+import 'package:projet_pim/View/main_screen.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,7 +12,6 @@ class LoginViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? _token;
   String? _id;
-
 
   // Getters
   String get email => _email;
@@ -33,10 +32,10 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Login method to authenticate the user
+  /// ✅ **Login method to authenticate the user**
   Future<void> login(BuildContext context) async {
     _setLoading(true);
-    _errorMessage = null; // Reset error message before login
+    _errorMessage = null;
     notifyListeners();
 
     const String apiUrl = "http://10.0.2.2:3000/auth/login"; // Adjust as needed
@@ -48,7 +47,6 @@ class LoginViewModel extends ChangeNotifier {
         body: jsonEncode({"email": _email, "password": _password}),
       );
 
-      // Log API response for debugging
       debugPrint("Response Code: ${response.statusCode}");
       debugPrint("Response Body: ${response.body}");
 
@@ -58,19 +56,22 @@ class LoginViewModel extends ChangeNotifier {
         if (data.containsKey("accessToken") && data["accessToken"] != null) {
           _token = data["accessToken"];
           _id = data["id"];
-          
-          await _saveToken(_token!);
-          _errorMessage = null; // Clear error if login is successful
-                await Future.delayed(const Duration(seconds: 2)); // Simulate API call
 
-      // Navigate to profile screen after login
-        Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HomeScreen(
-                      userId: _id!                    ),
-                  ),
-                );
+          await _saveSession(_token!, _id!); // ✅ Save session
+          _errorMessage = null;
+
+          await Future.delayed(const Duration(seconds: 2));
+
+          // ✅ Navigate to MainScreen after successful login
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainScreen(
+                userId: _id!,
+                token: _token!,
+              ),
+            ),
+          );
         } else {
           _errorMessage = "Login failed: Missing token!";
         }
@@ -86,34 +87,57 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Save token to shared preferences
-  Future<void> _saveToken(String token) async {
+  /// ✅ **Save User Session (Token + ID)**
+  Future<void> _saveSession(String token, String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString("jwt_token", token);
+    await prefs.setString("user_id", id);
+    debugPrint("Session Saved: Token=$token, UserID=$id");
   }
 
-  /// Load token from shared preferences
-  Future<void> loadToken() async {
+  /// ✅ **Load Session on App Start**
+  Future<bool> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString("jwt_token");
-    notifyListeners();
+    _id = prefs.getString("user_id");
+
+    if (_token != null && _id != null) {
+      notifyListeners();
+      debugPrint("Session Loaded: Token=$_token, UserID=$_id");
+      return true; // ✅ Session exists
+    } else {
+      return false; // ❌ No session found
+    }
   }
 
-  /// Logout and clear token
-  Future<void> logout() async {
+  /// ✅ **Logout and Clear Session**
+  Future<void> logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove("jwt_token");
+    await prefs.remove("user_id");
+
     _token = null;
+    _id = null;
     notifyListeners();
+    
+    debugPrint("Session Cleared");
+
+    // ✅ Navigate back to Login Screen after logout
+      Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (context) => LoginView()),
+    (Route<dynamic> route) => false, // Remove all previous routes
+  );
+
   }
 
-  /// Helper to toggle the loading state
+  /// ✅ **Helper to toggle the loading state**
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
 
-  /// Parse error message from API response
+  /// ✅ **Parse error message from API response**
   String _parseError(String responseBody) {
     try {
       final Map<String, dynamic> errorData = jsonDecode(responseBody);

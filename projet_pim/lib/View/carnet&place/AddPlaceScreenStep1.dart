@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:projet_pim/View/AddPlaceScreenStep2.dart';
+import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep2.dart';
 
 class AddPlaceScreenStep1 extends StatefulWidget {
   final String carnetId;
@@ -20,9 +20,15 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
     if (query.isEmpty) return;
 
     final apiKey = "62cc243a16c642daba0b257791a5eec3"; // Geoapify API Key
-    final url = Uri.parse("https://api.geoapify.com/v1/geocode/search?text=$query&apiKey=$apiKey");
-    
-    final response = await http.get(url);
+    final url = Uri.parse(
+        "https://api.geoapify.com/v1/geocode/search?text=$query&apiKey=$apiKey");
+        final response = await http.get(url);
+
+
+
+
+
+
 
     if (response.statusCode == 200) {
       setState(() {
@@ -45,9 +51,10 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
               decoration: InputDecoration(
                 hintText: "Search for a place...",
                 prefixIcon: Icon(Icons.search, color: Colors.grey),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              onChanged: searchPlaces, 
+              onChanged: searchPlaces,
             ),
             SizedBox(height: 20),
 
@@ -58,16 +65,20 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
                 itemBuilder: (context, index) {
                   var place = _searchResults[index];
                   return ListTile(
-                    title: Text(place['properties']['name'] ?? "Unknown Place", style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(place['properties']['formatted'] ?? "Unknown Address"),
+                    title: Text(place['properties']['name'] ?? "Unknown Place",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                        place['properties']['formatted'] ?? "Unknown Address"),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => AddPlaceScreenStep2(
                             carnetId: widget.carnetId,
-                            placeName: place['properties']['name'] ?? "Unknown Place",
-                            placeAddress: place['properties']['formatted'] ?? "Unknown Address",
+                            placeName:
+                                place['properties']['name'] ?? "Unknown Place",
+                            placeAddress: place['properties']['formatted'] ??
+                                "Unknown Address",
                           ),
                         ),
                       );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Providers/carnet_provider.dart';
+import '../../Providers/carnet_provider.dart';
 
 class CreateCarnetScreen extends StatelessWidget {
   final String userId;
@@ -25,7 +25,8 @@ class CreateCarnetScreen extends StatelessWidget {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await carnetProvider.createCarnet(userId, _titleController.text);
+                await carnetProvider.createCarnet(
+                    userId, _titleController.text);
                 Navigator.pop(context); // ✅ Return to home after creation
               },
               child: Text("Créer"),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Providers/carnet_provider.dart';
+import '../../Providers/carnet_provider.dart';
 
 class AddPlaceScreenStep2 extends StatefulWidget {
   final String carnetId;
@@ -21,7 +21,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   final TextEditingController _descriptionController = TextEditingController();
   int _cost = 5;
   List<String> _selectedCategories = [];
-  List<String> _images = []; 
+  List<String> _images = [];
 
   // Categories with Icons & Custom Colors
   final List<Map<String, dynamic>> categories = [
@@ -33,7 +33,11 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
     {'icon': Icons.local_bar, 'name': 'Nightlife', 'color': Colors.pink},
     {'icon': Icons.hotel, 'name': 'Hotels', 'color': Colors.indigo},
     {'icon': Icons.directions_bus, 'name': 'Transport', 'color': Colors.brown},
-    {'icon': Icons.theater_comedy, 'name': 'Entertainment', 'color': Colors.teal},
+    {
+      'icon': Icons.theater_comedy,
+      'name': 'Entertainment',
+      'color': Colors.teal
+    },
   ];
 
   @override
@@ -50,7 +54,10 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
             // 📌 Display Selected Place
             Text(
               widget.placeName,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.purple),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple),
             ),
             Text(
               widget.placeAddress,
@@ -72,18 +79,22 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: categories.map((category) {
-                    bool isSelected = _selectedCategories.contains(category['name']);
+                    bool isSelected =
+                        _selectedCategories.contains(category['name']);
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 5.0),
                       child: ChoiceChip(
-                        avatar: Icon(category['icon'], 
-                          color: isSelected ? Colors.white : category['color'], 
-                          size: 20),
+                        avatar: Icon(category['icon'],
+                            color:
+                                isSelected ? Colors.white : category['color'],
+                            size: 20),
                         label: Text(category['name']),
                         selected: isSelected,
-                        selectedColor: category['color'], // Custom category color
+                        selectedColor:
+                            category['color'], // Custom category color
                         backgroundColor: Colors.white,
-                        labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                        labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black),
                         onSelected: (selected) {
                           setState(() {
                             if (selected) {
@@ -107,7 +118,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               controller: _descriptionController,
               decoration: InputDecoration(
                 hintText: "Enter a description...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 fillColor: Colors.white,
                 filled: true,
               ),
@@ -136,7 +148,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
             SizedBox(height: 20),
 
             // 📷 Image Upload Section
-            Text("Add photos", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text("Add photos",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             Row(
               children: [
@@ -172,13 +185,16 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey.shade400,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: Text("Previous", style: TextStyle(color: Colors.white)),
+                  child:
+                      Text("Previous", style: TextStyle(color: Colors.white)),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
+                    final carnetProvider =
+                        Provider.of<CarnetProvider>(context, listen: false);
                     await carnetProvider.addPlaceToCarnet(
                       widget.carnetId,
                       widget.placeName,
@@ -191,7 +207,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
                   ),
                   child: Text("Finish", style: TextStyle(color: Colors.white)),
                 ),

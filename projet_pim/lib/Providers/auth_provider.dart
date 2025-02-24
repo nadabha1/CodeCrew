@@ -19,8 +19,8 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
 
   bool get isLoading => _isLoading;
-  final String baseUrl = "http://10.0.2.2:3000/auth"; // Remplace par ton URL de base
-
+  final String baseUrl =
+      "http://10.0.2.2:3000/auth"; // Remplace par ton URL de base
 
   /// Handles user login
   Future<void> login(String email, String password) async {
@@ -37,10 +37,11 @@ class AuthProvider with ChangeNotifier {
       rethrow; // Rethrow the exception to handle it in the UI layer if needed
     }
   }
-  /// Handles password 
-  /// 
+
+  /// Handles password
+  ///
   ///  functionality
-  
+
   bool _isOtpVerified = false;
   bool get isOtpVerified => _isOtpVerified;
   void _setLoading(bool value) {
@@ -68,17 +69,18 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         _showMessage(context, "OTP verified successfully");
       } else {
-        final error = jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
+        final error =
+            jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
         throw Exception(error);
       }
-      
     } catch (e) {
       _setLoading(false);
       _showMessage(context, "Error verifying OTP: ${e.toString()}");
     }
   }
 
-  Future<void> resetPassword(BuildContext context, String email, String otp, String password) async {
+  Future<void> resetPassword(
+      BuildContext context, String email, String otp, String password) async {
     if (password.isEmpty) {
       _showMessage(context, "Please enter a new password");
       return;
@@ -100,7 +102,8 @@ class AuthProvider with ChangeNotifier {
 
         Navigator.pushReplacementNamed(context, '/login');
       } else {
-        final error = jsonDecode(response.body)['error'] ?? 'Error resetting password';
+        final error =
+            jsonDecode(response.body)['error'] ?? 'Error resetting password';
         throw Exception(error);
       }
     } catch (e) {
@@ -110,8 +113,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
+
   /// Handles user logout
   void logout() async {
     _user = null;
@@ -121,6 +126,7 @@ class AuthProvider with ChangeNotifier {
     await prefs.remove('token');
     notifyListeners();
   }
+
   /// Registers a new user
   Future<bool> registerUser(String name, String email, String password) async {
     _isLoading = true;
@@ -156,6 +162,7 @@ class AuthProvider with ChangeNotifier {
   void _handleHttpError(http.Response response) {
     debugPrint("HTTP Error: ${response.statusCode} - ${response.body}");
   }
+
   Future<void> sendOtp(BuildContext context, String email) async {
     if (email.isEmpty) {
       _showMessage(context, 'Please enter your email');
@@ -182,7 +189,8 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final message = jsonDecode(response.body)['message'] ?? 'OTP sent successfully';
+        final message =
+            jsonDecode(response.body)['message'] ?? 'OTP sent successfully';
         _showMessage(context, message);
 
         // Naviguer vers l'écran de réinitialisation du mot de passe
@@ -194,7 +202,8 @@ class AuthProvider with ChangeNotifier {
         );
       } else {
         final errorResponse = jsonDecode(response.body);
-        final errorMessage = errorResponse['error'] ?? 'Failed to send OTP. Please try again.';
+        final errorMessage =
+            errorResponse['error'] ?? 'Failed to send OTP. Please try again.';
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -203,5 +212,4 @@ class AuthProvider with ChangeNotifier {
       _showMessage(context, 'Error: ${e.toString()}');
     }
   }
-
 }
