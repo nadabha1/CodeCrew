@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
+import 'package:projet_pim/View/login.dart';
 import 'package:provider/provider.dart';
 import 'activity_selection_page.dart';
 
@@ -28,6 +29,14 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
     );
   }
 
+  void _skipToLogin() {
+    // ✅ Navigate directly to Login Page
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginView()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,8 +46,27 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ✅ Skip button at the top right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(), // Empty widget to balance the row
+                TextButton(
+                  onPressed: _skipToLogin,
+                  child: Text(
+                    "Skip",
+                    style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+
             LinearProgressIndicator(value: 0.3, color: Colors.green),
             SizedBox(height: 20),
+
             Text("What is your gender?",
                 style: TextStyle(
                     fontSize: 24,
@@ -55,14 +83,19 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
                       ))
                   .toList(),
             ),
+
             Spacer(),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("Previous")),
-              ElevatedButton(
-                  onPressed: _navigateToNextPage, child: Text("Next")),
-            ]),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text("Previous")),
+                ElevatedButton(
+                    onPressed: _navigateToNextPage, child: Text("Next")),
+              ],
+            ),
           ],
         ),
       ),

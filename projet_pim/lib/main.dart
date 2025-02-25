@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
@@ -35,6 +36,8 @@ void main() async {
         ChangeNotifierProvider<LoginViewModel>(
             create: (_) => LoginViewModel()..loadSession()),
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
+        ChangeNotifierProvider<UserPreferences>(
+            create: (_) => UserPreferences()),
         ChangeNotifierProvider<UserProvider>(
             create: (_) => UserProvider()), // Add UserProvider here
         ChangeNotifierProvider<ThemeProvider>(

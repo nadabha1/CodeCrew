@@ -5,6 +5,8 @@ import 'package:projet_pim/Model/user_model.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/ViewModel/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../Providers/UserPreferences.dart';
+
 import 'package:http/http.dart' as http;
 
 class AuthProvider with ChangeNotifier {
@@ -128,18 +130,19 @@ class AuthProvider with ChangeNotifier {
   }
 
   /// Registers a new user
-  Future<bool> registerUser(String name, String email, String password) async {
+  Future<bool> registerUser(String name, String email, String password,
+      UserPreferences preferences) async {
     _isLoading = true;
     notifyListeners();
+
     const String apiUrl = "http://localhost:3000/users/register";
+
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "name": name,
-          "email": email,
-          "password": password,
+          "user": {"name": name, "email": email, "password": password},
         }),
       );
 
@@ -155,6 +158,35 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> saveUserPreferences(
+      UserPreferences preferences, String userId) async {
+    String apiUrl = "http://localhost:3000/users/$userId/preferences/update";
+
+    try {
+      final response = await http.put(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "gender": preferences.gender,
+          "favoriteActivities": preferences.favoriteActivities,
+          "eventPreferences": preferences.eventPreferences,
+          "socialPreference": preferences.socialPreference,
+          "preferredEventTime": preferences.preferredEventTime,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        _handleHttpError(response);
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Error saving preferences: $e");
+      return false;
     }
   }
 
@@ -211,5 +243,37 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       _showMessage(context, 'Error: ${e.toString()}');
     }
+  }
+
+  Future<bool> checkUserVerification(String email) async {
+    final String apiUrl = "http://localhost:3000/users/checkverification";
+
+    try {
+      debugPrint("🔄 Checking verification status for: $email");
+
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email}),
+      );
+
+      debugPrint("📩 Backend response status: ${response.statusCode}");
+      debugPrint("📩 Response body: ${response.body}");
+
+      // ✅ Handle both HTTP 200 and 201 correctly
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        bool isVerified = data['isVerified'] ?? false;
+
+        debugPrint("✅ Verification status received: $isVerified");
+        return isVerified;
+      } else {
+        debugPrint("⚠️ Unexpected HTTP status: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("❌ Error checking verification: $e");
+    }
+
+    return false; // Default to false if request fails
   }
 }
