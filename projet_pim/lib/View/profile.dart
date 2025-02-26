@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TravelerProfileScreen extends StatefulWidget {
   final String travelerId;
@@ -18,18 +20,21 @@ class TravelerProfileScreen extends StatefulWidget {
 
 class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
   Map<String, dynamic>? travelerData;
-  List<Carnet> travelerCarnets = [];
+  late Future<List<Carnet>> travelerCarnets =
+      Future.value([]); // Initialize as empty list
   bool isLoading = true;
   bool isFollowing = false;
   String? _userId;
   String? _token;
   UserService userService = UserService();
+  late CarnetProvider carnetProvider;
 
   @override
   void initState() {
     super.initState();
     fetchTravelerProfile();
     fetchFollowerData();
+    carnetProvider = CarnetProvider();
   }
 
   Future<void> fetchFollowerData() async {
@@ -46,10 +51,8 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
       setState(() {
         travelerData?['followers'] = followers;
         travelerData?['following'] = following;
-        travelerData?['followersCount'] =
-            followersCount; // ✅ Correct count update
-        travelerData?['followingCount'] =
-            followingCount; // ✅ Correct count update
+        travelerData?['followersCount'] = followersCount;
+        travelerData?['followingCount'] = followingCount;
       });
     } catch (e) {
       print("❌ Error fetching followers/following: $e");
@@ -58,39 +61,41 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
 
   Future<void> fetchTravelerProfile() async {
     try {
-      UserService userService = UserService();
-      CarnetService carnetService = CarnetService();
       final prefs = await SharedPreferences.getInstance();
       _userId = prefs.getString("user_id");
       _token = prefs.getString("jwt_token");
 
-      // Fetch traveler details
-      print("Fetching traveler data for ID: ${widget.travelerId}");
+      // Récupérer les données de l'utilisateur
       Map<String, dynamic> traveler =
           await userService.getUserById(widget.travelerId, _token!);
-      print("Traveler data received: $traveler");
 
-      // Fetch traveler’s carnets
-      print("Fetching carnets for traveler ID: ${widget.travelerId}");
-      List<dynamic> carnetList =
-          await carnetService.getUserCarnet(widget.travelerId);
+      // Assurez-vous que carnetService est bien défini et initialisé
+      CarnetService carnetService = CarnetService();
 
-      // 🔥 Convertir la liste de maps en une liste de Carnet
-      List<Carnet> carnets =
-          carnetList.map((json) => Carnet.fromJson(json)).toList();
-
-      print("Traveler's carnets received: ${carnets.length}");
+      travelerCarnets = carnetService.getUserCarnet(widget.travelerId);
+// Fetch unlocked places for the user
+      if (_userId != null) {
+        await carnetProvider.fetchUnlockedPlaces(_userId!);
+      }
 
       setState(() {
         travelerData = traveler;
-        travelerCarnets = carnets;
-        isFollowing =
-            traveler['followers']?.contains(widget.loggedInUserId) ?? false;
+        travelerCarnets = carnetService.getUserCarnet(widget.travelerId);
+        traveler['followers']?.contains(widget.loggedInUserId) ?? false;
         isLoading = false;
       });
     } catch (e) {
       print("❌ Error fetching traveler profile: $e");
       setState(() => isLoading = false);
+    }
+  }
+
+  void _reloadData() async {
+    if (_userId != null) {
+      await carnetProvider.fetchUnlockedPlaces(_userId!);
+      setState(() {
+        // Force the UI to update based on the latest data
+      });
     }
   }
 
@@ -103,7 +108,6 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
         await userService.followUser(widget.loggedInUserId, widget.travelerId);
       }
 
-      // ✅ Fetch updated follower count from backend
       await fetchFollowerData();
 
       setState(() {
@@ -112,6 +116,106 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
     } catch (e) {
       print("❌ Error following/unfollowing user: $e");
     }
+  }
+
+  Future<void> openMap(double latitude, double longitude) async {
+    final url =
+        'https://www.openstreetmap.org/?mlat=$latitude&mlon=$longitude#map=16/$latitude/$longitude';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Impossible d\'ouvrir la carte';
+    }
+  }
+
+  void _openInGoogleMaps(double latitude, double longitude) async {
+    final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  void _showUnlockDialog(String placeName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Succès !"),
+          content: Text("Vous avez déverrouillé '$placeName' !"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Erreur"),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showConfirmUnlockDialog(String placeName, int placePrice, place) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Confirmation du déverrouillage"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Voulez-vous déverrouiller '$placeName' ?"),
+              SizedBox(height: 10),
+              Text("Prix pour déverrouiller : $placePrice coins"),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Annuler"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+                try {
+                  // Use the logged-in user ID to unlock the place
+                  if (_userId != null) {
+                    await carnetProvider.unlockPlace(_userId!, place.id);
+                    _showUnlockDialog(placeName);
+                    _reloadData();
+                  } else {
+                    _showErrorDialog("Utilisateur non connecté.");
+                  }
+                } catch (e) {
+                  _showErrorDialog(e.toString());
+                }
+              },
+              child: Text("Confirmer"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -153,8 +257,9 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                         ElevatedButton(
                           onPressed: toggleFollow,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isFollowing ? Colors.grey : Colors.blue,
+                            backgroundColor: isFollowing
+                                ? const Color(0xF6F6666)
+                                : const Color(0xFFD4F98F),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
@@ -197,35 +302,170 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                             style: TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold)),
                         SizedBox(height: 10),
-                        travelerCarnets.isNotEmpty
-                            ? Column(
-                                children: travelerCarnets.map<Widget>((carnet) {
-                                  return Card(
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
-                                    child: Column(
-                                      children:
-                                          carnet.places.map<Widget>((place) {
-                                        return ListTile(
-                                          title: Text(place.name),
-                                          subtitle: Text(place.description ??
-                                              'Unknown location'),
-                                          leading: Icon(Icons.place,
-                                              color: Colors.blue),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  );
-                                }).toList(),
-                              )
-                            : Center(child: Text("No carnet available")),
+                        FutureBuilder<List<Carnet>>(
+                          future: travelerCarnets,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            }
+
+                            if (snapshot.hasError) {
+                              return Center(
+                                  child: Text('Error loading carnets'));
+                            }
+
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return Center(child: Text("No carnet available"));
+                            }
+
+                            return Column(
+                              children: snapshot.data!
+                                  .map<Widget>((carnet) => Card(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              carnet.title,
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18),
+                                            ),
+                                            SizedBox(height: 10),
+                                            // PageView for swiping through places
+                                            Container(
+                                              height:
+                                                  250, // Adjust height as needed
+                                              child: PageView(
+                                                children: carnet.places
+                                                    .map<Widget>((place) {
+                                                  bool isUnlocked =
+                                                      carnetProvider
+                                                          .isPlaceUnlocked(
+                                                              place.id);
+                                                  // Afficher la carte verrouillée ou déverrouillée en fonction de l'état
+                                                  return isUnlocked
+                                                      ? PlaceCard(
+                                                          place: place,
+                                                          onTap: () => openMap(
+                                                              place.latitude!,
+                                                              place.longitude!),
+                                                        )
+                                                      : LockedPlaceCard(
+                                                          place: place,
+                                                          onUnlock: () {
+                                                            if (_userId !=
+                                                                null) {
+                                                              _showConfirmUnlockDialog(
+                                                                place.name,
+                                                                place
+                                                                    .unlockCost,
+                                                                place,
+                                                              );
+                                                            } else {
+                                                              _showErrorDialog(
+                                                                  "Utilisateur non connecté.");
+                                                            }
+                                                          },
+                                                        );
+                                                }).toList(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ))
+                                  .toList(),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+    );
+  }
+}
+
+class PlaceCard extends StatelessWidget {
+  final Place place;
+  final VoidCallback onTap;
+
+  const PlaceCard({required this.place, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        margin: EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        elevation: 5,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.place,
+              color: Colors.blue,
+              size: 40,
+            ),
+            SizedBox(height: 10),
+            Text(
+              place.name,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              place.description ?? 'No description',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LockedPlaceCard extends StatelessWidget {
+  final Place place;
+  final VoidCallback onUnlock;
+
+  const LockedPlaceCard({required this.place, required this.onUnlock});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.all(10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 5,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.lock,
+            color: Colors.red,
+            size: 40,
+          ),
+          SizedBox(height: 10),
+          Text(
+            place.name,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            place.description ?? 'No description',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: onUnlock,
+            child: Text("Unlock (${place.unlockCost} coins)"),
+          ),
+        ],
+      ),
     );
   }
 }

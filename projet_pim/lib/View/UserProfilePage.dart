@@ -25,17 +25,64 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _userId;
   String? _token;
   bool _isLoading = true;
+  Map<String, dynamic>? travelerData;
+  bool isFollowing = false;
 
   @override
   void initState() {
     super.initState();
     _loadSession();
+    fetchFollowerData();
 
     userService = UserService();
     carnetService = CarnetService();
     carnetProvider = CarnetProvider();
     user = userService.getUserById(widget.userId, widget.token);
     userCarnet = carnetService.getUserCarnet(widget.userId);
+  }
+
+  Future<void> fetchFollowerData() async {
+    try {
+      List<String> followers = await userService.getFollowers(widget.userId);
+      List<String> following = await userService.getFollowing(widget.userId);
+      int followersCount = await userService.getFollowersCount(widget.userId);
+      int followingCount = await userService.getFollowingCount(widget.userId);
+
+      setState(() {
+        travelerData?['followers'] = followers;
+        travelerData?['following'] = following;
+        travelerData?['followersCount'] =
+            followersCount; // ✅ Correct count update
+        travelerData?['followingCount'] =
+            followingCount; // ✅ Correct count update
+      });
+    } catch (e) {
+      print("❌ Error fetching followers/following: $e");
+    }
+  }
+
+  Future<void> toggleFollow() async {
+    try {
+      if (_userId == null) {
+        print("❌ Error: User not logged in");
+        return;
+      }
+
+      if (isFollowing) {
+        await userService.unfollowUser(_userId!, widget.userId);
+      } else {
+        await userService.followUser(_userId!, widget.userId);
+      }
+
+      // ✅ Fetch updated follower count from backend
+      await fetchFollowerData();
+
+      setState(() {
+        isFollowing = !isFollowing;
+      });
+    } catch (e) {
+      print("❌ Error following/unfollowing user: $e");
+    }
   }
 
   Future<void> _loadSession() async {
@@ -215,6 +262,36 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 SizedBox(height: 10),
                 Text('Bio: ${userData['bio'] ?? 'Non spécifié'}'),
                 SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: toggleFollow,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFollowing ? Colors.grey : Colors.blue,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(isFollowing ? "Unfollow" : "Follow"),
+                ),
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _StatItem(
+                      count: travelerData?['followersCount']?.toString() ?? '0',
+                      label: 'Followers',
+                    ),
+                    SizedBox(width: 20),
+                    _StatItem(
+                      count: travelerData?['followingCount']?.toString() ?? '0',
+                      label: 'Following',
+                    ),
+                    SizedBox(width: 20),
+                    _StatItem(
+                      count: travelerData?['likes']?.toString() ?? '0',
+                      label: 'Likes',
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
                 Text(
                   'Carnets de ${userData['name'] ?? 'cet utilisateur'}',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -307,6 +384,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
           );
         },
       ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String count;
+  final String label;
+  const _StatItem({required this.count, required this.label});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(count,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        Text(label, style: TextStyle(color: Colors.black54)),
+      ],
     );
   }
 }
