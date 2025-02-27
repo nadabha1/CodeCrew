@@ -73,15 +73,22 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
       CarnetService carnetService = CarnetService();
 
       travelerCarnets = carnetService.getUserCarnet(widget.travelerId);
+
 // Fetch unlocked places for the user
       if (_userId != null) {
         await carnetProvider.fetchUnlockedPlaces(_userId!);
       }
+      // Vérifier si l'utilisateur connecté suit déjà le voyageur
+      List<String> followers =
+          await userService.getFollowers(widget.travelerId);
+      bool isUserFollowing = followers.contains(widget.loggedInUserId);
 
       setState(() {
         travelerData = traveler;
         travelerCarnets = carnetService.getUserCarnet(widget.travelerId);
         traveler['followers']?.contains(widget.loggedInUserId) ?? false;
+        isFollowing = isUserFollowing; // Mise à jour du statut de suivi
+
         isLoading = false;
       });
     } catch (e) {
