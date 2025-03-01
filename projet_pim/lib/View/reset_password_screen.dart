@@ -33,7 +33,6 @@ class ResetPasswordScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
 
-
                 // Subtitle
                 Text(
                   resetPasswordProvider.isOtpVerified
