@@ -11,7 +11,7 @@ class UserProvider with ChangeNotifier {
   // Method to fetch users
   Future<void> fetchUsers(String token) async {
     try {
-      final fetchedUsers = await _userService.getAllUsers2(token);
+      final fetchedUsers = await _userService.getAllUsers(token);
       _users = fetchedUsers;
       notifyListeners();
     } catch (e) {

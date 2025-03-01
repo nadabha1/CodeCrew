@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
+import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/user_profile.dart';
@@ -63,36 +64,10 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     return Scaffold(
-      body: _pages[_selectedIndex], // ✅ Show the dynamically set pages
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFF3C7F9),
-              Color(0xFFFE9332),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.white, // ✅ Active items color
-          unselectedItemColor: Colors.white70, // ✅ Inactive items color
-          showUnselectedLabels: true,
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.explore), label: "Explore"),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.message), label: "Messages"),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-          ],
-        ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: CustomBottomNavigationBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
     );
   }

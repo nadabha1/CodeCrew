@@ -1,22 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
-import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:http/http.dart' as http;
 
 class CarnetProvider with ChangeNotifier {
   final CarnetService _carnetService = CarnetService();
   List<Carnet> _carnets = [];
+  List<Map<String, dynamic>> _places = [];
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   List<Carnet> get carnets => _carnets;
-  //final String baseUrl = 'http://localhost:3000'; // Backend URL
-  final String baseUrl = 'http://10.0.2.2:3000'; // Backend URL
+  List<Map<String, dynamic>> get places => _places;
+
+  final String baseUrl = 'http://localhost:3000'; // Backend URL
 
   // Fetch all carnets
- Future<void> fetchCarnets() async {
+  Future<void> fetchCarnets() async {
     _isLoading = true;
     notifyListeners(); // Notify UI to show loading
 
@@ -37,7 +39,6 @@ class CarnetProvider with ChangeNotifier {
     notifyListeners(); // Notify UI to update
   }
 
-
   // Add a new carnet
   Future<void> addCarnet(String title, String description, List places) async {
     await _carnetService.createCarnet(title, description, places);
@@ -52,6 +53,8 @@ class CarnetProvider with ChangeNotifier {
     List<String> categories,
     int cost,
     List<String> images,
+    double latitude,
+    double longitude,
   ) async {
     try {
       final response = await http.post(
@@ -63,6 +66,8 @@ class CarnetProvider with ChangeNotifier {
           'categories': categories,
           'unlockCost': cost,
           'images': images,
+          "latitude": latitude,
+          "longitude": longitude,
         }),
       );
 
@@ -178,48 +183,40 @@ class CarnetProvider with ChangeNotifier {
   }
 
   // Fetch all carnets excluding the user's carnet
-Future<void> fetchCarnetsExcludingUser(String? userId) async {
-  _isLoading = true;
-  notifyListeners();
+  Future<void> fetchCarnetsExcludingUser(String userId) async {
+    _isLoading = true;
+    notifyListeners(); // Notify UI to show loading
 
-  if (userId == null || userId.isEmpty) {
-    print("⚠️ fetchCarnetsExcludingUser: userId est NULL ou VIDE !");
+    try {
+      final response =
+          await http.get(Uri.parse('$baseUrl/carnets/exclude/$userId'));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        _carnets = data.map((json) => Carnet.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load carnets');
+      }
+    } catch (e) {
+      print("Error fetching carnets excluding user: $e");
+    }
+
+    _isLoading = false;
+    notifyListeners(); // Notify UI to update
+  }
+
+  Future<void> fetchAllPlaces() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _places = await _carnetService.getAllPlacesFromCarnets();
+      print("Places récupérées : $_places");
+    } catch (e) {
+      print("Erreur lors de la récupération des places : $e");
+    }
+
     _isLoading = false;
     notifyListeners();
-    return;
   }
-
-  print("🔄 fetchCarnetsExcludingUser avec userId: $userId");
-
-  try {
-    final response = await http.get(Uri.parse('$baseUrl/carnets/exclude/$userId'));
-
-    print("📢 Réponse brute : ${response.body}");
-
-    if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
-
-      _carnets = data.map((json) {
-        try {
-          return Carnet.fromJson(json);
-        } catch (e) {
-          print("⚠️ Skipping invalid carnet: $e");
-          return null;  // Ignore invalid entries
-        }
-      }).whereType<Carnet>().toList();
-
-      print("✅ Carnets récupérés avec succès: ${_carnets.length}");
-    } else {
-      throw Exception('Failed to load carnets: ${response.body}');
-    }
-  } catch (e) {
-    print("❌ Error fetching carnets excluding user: $e");
-  }
-
-  _isLoading = false;
-  notifyListeners();
-}
-
-
-
 }

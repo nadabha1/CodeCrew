@@ -52,8 +52,6 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
               onChanged: searchPlaces,
             ),
             SizedBox(height: 20),
-
-            // 📌 Display Search Results
             Expanded(
               child: ListView.builder(
                 itemCount: _searchResults.length,
@@ -74,6 +72,10 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
                                 place['properties']['name'] ?? "Unknown Place",
                             placeAddress: place['properties']['formatted'] ??
                                 "Unknown Address",
+                            latitude: place['geometry']['coordinates']
+                                [1], // Latitude
+                            longitude: place['geometry']['coordinates']
+                                [0], // Longitude
                           ),
                         ),
                       );

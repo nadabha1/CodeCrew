@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/View/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:projet_pim/View/main_screen.dart';
@@ -37,7 +38,8 @@ class LoginViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    const String apiUrl = "http://10.0.2.2:3000/auth/login"; // Localhost for emulator
+    const String apiUrl =
+        "http://localhost:3000/auth/login"; // Localhost for emulator
 
     try {
       final response = await http.post(
@@ -81,22 +83,20 @@ class LoginViewModel extends ChangeNotifier {
 
   /// ✅ Save user session (ID & Token)
   Future<void> _saveSession(String token, String userId) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString("jwt_token", token);
-  await prefs.setString("user_id", userId);
-  print("✅ Session saved: Token=$token, UserID=$userId");  // Debug log
-}
-
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("jwt_token", token);
+    await prefs.setString("user_id", userId);
+    print("✅ Session saved: Token=$token, UserID=$userId"); // Debug log
+  }
 
   /// ✅ Load session (Retrieve saved ID & Token)
   Future<void> loadSession() async {
-  final prefs = await SharedPreferences.getInstance();
-  _token = prefs.getString("jwt_token");
-  _userId = prefs.getString("user_id");
-  notifyListeners();
-  print("🔄 Session loaded: Token=$_token, UserID=$_userId");  // Debug log
-}
-
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString("jwt_token");
+    _userId = prefs.getString("user_id");
+    notifyListeners();
+    print("🔄 Session loaded: Token=$_token, UserID=$_userId"); // Debug log
+  }
 
   /// ✅ Logout and clear session
   Future<void> logout(BuildContext context) async {
@@ -108,8 +108,11 @@ class LoginViewModel extends ChangeNotifier {
     _userId = null;
     notifyListeners();
 
-    // Navigate back to Login page
-    Navigator.pushReplacementNamed(context, "/login");
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginView()),
+      (Route<dynamic> route) => false, // Remove all previous routes
+    );
   }
 
   void _setLoading(bool value) {
