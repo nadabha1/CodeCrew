@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:projet_pim/ViewModel/user_service.dart'; // Import UserService for fetching users
+import 'package:projet_pim/providers/review_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -279,8 +280,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     context,
                                                     MaterialPageRoute(
                                                       builder: (context) =>
-                                                          PlaceDetailsScreen(
-                                                              place: place),
+                                                          ChangeNotifierProvider<
+                                                              ReviewProvider>(
+                                                        create: (_) =>
+                                                            ReviewProvider(),
+                                                        child:
+                                                            PlaceDetailsScreen(
+                                                                place: place),
+                                                      ),
                                                     ),
                                                   );
                                                 }

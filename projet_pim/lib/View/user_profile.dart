@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
+import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
 import 'package:projet_pim/Model/carnet.dart';
@@ -94,6 +97,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -296,6 +301,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 ? '${userCarnet[0].places[index].latitude}, ${userCarnet[0].places[index].longitude}'
                                 : 'Location not available', // You can adjust how you display the location
                           );
+                        },
+                      ),
+                    ),
+                    // ✅ Floating Action Button ici
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0, bottom: 32),
+                      child: FloatingActionButton(
+                        backgroundColor:
+                            const Color.fromARGB(255, 248, 214, 253),
+                        child: const Icon(Icons.add),
+                        onPressed: () async {
+                          await carnetProvider.checkUserCarnet(widget.userId);
+                          if (carnetProvider.userCarnet == null ||
+                              !carnetProvider.userCarnet!['hasCarnet']) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CreateCarnetScreen(userId: widget.userId),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddPlaceScreenStep1(
+                                  carnetId: carnetProvider.userCarnet!['carnet']
+                                      ['_id'],
+                                ),
+                              ),
+                            ).then((_) {
+                              fetchUser(); // Rafraîchit la page après l'ajout de la place
+                            });
+                          }
                         },
                       ),
                     ),

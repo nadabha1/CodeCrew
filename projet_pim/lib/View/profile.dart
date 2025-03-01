@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
+import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -356,10 +359,23 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                                   return isUnlocked
                                                       ? PlaceCard(
                                                           place: place,
-                                                          onTap: () => openMap(
-                                                              place.latitude!,
-                                                              place.longitude!),
-                                                        )
+                                                          onTap: () =>
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder:
+                                                                      (context) {
+                                                                    return ChangeNotifierProvider<
+                                                                        ReviewProvider>(
+                                                                      create: (_) =>
+                                                                          ReviewProvider(),
+                                                                      child: PlaceDetailsScreen(
+                                                                          place:
+                                                                              place),
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ))
                                                       : LockedPlaceCard(
                                                           place: place,
                                                           onUnlock: () {
