@@ -74,7 +74,104 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildCarnetSection(List<dynamic> otherCarnets) {
+    return Padding(
+      padding: EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Explore Nearby Carnets", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
+          otherCarnets.isEmpty
+              ? Center(child: Text("No carnets available"))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: otherCarnets.length,
+                  itemBuilder: (context, index) {
+                    final carnet = otherCarnets[index];
+                    return Card(
+                      margin: EdgeInsets.symmetric(vertical: 10),
+                      child: ExpansionTile(
+                        title: Text(carnet.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        children: carnet.places.map<Widget>((place) {
+                          bool isUnlocked = provider!.isPlaceUnlocked(place.id);
+                          return ListTile(
+                            title: Text(place.name),
+                            subtitle: Text(place.description),
+                            leading: Icon(
+                              isUnlocked ? Icons.lock_open : Icons.lock,
+                              color: isUnlocked ? Colors.green : Colors.red,
+                            ),
+                            trailing: isUnlocked
+                                ? null
+                                : ElevatedButton(
+                                    onPressed: () => _showConfirmUnlockDialog(place.name, place.unlockCost, place),
+                                    child: Text("Unlock (5 coins)", style: TextStyle(color: Colors.black)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFD4F98F),
+                                      foregroundColor: Colors.black,
+                                    ),
+                                  ),
+                            onTap: isUnlocked
+                                ? () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PlaceDetailsScreen(place: place),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+
+  void _showConfirmUnlockDialog(String placeName, int placePrice, place) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Payment Confirmation"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Do you want to unlock '$placeName'?"),
+              SizedBox(height: 10),
+              Text("Price to unlock: $placePrice coins"),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await provider!.unlockPlace(widget.userId, place.id);
+                  _reloadData();
+                } catch (e) {
+                  print("Error unlocking place: $e");
+                }
+              },
+              child: Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+    Widget _buildHeader() {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -142,77 +239,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCarnetSection(List<dynamic> otherCarnets) {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Explore Nearby Carnets", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          SizedBox(height: 10),
-          otherCarnets.isEmpty
-              ? Center(child: Text("No carnets available"))
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: otherCarnets.length,
-                  itemBuilder: (context, index) {
-                    final carnet = otherCarnets[index];
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 10),
-                      child: ExpansionTile(
-                        title: Text(carnet.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        children: carnet.places.map<Widget>((place) {
-                          bool isUnlocked = provider!.isPlaceUnlocked(place.id);
-                          return ListTile(
-                            title: Text(place.name),
-                            subtitle: Text(place.description),
-                            leading: Icon(
-                              isUnlocked ? Icons.lock_open : Icons.lock,
-                              color: isUnlocked ? Colors.green : Colors.red,
-                            ),
-                            onTap: isUnlocked
-                                ? () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => PlaceDetailsScreen(place: place),
-                                      ),
-                                    );
-                                  }
-                                : null,
-                          );
-                        }).toList(),
-                      ),
-                    );
-                  },
-                ),
-        ],
-      ),
-    );
-  }
-
-  void _handleFloatingButton() async {
-    await provider!.checkUserCarnet(widget.userId);
-    if (provider!.userCarnet == null || !provider!.userCarnet!['hasCarnet']) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CreateCarnetScreen(userId: widget.userId),
-        ),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddPlaceScreenStep1(
-            carnetId: provider!.userCarnet!['carnet']['_id'],
-          ),
-        ),
-      );
-    }
-  }
-  
   // 🔹 User Traveler Card (Styled like TripGlide)
   Widget _userCard(Map<String, dynamic> user) {
     return Card(
@@ -291,5 +317,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+   void _handleFloatingButton() async {
+    await provider!.checkUserCarnet(widget.userId);
+    if (provider!.userCarnet == null || !provider!.userCarnet!['hasCarnet']) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreateCarnetScreen(userId: widget.userId),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddPlaceScreenStep1(
+            carnetId: provider!.userCarnet!['carnet']['_id'],
+          ),
+        ),
+      );
+    }
   }
 }

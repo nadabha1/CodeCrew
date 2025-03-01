@@ -62,7 +62,7 @@ class LoginViewModel extends ChangeNotifier {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => MainScreen(userId: _userId!,token: _token!,),
+              builder: (context) => MainScreen(),
             ),
           );
         } else {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
 import 'package:projet_pim/View/UserPreferences/FinalConfirmationPage.dart';
 import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';

@@ -260,26 +260,6 @@ Future<void> fetchFollowerData() async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
-                     Row(
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-    _StatItem(
-      count: userData?['followersCount']?.toString() ?? '0',  // ✅ Use userData
-      label: 'Followers',
-    ),
-    SizedBox(width: 20),
-    _StatItem(
-      count: userData?['followingCount']?.toString() ?? '0',  // ✅ Use userData
-      label: 'Following',
-    ),
-    SizedBox(width: 20),
-    _StatItem(
-      count: userData?['likes']?.toString() ?? '0',
-      label: 'Likes',
-    ),
-  ],
-),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [

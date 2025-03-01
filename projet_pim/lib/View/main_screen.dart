@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/user_profile.dart';
 
 class MainScreen extends StatefulWidget {
-
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -36,10 +36,12 @@ class _MainScreenState extends State<MainScreen> {
         Navigator.pushReplacementNamed(context, "/login");
       } else {
         _pages = [
-          HomeScreen(userId: _userId!,), // ✅ Pass dynamic userId
-          Placeholder(), // Explore (To be replaced)
+          HomeScreen(userId: _userId!), // ✅ Pass dynamic userId
+          ExploreScreen(userId: _userId!), // ✅ Page Explore avec token
+
           Placeholder(), // Messages (To be replaced)
-          UserProfileScreen(userId: _userId!, token: _token!), // ✅ Pass userId & token
+          UserProfileScreen(
+              userId: _userId!, token: _token!), // ✅ Pass userId & token
         ];
       }
     });
@@ -84,8 +86,10 @@ class _MainScreenState extends State<MainScreen> {
           onTap: _onItemTapped,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.explore), label: "Explore"),
-            BottomNavigationBarItem(icon: Icon(Icons.message), label: "Messages"),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.explore), label: "Explore"),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.message), label: "Messages"),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
           ],
         ),

@@ -22,7 +22,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
   bool isFollowing = false;
   String? _userId;
   String? _token;
-    UserService userService = UserService();
+  UserService userService = UserService();
 
   @override
   void initState() {
@@ -30,86 +30,65 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
     fetchTravelerProfile();
     fetchFollowerData();
   }
-Future<void> fetchFollowerData() async {
-  try {
-    List<String> followers = await userService.getFollowers(widget.travelerId);
-    List<String> following = await userService.getFollowing(widget.travelerId);
-    int followersCount = await userService.getFollowersCount(widget.travelerId);
-    int followingCount = await userService.getFollowingCount(widget.travelerId);
 
-    setState(() {
-      travelerData?['followers'] = followers;
-      travelerData?['following'] = following;
-      travelerData?['followersCount'] = followersCount;  // ✅ Correct count update
-      travelerData?['followingCount'] = followingCount;  // ✅ Correct count update
-    });
-  } catch (e) {
-    print("❌ Error fetching followers/following: $e");
-  }
-}
+  Future<void> fetchFollowerData() async {
+    try {
+      List<String> followers = await userService.getFollowers(widget.travelerId);
+      List<String> following = await userService.getFollowing(widget.travelerId);
+      int followersCount = await userService.getFollowersCount(widget.travelerId);
+      int followingCount = await userService.getFollowingCount(widget.travelerId);
 
-
-
-
-Future<void> fetchTravelerProfile() async {
-  try {
-    UserService userService = UserService();
-    CarnetService carnetService = CarnetService();
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString("user_id");
-    _token = prefs.getString("jwt_token");
-
-    // Fetch traveler details
-    print("Fetching traveler data for ID: ${widget.travelerId}");
-    Map<String, dynamic> traveler = await userService.getUserById(widget.travelerId, _token!);
-    print("Traveler data received: $traveler");
-
-    // Fetch traveler’s carnets
-    print("Fetching carnets for traveler ID: ${widget.travelerId}");
-    List<dynamic> carnetList = await carnetService.getUserCarnet(widget.travelerId);
-
-    // 🔥 Convertir la liste de maps en une liste de Carnet
-    List<Carnet> carnets = carnetList.map((json) => Carnet.fromJson(json)).toList();
-
-    print("Traveler's carnets received: ${carnets.length}");
-
-    setState(() {
-      travelerData = traveler;
-      travelerCarnets = carnets;
-      isFollowing = traveler['followers']?.contains(widget.loggedInUserId) ?? false;
-      isLoading = false;
-    });
-  } catch (e) {
-    print("❌ Error fetching traveler profile: $e");
-    setState(() => isLoading = false);
-  }
-}
- 
-Future<void> toggleFollow() async {
-  try {
-    if (isFollowing) {
-      await userService.unfollowUser(widget.loggedInUserId, widget.travelerId);
-    } else {
-      await userService.followUser(widget.loggedInUserId, widget.travelerId);
+      setState(() {
+        travelerData?['followers'] = followers;
+        travelerData?['following'] = following;
+        travelerData?['followersCount'] = followersCount;
+        travelerData?['followingCount'] = followingCount;
+        isFollowing = followers.contains(widget.loggedInUserId);
+      });
+    } catch (e) {
+      print("❌ Error fetching followers/following: $e");
     }
-
-    // ✅ Fetch updated follower count from backend
-    await fetchFollowerData();
-
-    setState(() {
-      isFollowing = !isFollowing;
-    });
-
-  } catch (e) {
-    print("❌ Error following/unfollowing user: $e");
   }
-}
 
+  Future<void> fetchTravelerProfile() async {
+    try {
+      UserService userService = UserService();
+      CarnetService carnetService = CarnetService();
+      final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString("user_id");
+      _token = prefs.getString("jwt_token");
 
+      Map<String, dynamic> traveler = await userService.getUserById(widget.travelerId, _token!);
+      List<dynamic> carnetList = await carnetService.getUserCarnet(widget.travelerId);
+      List<Carnet> carnets = carnetList.map((json) => Carnet.fromJson(json)).toList();
 
+      setState(() {
+        travelerData = traveler;
+        travelerCarnets = carnets;
+        isFollowing = traveler['followers']?.contains(widget.loggedInUserId) ?? false;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("❌ Error fetching traveler profile: $e");
+      setState(() => isLoading = false);
+    }
+  }
 
-
-
+  Future<void> toggleFollow() async {
+    try {
+      if (isFollowing) {
+        await userService.unfollowUser(widget.loggedInUserId, widget.travelerId);
+      } else {
+        await userService.followUser(widget.loggedInUserId, widget.travelerId);
+      }
+      await fetchFollowerData();
+      setState(() {
+        isFollowing = !isFollowing;
+      });
+    } catch (e) {
+      print("❌ Error following/unfollowing user: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,29 +133,27 @@ Future<void> toggleFollow() async {
                         ),
                         SizedBox(height: 10),
                         Row(
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-    _StatItem(
-      count: travelerData?['followersCount']?.toString() ?? '0',
-      label: 'Followers',
-    ),
-    SizedBox(width: 20),
-    _StatItem(
-      count: travelerData?['followingCount']?.toString() ?? '0',
-      label: 'Following',
-    ),
-    SizedBox(width: 20),
-    _StatItem(
-      count: travelerData?['likes']?.toString() ?? '0',
-      label: 'Likes',
-    ),
-  ],
-),
-
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _StatItem(
+                              count: travelerData?['followersCount']?.toString() ?? '0',
+                              label: 'Followers',
+                            ),
+                            SizedBox(width: 20),
+                            _StatItem(
+                              count: travelerData?['followingCount']?.toString() ?? '0',
+                              label: 'Following',
+                            ),
+                            SizedBox(width: 20),
+                            _StatItem(
+                              count: travelerData?['likes']?.toString() ?? '0',
+                              label: 'Likes',
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-
                   SizedBox(height: 20),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),

@@ -3,12 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
 
 class CarnetService {
-  final String baseUrl = 'http://localhost:3000/carnets';
-
+final String baseUrl =
+      "http://10.0.2.2:3000"; 
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
-          await http.get(Uri.parse('http://localhost:3000/carnets'));
+          await http.get(Uri.parse('http://10.0.2.2:3000/carnets'));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -57,7 +57,7 @@ class CarnetService {
 
   Future<List<Carnet>> getUserCarnet(String userId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+      final response = await http.get(Uri.parse('$baseUrl/users/$userId'));
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
