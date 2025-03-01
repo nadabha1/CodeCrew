@@ -11,6 +11,8 @@ import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
 import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
 import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
+import 'package:projet_pim/View/chat/chat_screen.dart';
+import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
@@ -85,6 +87,7 @@ class MyApp extends StatelessWidget {
               ),
           '/add-place': (context) =>
               AddPlaceScreen(carnetId: ''), // ✅ New Route
+              '/msg': (context) =>  ConversationListScreen(), // ✅ New Route
         },
       );
     });

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
+import 'package:projet_pim/View/chat/chat_list_page.dart';
+import 'package:projet_pim/View/chat/chat_screen.dart';
+import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/user_profile.dart';
@@ -40,7 +43,7 @@ class _MainScreenState extends State<MainScreen> {
           HomeScreen(userId: _userId!), // ✅ Pass dynamic userId
           ExploreScreen(userId: _userId!), // ✅ Page Explore avec token
 
-          Placeholder(), // Messages (To be replaced)
+          ConversationListScreen(), // Messages (To be replaced)
           UserProfileScreen(
               userId: _userId!, token: _token!), // ✅ Pass userId & token
         ];

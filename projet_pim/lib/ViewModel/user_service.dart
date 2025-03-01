@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Model/conversation.dart';
 
 class UserService {
-  final String baseUrl = 'http://localhost:3000'; // Pour l'émulateur Android
+  final String baseUrl = 'http://10.0.2.2:3000'; // Pour l'émulateur Android
   final http.Client client = http.Client();
 
   // Récupérer les informations de l'utilisateur avec un token
@@ -207,4 +209,37 @@ class UserService {
       return {'error': '⚠️ Error deleting profile: $e'};
     }
   }
+      static  final String baseUrl2 = 'http://10.0.2.2:3000';
+      
+
+    static Future<List<Conversation>> getUserConversations(String userId) async {
+
+    final response = await http.get(Uri.parse('$baseUrl2/conversations/$userId'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Conversation.fromJson(json)).toList();
+    } else {
+      throw Exception('Erreur lors du chargement des conversations');
+    }
+  }
+
+void startConversation(BuildContext context, String userId) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/conversations'),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"participantId": userId}),
+  );
+
+  if (response.statusCode == 201) {
+    // Fermer l'écran et retourner la conversation créée
+    Navigator.pop(context, json.decode(response.body));
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Erreur lors de la création de la conversation")),
+    );
+  }
+}
+
+
 }
