@@ -207,4 +207,80 @@ class UserService {
       return {'error': '⚠️ Error deleting profile: $e'};
     }
   }
+
+  Future<List<String>> getUserFavorites(String userId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/$userId/favorites'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print("API Response: $data"); // Debugging the response
+
+        // Directly return the 'favorites' list as a List<String>
+        return List<String>.from(data);
+      } else {
+        throw Exception("Failed to fetch favorites: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Error fetching favorites: $e");
+      throw Exception("Error fetching favorites: $e");
+    }
+  }
+
+  // ✅ Add a Place to Favorites
+  Future<void> addPlaceToFavorites(
+      String userId, String placeId, String token) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/users/$userId/favorites/$placeId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'placeId': placeId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Place added to favorites successfully!");
+      } else {
+        throw Exception("Failed to add place to favorites");
+      }
+    } catch (e) {
+      throw Exception("Error adding place to favorites: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> getPlaceById(
+      String placeId, String token) async {
+    try {
+      final response = await client.get(
+        Uri.parse('$baseUrl/carnets/place/$placeId'), // Updated endpoint
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        print('❌ Place not found: ${response.body}');
+        throw Exception('Place not found: ${response.body}');
+      } else {
+        print('❌ Failed to fetch place details: ${response.body}');
+        throw Exception('Failed to fetch place details: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error fetching place details: $e');
+      throw Exception('Error fetching place details: $e');
+    }
+  }
 }

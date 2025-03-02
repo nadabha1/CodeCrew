@@ -20,8 +20,8 @@ class PlaceDetailsScreen extends StatefulWidget {
 }
 
 class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
-  bool _isReviewVisible =
-      false; // Variable to control the visibility of reviews
+  bool _isReviewVisible = false;
+  bool _isFavorite = false; // Ajouté pour suivre l'état des favoris
 
   @override
   void initState() {
@@ -37,7 +37,6 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   }
 
   Future<String> _getUserName(String userId) async {
-    // Retrieve both userId and token from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString("jwt_token");
 
@@ -46,7 +45,41 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     }
 
     final user = await UserService().getUserById(userId, token);
-    return user['name']; // Assuming user['name'] is where the name is located
+    return user['name'];
+  }
+
+// Fonction pour ajouter un lieu aux favoris
+  Future<void> _addToFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("jwt_token");
+    String? userId = prefs.getString("user_id");
+
+    if (token == null || userId == null) {
+      // Si l'utilisateur n'est pas connecté, affiche un message ou redirige
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Veuillez vous connecter pour ajouter aux favoris.')),
+      );
+      return;
+    }
+
+    try {
+      // Appeler la méthode pour ajouter un lieu aux favoris
+      await UserService().addPlaceToFavorites(userId, widget.place.id, token);
+
+      // Si l'ajout est réussi, mettre à jour l'interface
+      setState(() {
+        _isFavorite = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lieu ajouté aux favoris !')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
   }
 
   void _openInGoogleMaps(double latitude, double longitude) async {
@@ -62,29 +95,86 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.place.name)),
+      appBar: AppBar(
+        title: Text(widget.place.name),
+        backgroundColor: const Color(0xFFDBD9FE),
+        actions: [
+          /* IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              // Implement share functionality
+            },
+          ),*/
+          IconButton(
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : null,
+            ),
+            onPressed:
+                _addToFavorites, // Ajout de la méthode pour ajouter aux favoris
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Photo album display with horizontal scrolling
               widget.place.images.isNotEmpty
-                  ? Image.network(widget.place.images.first,
-                      height: 200, fit: BoxFit.cover)
-                  : const SizedBox(height: 200),
-              const SizedBox(height: 10),
+                  ? Container(
+                      height: 250,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: widget.place.images.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                widget.place.images[index],
+                                height: 250,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Container(
+                      height: 250,
+                      color: Colors.grey[200],
+                      child: Center(
+                        child: Icon(Icons.photo, color: Colors.grey[500]),
+                      ),
+                    ),
+              const SizedBox(height: 15),
               Text(
                 widget.place.name,
                 style:
                     const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
-              Text(widget.place.description,
-                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text(
+                widget.place.description,
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
+              ),
               const SizedBox(height: 20),
+              // FlutterMap for displaying location with a custom map style
               Container(
-                height: 300,
+                height: 250,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
                 child: FlutterMap(
                   options: MapOptions(
                     center: LatLng(widget.place.latitude ?? 0.0,
@@ -115,7 +205,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   if (widget.place.latitude != null &&
@@ -127,14 +217,14 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 child: const Text("Ouvrir dans Google Maps"),
               ),
               const SizedBox(height: 20),
-              // Texte pour afficher/masquer les commentaires avec flèche
+              // Toggle reviews section with a smoother transition
               Row(
                 children: [
                   IconButton(
                     icon: Icon(
                       _isReviewVisible
-                          ? Icons.arrow_drop_up // Flèche vers le haut
-                          : Icons.arrow_drop_down, // Flèche vers le bas
+                          ? Icons.arrow_drop_up
+                          : Icons.arrow_drop_down,
                       size: 30,
                     ),
                     onPressed: () {
@@ -152,7 +242,6 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              // Affichage des avis si _isReviewVisible est vrai
               if (_isReviewVisible)
                 Consumer<ReviewProvider>(
                   builder: (context, reviewProvider, child) {
@@ -172,54 +261,58 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       itemBuilder: (context, index) {
                         final review = reviewProvider.reviews[index];
 
-                        return ListTile(
-                          title: FutureBuilder<String>(
-                            future: _getUserName(review.userId),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const CircularProgressIndicator();
-                              }
-                              if (snapshot.hasError) {
-                                return Text('Erreur: ${snapshot.error}');
-                              }
-                              return Text(
-                                  snapshot.data ?? 'Utilisateur inconnu');
-                            },
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < review.rating
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    color: Colors.amber,
-                                    size: 20,
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 5,
+                          child: ListTile(
+                            title: FutureBuilder<String>(
+                              future: _getUserName(review.userId),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const CircularProgressIndicator();
+                                }
+                                if (snapshot.hasError) {
+                                  return Text('Erreur: ${snapshot.error}');
+                                }
+                                return Text(
+                                    snapshot.data ?? 'Utilisateur inconnu');
+                              },
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: List.generate(
+                                    5,
+                                    (i) => Icon(
+                                      i < review.rating
+                                          ? Icons.star
+                                          : Icons.star_border,
+                                      color: Colors.amber,
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(review.comment),
-                            ],
+                                const SizedBox(height: 5),
+                                Text(review.comment),
+                              ],
+                            ),
                           ),
                         );
                       },
                     );
                   },
                 ),
-
               AddReviewForm(
-                placeId: widget.place.id, // Pass placeId here
+                placeId: widget.place.id,
                 onSubmit: (Review review) {
-                  // Add the review to the provider
-                  Provider.of<ReviewProvider>(context, listen: false).addReview(
-                      widget.place.id, review); // Pass placeId and the review
+                  Provider.of<ReviewProvider>(context, listen: false)
+                      .addReview(widget.place.id, review);
                 },
-              )
+              ),
             ],
           ),
         ),
