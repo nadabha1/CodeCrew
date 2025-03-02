@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _messageController = TextEditingController();
   String? _userId;
+  String? otherUserName; // Stocke le nom du correspondant
+
 
   @override
   void initState() {
@@ -24,109 +27,200 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
 Future<void> fetchMessages() async {
-  final url = 'http://10.0.2.2:3000/messages/conversation/${widget.conversationId}'; // ✅ Nouvelle URL correcte
-final prefs = await SharedPreferences.getInstance();
-   _userId = prefs.getString("user_id");  final response = await http.get(Uri.parse(url));
+  final url = 'http://10.0.2.2:3000/messages/conversation/${widget.conversationId}';
+  final prefs = await SharedPreferences.getInstance();
+  _userId = prefs.getString("user_id");
+  final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200) {
     final List<dynamic> jsonData = jsonDecode(response.body);
-    print("📩 Messages reçus: $jsonData");  // 👀 Vérifier le contenu reçu
-
     setState(() {
       messages = jsonData.map((msg) => {
         'id': msg['_id'],
         'content': msg['content'],
-        'sender': msg['sender'],  // S'assurer que c'est bien 'sender' et pas 'senderId'
+        'sender': msg['sender'],
+        'createdAt': msg['createdAt'],
       }).toList();
-    });
+
+      // ✅ Trouver le nom de l'autre utilisateur dès le premier message de lui
+      String? detectedOtherUserName;
+      for (var msg in messages) {
+        if (msg['sender']?['_id'].toString() != _userId.toString()) {
+          detectedOtherUserName = msg['sender']?['name'] ?? "Utilisateur inconnu";
+          break; // Dès qu'on trouve le nom, on arrête la boucle
+        }
+      }
+
+      // ✅ Si on a trouvé un nom, on le met à jour
+      if (detectedOtherUserName != null) {
+        otherUserName = detectedOtherUserName;
+      } else {
+        otherUserName = "Utilisateur inconnu"; // Valeur par défaut
+      }
+    }
+    );
   } else {
     print("❌ Erreur de chargement: ${response.body}");
+  }
+}
+
+String formatTimestamp(dynamic timestamp) {
+  if (timestamp == null || timestamp == "") return "⏳"; // Handle null case
+  try {
+    DateTime dateTime;
+    if (timestamp is String) {
+      dateTime = DateTime.parse(timestamp).toLocal();
+    } else if (timestamp is int) {
+      dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
+    } else {
+      return "⏳";
+    }
+
+    return DateFormat('HH:mm').format(dateTime);
+  } catch (e) {
+    print("Error parsing timestamp: $timestamp");
+    return "⏳"; // Default fallback
   }
 }
 
 
 
   Future<void> sendMessage() async {
-  final messageText = _messageController.text;
-  if (messageText.isEmpty) return;
+    final messageText = _messageController.text;
+    if (messageText.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString("user_id");
 
-  final prefs = await SharedPreferences.getInstance();
-   _userId = prefs.getString("user_id");
+    final url = 'http://10.0.2.2:3000/messages';
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "conversationId": widget.conversationId,
+        "senderId": _userId,
+        "content": messageText,
+        "createdAt": DateTime.now().millisecondsSinceEpoch, // Utilise DateTime.now().millisecondsSinceEpoch pour récupérer le timestamp en millisecondes
+      }),
+    );
 
-  final url = 'http://10.0.2.2:3000/messages';  // ✅ Correction de l'URL
-  final response = await http.post(
-    Uri.parse(url),
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({
-      "conversationId": widget.conversationId,
-      "senderId": _userId, // 🔥 Remplacez par l'ID de l'utilisateur connecté
-      "content": messageText,  // ✅ Correction du champ (`content` au lieu de `text`)
-    }),
-  );
-
-  if (response.statusCode == 201) {
-    _messageController.clear();
-    fetchMessages(); // 🔥 Actualisation des messages après envoi
-  } else {
-    print("❌ Erreur d'envoi: ${response.body}");
+    if (response.statusCode == 201) {
+      _messageController.clear();
+      fetchMessages();
+    } else {
+      print("❌ Erreur d'envoi: ${response.body}");
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Chat"),
+        title: Text(otherUserName ?? "Chat"), // Nom du correspondant
         backgroundColor: Colors.deepPurple,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                final isMe = message['sender'] == _userId;
-
-                return Align(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isMe ? Colors.deepPurple : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      message['content'], // Assure-toi que c'est bien 'content' et pas 'text'
-                      style: TextStyle(color: isMe ? Colors.white : Colors.black),
-                    ),
-                  ),
-                );
-              },
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.2,
+              child: Image.asset(
+                "assets/whatsapp.jpeg",
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: "Écrire un message...",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+          Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: messages.length,
+                  padding: EdgeInsets.all(10),
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isMe = message['sender']?['_id'].toString() == _userId.toString();
+
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        children: [
+                          if (!isMe) // N'affiche le nom que pour l'autre utilisateur
+                            Padding(
+                              padding: EdgeInsets.only(left: 50, right: 0),
+                              child: Text(
+                                message['sender']?['name'] ?? "Utilisateur inconnu",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[700]),
+                              ),
+                            ),
+                          Container(
+                            margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: isMe ? Colors.blueAccent : Colors.grey[300],
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
+                                bottomLeft: isMe ? Radius.circular(12) : Radius.circular(0),
+                                bottomRight: isMe ? Radius.circular(0) : Radius.circular(12),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  message['content'],
+                                  style: TextStyle(color: isMe ? Colors.white : Colors.black, fontSize: 16),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  formatTimestamp(message['createdAt']),
+                                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: "Écrire un message...",
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.send, color: Colors.white),
+                        onPressed: sendMessage,
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: Icon(Icons.send, color: Colors.deepPurple),
-                  onPressed: sendMessage,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Model/conversation.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,12 +34,13 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
       setState(() {
         isLoading = false;
       });
+    
     }
+
   }
   void startConversation(String otherUserId) async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
-
   final url = 'http://10.0.2.2:3000/conversations/$_userId';
   final body = jsonEncode({"otherUserId": otherUserId}); // ✅ Corrigé
 

@@ -43,6 +43,8 @@ dependencies:
   geocoding: ^2.0.2  
   fluttertoast: ^8.0.9  
   socket_io_client: ^2.0.3+1
+  intl: ^0.18.0  # Make sure to use the latest version
+
 
 
 
@@ -73,6 +75,7 @@ flutter:
   assets:
     - assets/default_avatar.png
     - assets/default_profile.png
+    - assets/whatsapp.jpeg
 
 
 
