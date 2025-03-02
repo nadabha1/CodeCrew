@@ -8,7 +8,7 @@ class Place {
   final String description;
   final List<String> categories;
   final int unlockCost;
-  final List<String> images;
+  final List<String> images; // Liste des URLs des images
   final List<Review> reviews; // Liste des avis associés au lieu
 
   Place({
@@ -32,7 +32,7 @@ class Place {
       description: json['description'],
       categories: List<String>.from(json['categories']),
       unlockCost: json['unlockCost'],
-      images: List<String>.from(json['images']),
+      images: List<String>.from(json['images']), // Initialisation des images
     );
   }
 }

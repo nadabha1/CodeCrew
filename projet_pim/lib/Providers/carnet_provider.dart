@@ -1,21 +1,26 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class CarnetProvider with ChangeNotifier {
   final CarnetService _carnetService = CarnetService();
   List<Carnet> _carnets = [];
   List<Map<String, dynamic>> _places = [];
-
   bool _isLoading = false;
-  bool get isLoading => _isLoading;
 
+  bool get isLoading => _isLoading;
   List<Carnet> get carnets => _carnets;
   List<Map<String, dynamic>> get places => _places;
 
   final String baseUrl = 'http://localhost:3000'; // Backend URL
+
+  // Liste des images uploadées
+  List<String> _imageUrls = [];
+  List<String> get imageUrls => _imageUrls;
 
   // Fetch all carnets
   Future<void> fetchCarnets() async {
@@ -39,10 +44,40 @@ class CarnetProvider with ChangeNotifier {
     notifyListeners(); // Notify UI to update
   }
 
-  // Add a new carnet
-  Future<void> addCarnet(String title, String description, List places) async {
-    await _carnetService.createCarnet(title, description, places);
-    fetchCarnets(); // Refresh the list after adding a carnet
+  // Méthode pour télécharger l'image
+  Future<String?> uploadImage(XFile image) async {
+    try {
+      var uri = Uri.parse('$baseUrl/upload'); // URL of your backend
+
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath('photo', image.path));
+
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        // HTTP 201 Created
+        final responseBody = await response.stream.bytesToString();
+        print('Response body: $responseBody');
+
+        final uploadedImage = jsonDecode(responseBody);
+
+        if (uploadedImage != null &&
+            uploadedImage['response'] != null &&
+            uploadedImage['response']['url'] is String &&
+            uploadedImage['response']['url'].isNotEmpty) {
+          _imageUrls.add(uploadedImage['response']['url']); // Add URL to list
+          notifyListeners(); // Notify listeners about the change
+          return uploadedImage['response']['url']; // Return the image URL
+        } else {
+          print('Error: The URL is null, empty, or invalid');
+        }
+      } else {
+        print('Failed to upload image. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+    }
+    return null; // Return null in case of failure
   }
 
   // Add a new place to an existing carnet
@@ -52,11 +87,12 @@ class CarnetProvider with ChangeNotifier {
     String description,
     List<String> categories,
     int cost,
-    List<String> images,
+    List<String> imageUrls, // List of image URLs
     double latitude,
     double longitude,
   ) async {
     try {
+      // Now, send the place data including the image URLs
       final response = await http.post(
         Uri.parse('$baseUrl/carnets/$carnetId/places'),
         headers: {'Content-Type': 'application/json'},
@@ -65,14 +101,14 @@ class CarnetProvider with ChangeNotifier {
           'description': description,
           'categories': categories,
           'unlockCost': cost,
-          'images': images,
+          'images': imageUrls, // Save the list of image URLs
           "latitude": latitude,
           "longitude": longitude,
         }),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        fetchCarnets(); // Refresh the list
+        fetchCarnets(); // Refresh the carnets list
       } else {
         throw Exception("Failed to add place: ${response.body}");
       }
@@ -80,6 +116,14 @@ class CarnetProvider with ChangeNotifier {
       print("Error in addPlaceToCarnet: $e");
       throw Exception("Failed to add place");
     }
+  }
+
+  // Autres méthodes de ton provider (fetchCarnets, addPlaceToCarnet, etc.)
+
+  // Add a new carnet
+  Future<void> addCarnet(String title, String description, List places) async {
+    await _carnetService.createCarnet(title, description, places);
+    fetchCarnets(); // Refresh the list after adding a carnet
   }
 
   // Store the user's carnet data

@@ -26,12 +26,13 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch reviews after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final reviewProvider =
-          Provider.of<ReviewProvider>(context, listen: false);
-      reviewProvider
-          .fetchReviews(widget.place.id); // Fetch reviews for the place
+      if (mounted) {
+        final provider = Provider.of<ReviewProvider>(context, listen: false);
+        if (provider.reviews.isEmpty) {
+          provider.fetchReviews(widget.place.id);
+        }
+      }
     });
   }
 
@@ -173,21 +174,17 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
                         return ListTile(
                           title: FutureBuilder<String>(
-                            future: _getUserName(review
-                                .userId), // Fetch user name based on userId
+                            future: _getUserName(review.userId),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const CircularProgressIndicator();
                               }
                               if (snapshot.hasError) {
-                                return Text('Error: ${snapshot.error}');
+                                return Text('Erreur: ${snapshot.error}');
                               }
-                              if (snapshot.hasData) {
-                                return Text(
-                                    snapshot.data!); // Display the user's name
-                              }
-                              return const Text('User not found');
+                              return Text(
+                                  snapshot.data ?? 'Utilisateur inconnu');
                             },
                           ),
                           subtitle: Column(
@@ -214,6 +211,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     );
                   },
                 ),
+
               AddReviewForm(
                 placeId: widget.place.id, // Pass placeId here
                 onSubmit: (Review review) {

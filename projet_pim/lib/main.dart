@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
@@ -17,7 +19,6 @@ import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/View/signup_page.dart';
 import 'package:projet_pim/View/user_profile.dart';
-import 'package:projet_pim/ViewModel/review_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/login.dart';
@@ -34,9 +35,11 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ReviewProvider()),
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
         ChangeNotifierProvider<LoginViewModel>(
             create: (_) => LoginViewModel()..loadSession()),
+
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
         ChangeNotifierProvider<UserPreferences>(
             create: (_) => UserPreferences()),
@@ -44,9 +47,6 @@ void main() async {
             create: (_) => UserProvider()), // Add UserProvider here
         ChangeNotifierProvider<ThemeProvider>(
             create: (_) => ThemeProvider(isDarkMode)),
-        ChangeNotifierProvider<ReviewProvider>(
-            create: (_) =>
-                ReviewProvider()), // Ensure ReviewProvider is added here
       ],
       child: MyApp(userId: userId, token: token),
     ),
