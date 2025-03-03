@@ -4,10 +4,10 @@ class ChatService {
   late IO.Socket socket;
 
   void connect(String userId) {
-    socket = IO.io('http://10.0.2.2:3000', IO.OptionBuilder()
-        .setTransports(['websocket'])
-        .setQuery({'userId': userId})
-        .build());
+    socket = IO.io(
+        'http://localhost:3000',
+        IO.OptionBuilder()
+            .setTransports(['websocket']).setQuery({'userId': userId}).build());
 
     socket.onConnect((_) {
       print('Connected to chat server');
@@ -30,5 +30,4 @@ class ChatService {
   void disconnect() {
     socket.disconnect();
   }
-  
 }

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/View/FavoritesScreen.dart';
+import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
+import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
 import 'package:projet_pim/Model/carnet.dart';
@@ -94,6 +100,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -216,7 +224,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 280),
+                  const SizedBox(width: 270),
+                  // Bouton pour consulter les favoris
+                  IconButton(
+                    icon:
+                        const Icon(Icons.favorite_border), // Icône des favoris
+                    onPressed: () {
+                      // Naviguer vers la page des favoris
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FavoritesScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   // Icone des paramètres
                   IconButton(
                     icon: const Icon(Icons.settings),
@@ -286,16 +308,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             : 0,
                         itemBuilder: (context, index) {
                           return AddressCard(
-                            name: userCarnet[0]
-                                .places[index]
-                                .name, // Access 'name' directly from the Place object
-                            location: userCarnet[0].places[index].latitude !=
-                                        null &&
-                                    userCarnet[0].places[index].longitude !=
-                                        null
-                                ? '${userCarnet[0].places[index].latitude}, ${userCarnet[0].places[index].longitude}'
-                                : 'Location not available', // You can adjust how you display the location
+                            place: userCarnet[0].places[
+                                index], // Passe directement l'objet Place
                           );
+                        },
+                      ),
+                    ),
+                    // ✅ Floating Action Button ici
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0, bottom: 32),
+                      child: FloatingActionButton(
+                        backgroundColor:
+                            const Color.fromARGB(255, 248, 214, 253),
+                        child: const Icon(Icons.add),
+                        onPressed: () async {
+                          await carnetProvider.checkUserCarnet(widget.userId);
+                          if (carnetProvider.userCarnet == null ||
+                              !carnetProvider.userCarnet!['hasCarnet']) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CreateCarnetScreen(userId: widget.userId),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddPlaceScreenStep1(
+                                  carnetId: carnetProvider.userCarnet!['carnet']
+                                      ['_id'],
+                                ),
+                              ),
+                            ).then((_) {
+                              fetchUser(); // Rafraîchit la page après l'ajout de la place
+                            });
+                          }
                         },
                       ),
                     ),
@@ -320,59 +369,84 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
 // 📌 Widget pour afficher les adresses
 class AddressCard extends StatelessWidget {
-  final String name;
-  final String location;
+  final Place place; // Utilise un objet Place directement
 
-  const AddressCard({
-    required this.name,
-    required this.location,
-    Key? key,
-  }) : super(key: key);
+  const AddressCard({required this.place, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      margin: const EdgeInsets.only(right: 12),
-      width: 150,
-      height: 100,
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(197, 248, 196, 255),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
+    return GestureDetector(
+      onTap: () {
+        // Naviguer vers PlaceDetailsScreen en passant l'objet Place
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChangeNotifierProvider(
+              create: (context) => ReviewProvider(),
+              child: PlaceDetailsScreen(place: place),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.location_on, color: Colors.white, size: 14),
-                Text(
-                  location,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+        );
+      },
+      child: SizedBox(
+        width: 300,
+        height: 300,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            image: DecorationImage(
+              image: place.images.isNotEmpty
+                  ? NetworkImage(place.images.first)
+                  : const AssetImage('assets/default_image.jpg')
+                      as ImageProvider,
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(63, 0, 0, 0).withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ],
-            ),
+                child: Column(
+                  children: [
+                    Text(
+                      place.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.location_on,
+                            color: Colors.white, size: 16),
+                        Text(
+                          place.latitude != null && place.longitude != null
+                              ? '${place.latitude}, ${place.longitude}'
+                              : 'Lieu inconnu',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

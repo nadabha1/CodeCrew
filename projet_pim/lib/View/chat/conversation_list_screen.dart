@@ -16,7 +16,6 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   bool isLoading = true;
   String? _userId;
 
-
   @override
   void initState() {
     super.initState();
@@ -24,10 +23,11 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   }
 
   Future<void> fetchConversations() async {
-      final prefs = await SharedPreferences.getInstance();
-      _userId = prefs.getString("user_id");
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString("user_id");
 
-    final response = await http.get(Uri.parse('http://10.0.2.2:3000/conversations/$_userId'));
+    final response = await http
+        .get(Uri.parse('http://localhost:3000/conversations/$_userId'));
 
     if (response.statusCode == 200) {
       setState(() {
@@ -47,7 +47,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Conversations"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color(0xFFC8C4FF),
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
@@ -57,36 +57,41 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                   itemCount: conversations.length,
                   itemBuilder: (context, index) {
                     final conversation = conversations[index];
-                    final lastMessage = conversation['lastMessage']?['content'] ?? 'Aucun message';
+                    final lastMessage = conversation['lastMessage']
+                            ?['content'] ??
+                        'Aucun message';
                     final List participants = conversation['participants'];
-final otherParticipant = participants.firstWhere(
-  (p) => p['_id'] != _userId, // Remplace par l'ID du user connecté
-  orElse: () => null,
-);
+                    final otherParticipant = participants.firstWhere(
+                      (p) =>
+                          p['_id'] !=
+                          _userId, // Remplace par l'ID du user connecté
+                      orElse: () => null,
+                    );
 
-return ListTile(
-  leading: CircleAvatar(
-    backgroundImage: NetworkImage(otherParticipant?['avatarUrl'] ?? ''),
-  ),
-  title: Text(
-    otherParticipant?['name'] ?? "Utilisateur inconnu",
-    style: TextStyle(fontWeight: FontWeight.bold),
-  ),
-  subtitle: Text(
-    lastMessage,
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-  ),
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(conversationId: conversation['_id']),
-      ),
-    );
-  },
-);
-
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage:
+                            NetworkImage(otherParticipant?['avatarUrl'] ?? ''),
+                      ),
+                      title: Text(
+                        otherParticipant?['name'] ?? "Utilisateur inconnu",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        lastMessage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ChatScreen(conversationId: conversation['_id']),
+                          ),
+                        );
+                      },
+                    );
                   },
                 ),
       floatingActionButton: FloatingActionButton(
@@ -96,7 +101,7 @@ return ListTile(
             MaterialPageRoute(builder: (context) => NewConversationScreen()),
           );
         },
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color(0xFFC8C4FF),
         child: Icon(Icons.add, color: Colors.white),
       ),
     );

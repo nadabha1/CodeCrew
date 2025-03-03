@@ -19,71 +19,71 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _userId;
   String? otherUserName; // Stocke le nom du correspondant
 
-
   @override
   void initState() {
     super.initState();
     fetchMessages();
   }
 
-Future<void> fetchMessages() async {
-  final url = 'http://10.0.2.2:3000/messages/conversation/${widget.conversationId}';
-  final prefs = await SharedPreferences.getInstance();
-  _userId = prefs.getString("user_id");
-  final response = await http.get(Uri.parse(url));
+  Future<void> fetchMessages() async {
+    final url =
+        'http://localhost:3000/messages/conversation/${widget.conversationId}';
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString("user_id");
+    final response = await http.get(Uri.parse(url));
 
-  if (response.statusCode == 200) {
-    final List<dynamic> jsonData = jsonDecode(response.body);
-    setState(() {
-      messages = jsonData.map((msg) => {
-        'id': msg['_id'],
-        'content': msg['content'],
-        'sender': msg['sender'],
-        'createdAt': msg['createdAt'],
-      }).toList();
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = jsonDecode(response.body);
+      setState(() {
+        messages = jsonData
+            .map((msg) => {
+                  'id': msg['_id'],
+                  'content': msg['content'],
+                  'sender': msg['sender'],
+                  'createdAt': msg['createdAt'],
+                })
+            .toList();
 
-      // ✅ Trouver le nom de l'autre utilisateur dès le premier message de lui
-      String? detectedOtherUserName;
-      for (var msg in messages) {
-        if (msg['sender']?['_id'].toString() != _userId.toString()) {
-          detectedOtherUserName = msg['sender']?['name'] ?? "Utilisateur inconnu";
-          break; // Dès qu'on trouve le nom, on arrête la boucle
+        // ✅ Trouver le nom de l'autre utilisateur dès le premier message de lui
+        String? detectedOtherUserName;
+        for (var msg in messages) {
+          if (msg['sender']?['_id'].toString() != _userId.toString()) {
+            detectedOtherUserName =
+                msg['sender']?['name'] ?? "Utilisateur inconnu";
+            break; // Dès qu'on trouve le nom, on arrête la boucle
+          }
         }
-      }
 
-      // ✅ Si on a trouvé un nom, on le met à jour
-      if (detectedOtherUserName != null) {
-        otherUserName = detectedOtherUserName;
-      } else {
-        otherUserName = "Utilisateur inconnu"; // Valeur par défaut
-      }
-    }
-    );
-  } else {
-    print("❌ Erreur de chargement: ${response.body}");
-  }
-}
-
-String formatTimestamp(dynamic timestamp) {
-  if (timestamp == null || timestamp == "") return "⏳"; // Handle null case
-  try {
-    DateTime dateTime;
-    if (timestamp is String) {
-      dateTime = DateTime.parse(timestamp).toLocal();
-    } else if (timestamp is int) {
-      dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
+        // ✅ Si on a trouvé un nom, on le met à jour
+        if (detectedOtherUserName != null) {
+          otherUserName = detectedOtherUserName;
+        } else {
+          otherUserName = "Utilisateur inconnu"; // Valeur par défaut
+        }
+      });
     } else {
-      return "⏳";
+      print("❌ Erreur de chargement: ${response.body}");
     }
-
-    return DateFormat('HH:mm').format(dateTime);
-  } catch (e) {
-    print("Error parsing timestamp: $timestamp");
-    return "⏳"; // Default fallback
   }
-}
 
+  String formatTimestamp(dynamic timestamp) {
+    if (timestamp == null || timestamp == "") return "⏳"; // Handle null case
+    try {
+      DateTime dateTime;
+      if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp).toLocal();
+      } else if (timestamp is int) {
+        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
+      } else {
+        return "⏳";
+      }
 
+      return DateFormat('HH:mm').format(dateTime);
+    } catch (e) {
+      print("Error parsing timestamp: $timestamp");
+      return "⏳"; // Default fallback
+    }
+  }
 
   Future<void> sendMessage() async {
     final messageText = _messageController.text;
@@ -91,7 +91,7 @@ String formatTimestamp(dynamic timestamp) {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    final url = 'http://10.0.2.2:3000/messages';
+    final url = 'http://localhost:3000/messages';
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
@@ -99,7 +99,8 @@ String formatTimestamp(dynamic timestamp) {
         "conversationId": widget.conversationId,
         "senderId": _userId,
         "content": messageText,
-        "createdAt": DateTime.now().millisecondsSinceEpoch, // Utilise DateTime.now().millisecondsSinceEpoch pour récupérer le timestamp en millisecondes
+        "createdAt": DateTime.now()
+            .millisecondsSinceEpoch, // Utilise DateTime.now().millisecondsSinceEpoch pour récupérer le timestamp en millisecondes
       }),
     );
 
@@ -116,7 +117,7 @@ String formatTimestamp(dynamic timestamp) {
     return Scaffold(
       appBar: AppBar(
         title: Text(otherUserName ?? "Chat"), // Nom du correspondant
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color(0xFFFFCDB1),
       ),
       body: Stack(
         children: [
@@ -137,18 +138,23 @@ String formatTimestamp(dynamic timestamp) {
                   padding: EdgeInsets.all(10),
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final isMe = message['sender']?['_id'].toString() == _userId.toString();
+                    final isMe = message['sender']?['_id'].toString() ==
+                        _userId.toString();
 
                     return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Column(
-                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        crossAxisAlignment: isMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
                         children: [
                           if (!isMe) // N'affiche le nom que pour l'autre utilisateur
                             Padding(
                               padding: EdgeInsets.only(left: 50, right: 0),
                               child: Text(
-                                message['sender']?['name'] ?? "Utilisateur inconnu",
+                                message['sender']?['name'] ??
+                                    "Utilisateur inconnu",
                                 style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -156,15 +162,23 @@ String formatTimestamp(dynamic timestamp) {
                               ),
                             ),
                           Container(
-                            margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                            margin: EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 10),
+                            padding: EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 14),
                             decoration: BoxDecoration(
-                              color: isMe ? Colors.blueAccent : Colors.grey[300],
+                              color: isMe
+                                  ? const Color(0xFFF3C7F9)
+                                  : Colors.grey[300],
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(12),
                                 topRight: Radius.circular(12),
-                                bottomLeft: isMe ? Radius.circular(12) : Radius.circular(0),
-                                bottomRight: isMe ? Radius.circular(0) : Radius.circular(12),
+                                bottomLeft: isMe
+                                    ? Radius.circular(12)
+                                    : Radius.circular(0),
+                                bottomRight: isMe
+                                    ? Radius.circular(0)
+                                    : Radius.circular(12),
                               ),
                             ),
                             child: Column(
@@ -172,12 +186,15 @@ String formatTimestamp(dynamic timestamp) {
                               children: [
                                 Text(
                                   message['content'],
-                                  style: TextStyle(color: isMe ? Colors.white : Colors.black, fontSize: 16),
+                                  style: TextStyle(
+                                      color: isMe ? Colors.white : Colors.black,
+                                      fontSize: 16),
                                 ),
                                 SizedBox(height: 4),
                                 Text(
                                   formatTimestamp(message['createdAt']),
-                                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white70),
                                 ),
                               ],
                             ),
@@ -209,7 +226,7 @@ String formatTimestamp(dynamic timestamp) {
                     SizedBox(width: 8),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple,
+                        color: const Color(0xFFFFCDB1),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(

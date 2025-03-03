@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
-import 'package:projet_pim/View/chat/chat_list_page.dart';
-import 'package:projet_pim/View/chat/chat_screen.dart';
 import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/home_screen.dart';

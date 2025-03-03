@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../Providers/carnet_provider.dart';
 
@@ -25,7 +29,74 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   final TextEditingController _descriptionController = TextEditingController();
   int _cost = 5;
   List<String> _selectedCategories = [];
-  List<String> _images = [];
+  List<String> _imageUrls =
+      []; // Liste pour stocker les URLs des images téléchargées
+
+  final ImagePicker _picker = ImagePicker();
+  List<XFile>? _imageFileList = [];
+  File? _selectedImage;
+
+  // Méthode pour sélectionner des images
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+
+      // Upload the image after picking it
+      final carnetProvider =
+          Provider.of<CarnetProvider>(context, listen: false);
+      String? imageUrl = await carnetProvider.uploadImage(pickedFile);
+      if (imageUrl != null) {
+        setState(() {
+          _imageUrls.add(imageUrl); // Add URL to list
+        });
+      }
+    }
+  }
+
+  // Méthode pour uploader une image
+  Future<void> _uploadImage(XFile image) async {
+    try {
+      var uri = Uri.parse('http://localhost:3000/upload'); // URL de ton serveur
+
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath('photo', image.path));
+
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        // HTTP 201 Created
+        final responseBody = await response.stream.bytesToString();
+        final uploadedImage = jsonDecode(responseBody);
+
+        // Vérifie si l'URL est bien présente dans la réponse
+        if (uploadedImage != null &&
+            uploadedImage['response'] != null &&
+            uploadedImage['response']['url'] is String &&
+            uploadedImage['response']['url'].isNotEmpty) {
+          setState(() {
+            _imageUrls
+                .add(uploadedImage['response']['url']); // Utilisation de l'URL
+            _imageFileList?.add(
+                image); // Optionnellement, ajouter l'image à la liste des fichiers
+          });
+
+          print(
+              'Image uploaded successfully: ${uploadedImage['response']['url']}');
+        } else {
+          print('Error: URL is null, empty, or invalid');
+        }
+      } else {
+        print('Failed to upload image. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+    }
+  }
 
   final List<Map<String, dynamic>> categories = [
     {'icon': Icons.restaurant, 'name': 'Food', 'color': Colors.red},
@@ -142,15 +213,34 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
             SizedBox(height: 10),
             Row(
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.shade300),
+                ..._imageFileList!.map((image) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        image: DecorationImage(
+                          image: FileImage(File(image.path)),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Icon(Icons.add, size: 30, color: Colors.grey),
                   ),
-                  child: Icon(Icons.add, size: 30, color: Colors.grey),
                 ),
               ],
             ),
@@ -178,7 +268,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                       _descriptionController.text,
                       _selectedCategories,
                       _cost,
-                      _images,
+                      _imageUrls, // Use URLs directly
                       widget.latitude,
                       widget.longitude,
                     );

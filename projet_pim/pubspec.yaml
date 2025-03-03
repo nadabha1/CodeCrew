@@ -42,12 +42,9 @@ dependencies:
   location: ^5.0.3
   geocoding: ^2.0.2  
   fluttertoast: ^8.0.9  
+  flutter_rating_bar: ^4.0.0
   socket_io_client: ^2.0.3+1
-  intl: ^0.18.0  # Make sure to use the latest version
-
-
-
-
+  intl: ^0.18.0 
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -76,6 +73,7 @@ flutter:
     - assets/default_avatar.png
     - assets/default_profile.png
     - assets/whatsapp.jpeg
+
 
 
 

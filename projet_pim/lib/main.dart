@@ -1,7 +1,10 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
 import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
@@ -34,9 +37,11 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ReviewProvider()),
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
         ChangeNotifierProvider<LoginViewModel>(
             create: (_) => LoginViewModel()..loadSession()),
+
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
         ChangeNotifierProvider<UserPreferences>(
             create: (_) => UserPreferences()),

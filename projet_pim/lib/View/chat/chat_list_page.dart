@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/conversation.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 
-
 class ChatListPage extends StatefulWidget {
   final String userId;
   const ChatListPage({super.key, required this.userId});
