@@ -3,12 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
 
 class CarnetService {
-  final String baseUrl = 'http://localhost:3000/carnets';
+  final String baseUrl = 'http://10.0.2.2:3000/carnets';
 
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
-          await http.get(Uri.parse('http://localhost:3000/carnets'));
+          await http.get(Uri.parse('http://10.0.2.2:3000/carnets'));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -85,7 +85,7 @@ class CarnetService {
   Future<void> unlockPlace(String userId, String placeId) async {
     try {
       final url =
-          Uri.parse('http://localhost:3000/users/$userId/unlock/$placeId');
+          Uri.parse('http://10.0.2.2:3000/users/$userId/unlock/$placeId');
 
       final response = await http.put(
         url,
@@ -104,7 +104,7 @@ class CarnetService {
   Future<List<String>> getUnlockedPlaces(String userId) async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/users/$userId/unlocked-places'),
+        Uri.parse('http://10.0.2.2:3000/users/$userId/unlocked-places'),
         headers: {'Content-Type': 'application/json'},
       );
       print("Réponse brute : ${response.body}");

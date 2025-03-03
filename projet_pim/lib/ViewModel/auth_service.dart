@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final String baseUrl =
-      'http://localhost:3000/auth'; // Replace with your backend URL
+      'http://10.0.2.2:3000/auth'; // Replace with your backend URL
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
