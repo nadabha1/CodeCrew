@@ -65,54 +65,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   /// ✅ **Send Updated Data to API**
- void _updateProfile() async {
-  setState(() => isLoading = true);
+  void _updateProfile() async {
+    setState(() => isLoading = true);
 
-  print("🔄 Updating Profile...");
-  print("📤 Sending Data:");
-  print("   - User ID: ${widget.userId}");
-  print("   - Token: ${widget.token}");
-  print("   - Name: ${nameController.text}");
-  print("   - Job: ${jobController.text}");
-  print("   - Location: ${locationController.text}");
-  print("   - Bio: ${bioController.text}");
-  print("   - Profile Image: ${_profileImage?.path ?? 'No Image Selected'}");
+    print("🔄 Updating Profile...");
+    print("📤 Sending Data:");
+    print("   - User ID: ${widget.userId}");
+    print("   - Token: ${widget.token}");
+    print("   - Name: ${nameController.text}");
+    print("   - Job: ${jobController.text}");
+    print("   - Location: ${locationController.text}");
+    print("   - Bio: ${bioController.text}");
+    print("   - Profile Image: ${_profileImage?.path ?? 'No Image Selected'}");
 
-  final result = await userService.updateUserProfile(
-    widget.userId,
-    widget.token,
-    nameController.text,
-    jobController.text,
-    locationController.text,
-    bioController.text,
-    //_profileImage?.path ?? '', // Pass image path or empty string
-  );
-
-  setState(() => isLoading = false);
-
-  if (result.containsKey('error')) {
-    print("❌ Error Updating Profile: ${result['error']}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result['error'])),
-    );
-  } else {
-    print("✅ Profile Updated Successfully!");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully!')),
+    final result = await userService.updateUserProfile(
+      widget.userId,
+      widget.token,
+      nameController.text,
+      jobController.text,
+      locationController.text,
+      bioController.text,
+      //_profileImage?.path ?? '', // Pass image path or empty string
     );
 
-    // ✅ Optionally navigate back or refresh data
-    Navigator.pop(context, {
-      'name': nameController.text,
-      'job': jobController.text,
-      'location': locationController.text,
-      'bio': bioController.text,
-      'profileImage': _profileImage?.path ?? widget.currentProfilePicture,
-    });
+    setState(() => isLoading = false);
+
+    if (result.containsKey('error')) {
+      print("❌ Error Updating Profile: ${result['error']}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'])),
+      );
+    } else {
+      print("✅ Profile Updated Successfully!");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
+
+      // ✅ Optionally navigate back or refresh data
+      Navigator.pop(context, {
+        'name': nameController.text,
+        'job': jobController.text,
+        'location': locationController.text,
+        'bio': bioController.text,
+        'profileImage': _profileImage?.path ?? widget.currentProfilePicture,
+      });
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {

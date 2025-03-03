@@ -22,13 +22,8 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
     final apiKey = "62cc243a16c642daba0b257791a5eec3"; // Geoapify API Key
     final url = Uri.parse(
         "https://api.geoapify.com/v1/geocode/search?text=$query&apiKey=$apiKey");
-        final response = await http.get(url);
 
-
-
-
-
-
+    final response = await http.get(url);
 
     if (response.statusCode == 200) {
       setState(() {
@@ -57,8 +52,6 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
               onChanged: searchPlaces,
             ),
             SizedBox(height: 20),
-
-            // 📌 Display Search Results
             Expanded(
               child: ListView.builder(
                 itemCount: _searchResults.length,
@@ -79,6 +72,10 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
                                 place['properties']['name'] ?? "Unknown Place",
                             placeAddress: place['properties']['formatted'] ??
                                 "Unknown Address",
+                            latitude: place['geometry']['coordinates']
+                                [1], // Latitude
+                            longitude: place['geometry']['coordinates']
+                                [0], // Longitude
                           ),
                         ),
                       );

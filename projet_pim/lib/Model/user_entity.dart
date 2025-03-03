@@ -10,9 +10,8 @@ class User {
   final String location;
   final String bio;
   final String? profileImage; // Peut être null
-  final List<String> followers;
-  final List<String> following;
   final int likes;
+  final int coins;
 
   User({
     required this.id,
@@ -26,9 +25,9 @@ class User {
     required this.location,
     required this.bio,
     this.profileImage, // Optionnel
-    required this.followers,
-    required this.following,
+
     required this.likes,
+    required this.coins,
   });
 
   // Factory method to create a User instance from JSON
@@ -48,10 +47,9 @@ class User {
       bio: json['bio'] as String? ?? '',
 
       profileImage: json['profileImage'] as String?, // Peut être null
-      followers: List<String>.from(
-          json['followers'] ?? []), // Assure une liste vide si null
-      following: List<String>.from(json['following'] ?? []),
+
       likes: json['likes'] as int? ?? 0, // Si null, met 0
+      coins: json['likes'] as int? ?? 0, // Si null, met 0
     );
   }
 
@@ -69,9 +67,8 @@ class User {
       'location': location,
       'bio': bio,
       'profileImage': profileImage,
-      'followers': followers,
-      'following': following,
       'likes': likes,
+      'coins': coins,
     };
   }
 }
