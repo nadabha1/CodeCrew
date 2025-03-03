@@ -224,7 +224,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 280),
+                  const SizedBox(width: 270),
                   // Bouton pour consulter les favoris
                   IconButton(
                     icon:
