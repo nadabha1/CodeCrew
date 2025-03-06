@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class FollowService {
-  final String baseUrl = 'http://192.168.1.6:3000/follow';
+  final String baseUrl = 'http://10.0.2.2:3000/follow';
 
   // Suivre un utilisateur
   Future<void> followUser(String targetUserId, String token) async {

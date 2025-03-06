@@ -39,7 +39,7 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
 
     const String apiUrl =
-        "http://192.168.1.6:3000/auth/login"; // Localhost for emulator
+        "http://10.0.2.2:3000/auth/login"; // Localhost for emulator
 
     try {
       final response = await http.post(

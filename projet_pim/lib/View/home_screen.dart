@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
@@ -18,16 +20,22 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   CarnetProvider? provider;
+  EventProvider? eventProvider;
+
   List<dynamic> users = [];
   bool isLoadingUsers = true;
+  late Animation<double> _cardFadeAnimation;
+  late AnimationController _cardAnimationController;
 
   void _reloadData() async {
-    if (provider != null) {
+    if (provider != null && eventProvider != null) {
       await provider!.fetchCarnetsExcludingUser(widget.userId);
       await provider!.fetchUnlockedPlaces(widget.userId);
       await fetchUsers(); // Fetch users when data is reloaded
+      await eventProvider!.fetchAllEvents();
+
       if (mounted) setState(() {});
     }
   }
@@ -36,17 +44,26 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     provider ??= Provider.of<CarnetProvider>(context, listen: false);
+    eventProvider ??= Provider.of<EventProvider>(context, listen: false);
   }
 
   @override
   void initState() {
     super.initState();
+    _cardAnimationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 500),
+    );
+    _cardFadeAnimation = CurvedAnimation(
+        parent: _cardAnimationController, curve: Curves.easeInOut);
+    _cardAnimationController.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) => _reloadData());
   }
 
   @override
   void dispose() {
-    provider = null;
+    _cardAnimationController.dispose();
+    eventProvider = null;
     super.dispose();
   }
 
@@ -62,6 +79,109 @@ class _HomeScreenState extends State<HomeScreen> {
       print("Error fetching users: $e");
       setState(() => isLoadingUsers = false);
     }
+  }
+
+  void _showCreateEventDialog() {
+    String title = '';
+    String description = '';
+    DateTime date = DateTime.now();
+    String location = '';
+    int joinPrice = 5; // Default join price
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Create Event'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(labelText: 'Title'),
+                onChanged: (value) => title = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Description'),
+                onChanged: (value) => description = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Location'),
+                onChanged: (value) => location = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Join Price (coins)'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) => joinPrice = int.tryParse(value) ?? 5,
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      ) ??
+                      date;
+                },
+                child: Text('Pick Date'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (title.isNotEmpty && location.isNotEmpty) {
+                eventProvider!.createEvent(widget.userId, title, description,
+                    date, location, joinPrice);
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJoinConfirmationDialog(Event event) {
+    showDialog(
+      context: context, // Now defined within the class
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Join Event'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Do you want to join "${event.title}"?'),
+              SizedBox(height: 10),
+              Text(
+                  'Join Price: ${event.joinPrice} coins'), // Display join price
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                eventProvider!.joinEvent(
+                    widget.userId, event.id); // Now eventProvider is accessible
+              },
+              child: Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showUnlockDialog(String placeName) {
@@ -155,11 +275,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
     final otherCarnets =
         carnetProvider.carnets.where((c) => c.owner != widget.userId).toList();
+    final eventProvider = Provider.of<EventProvider>(context, listen: true);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4FC),
       body: SafeArea(
-        child: carnetProvider.isLoading
+        child: carnetProvider.isLoading || eventProvider.isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Column(
@@ -339,6 +460,174 @@ class _HomeScreenState extends State<HomeScreen> {
                                   },
                                 ),
                               ],
+                            ),
+                          ),
+                    // Events Section
+                    SizedBox(height: 20),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Upcoming Events",
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: _showCreateEventDialog,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    eventProvider!.events.isEmpty
+                        ? Center(child: Text("No events available"))
+                        : SizedBox(
+                            height: 200, // Fixed height for the carousel
+                            child: FadeTransition(
+                              opacity: _cardFadeAnimation,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                itemCount: eventProvider!.events.length,
+                                itemBuilder: (context, index) {
+                                  final event = eventProvider!.events[index];
+                                  print(
+                                      'Event: ${event.title}, isParticipating: ${event.isParticipating}');
+                                  return Padding(
+                                    padding: EdgeInsets.only(right: 10),
+                                    child: Card(
+                                      elevation: 8,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Container(
+                                        width: 300,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Color(0xFF4A90E2),
+                                              Color(0xFF50E3C2)
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Padding(
+                                              padding: EdgeInsets.all(12),
+                                              child: Text(
+                                                event.title,
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 12),
+                                              child: Text(
+                                                event.description,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.white70,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 12),
+                                              child: Text(
+                                                'Date: ${event.date.toLocal().toString().split(' ')[0]}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 12),
+                                              child: Text(
+                                                'Location: ${event.location}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 12),
+                                              child: Text(
+                                                'Participants: ${event.participants.length}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                            ),
+                                            Spacer(),
+                                            Align(
+                                              alignment: Alignment.bottomCenter,
+                                              child: ElevatedButton(
+                                                onPressed: () {
+                                                  if (event.isParticipating) {
+                                                    Navigator.pushNamed(
+                                                      context,
+                                                      '/event-chat',
+                                                      arguments: event.id,
+                                                    );
+                                                  } else {
+                                                    _showJoinConfirmationDialog(
+                                                        event); // Show confirmation dialog
+                                                  }
+                                                },
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      event.isParticipating
+                                                          ? Color(0xFF50E3C2)
+                                                          : Color(0xFFF4A261),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.only(
+                                                      bottomLeft:
+                                                          Radius.circular(15),
+                                                      bottomRight:
+                                                          Radius.circular(15),
+                                                    ),
+                                                  ),
+                                                  padding: EdgeInsets.symmetric(
+                                                      vertical: 10),
+                                                ),
+                                                child: Text(
+                                                  event.isParticipating
+                                                      ? 'Chat'
+                                                      : 'Join',
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.white),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                     // Similar Traveler section
