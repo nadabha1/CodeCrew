@@ -5,7 +5,7 @@ class ChatService {
 
   void connect(String userId) {
     socket = IO.io(
-        'http://localhost:3000',
+        'http://192.168.1.6:3000',
         IO.OptionBuilder()
             .setTransports(['websocket']).setQuery({'userId': userId}).build());
 

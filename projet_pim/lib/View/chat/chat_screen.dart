@@ -27,7 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> fetchMessages() async {
     final url =
-        'http://localhost:3000/messages/conversation/${widget.conversationId}';
+        'http://192.168.1.6:3000/messages/conversation/${widget.conversationId}';
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
     final response = await http.get(Uri.parse(url));
@@ -91,7 +91,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    final url = 'http://localhost:3000/messages';
+    final url = 'http://192.168.1.6:3000/messages';
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},

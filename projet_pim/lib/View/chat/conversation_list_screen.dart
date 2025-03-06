@@ -27,7 +27,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     _userId = prefs.getString("user_id");
 
     final response = await http
-        .get(Uri.parse('http://localhost:3000/conversations/$_userId'));
+        .get(Uri.parse('http://192.168.1.6:3000/conversations/$_userId'));
 
     if (response.statusCode == 200) {
       setState(() {

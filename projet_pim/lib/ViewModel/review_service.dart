@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/review.dart';
 
 class ReviewService {
-  final String baseUrl = 'http://localhost:3000';
+  final String baseUrl = 'http://192.168.1.6:3000';
 
   // Get all reviews for a place
   Future<List<Review>> getAllReviews(String placeId) async {

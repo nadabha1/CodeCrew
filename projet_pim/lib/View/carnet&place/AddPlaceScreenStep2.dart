@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:projet_pim/View/main_screen.dart';
 import 'package:provider/provider.dart';
 import '../../Providers/carnet_provider.dart';
 
@@ -272,7 +273,13 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                       widget.latitude,
                       widget.longitude,
                     );
-                    Navigator.pop(context);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>MainScreen()
+                          )
+                        );
+                    
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
