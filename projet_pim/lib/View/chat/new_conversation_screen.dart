@@ -22,7 +22,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
 
   Future<void> fetchUsers() async {
     final response = await http.get(
-        Uri.parse('http://10.0.2.2:3000/users/all')); // Remplace par ton API
+        Uri.parse('http://192.168.1.6:3000/users/all')); // Remplace par ton API
     if (response.statusCode == 200) {
       setState(() {
         users = json.decode(response.body);
@@ -38,7 +38,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   void startConversation(String otherUserId) async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
-    final url = 'http://10.0.2.2:3000/conversations/$_userId';
+    final url = 'http://192.168.1.6:3000/conversations/$_userId';
     final body = jsonEncode({"otherUserId": otherUserId}); // ✅ Corrigé
 
     print("📤 Envoi de la requête: $url avec body: $body");

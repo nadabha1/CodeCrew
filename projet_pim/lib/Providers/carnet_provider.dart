@@ -16,7 +16,7 @@ class CarnetProvider with ChangeNotifier {
   List<Carnet> get carnets => _carnets;
   List<Map<String, dynamic>> get places => _places;
 
-  final String baseUrl = 'http://10.0.2.2:3000'; // Backend URL
+  final String baseUrl = 'http://192.168.1.6:3000'; // Backend URL
 
   // Liste des images uploadées
   List<String> _imageUrls = [];

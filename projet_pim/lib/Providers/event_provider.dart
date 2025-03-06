@@ -11,7 +11,7 @@ class EventProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   final String baseUrl =
-      'http://localhost:3000'; // Replace with your backend URL
+      'http://192.168.1.6:3000'; // Replace with your backend URL
 
   EventProvider({required this.userId});
 

@@ -32,7 +32,7 @@ class _EventChatScreenState extends State<EventChatScreen>
         CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
     _animationController.forward();
 
-    _socket = IO.io('http://10.0.2.2:3000', <String, dynamic>{
+    _socket = IO.io('http://192.168.1.6:3000', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
       'forceNew': true,
@@ -42,7 +42,7 @@ class _EventChatScreenState extends State<EventChatScreen>
     });
 
     _socket.onConnect((_) {
-      print('Connected to socket at http://10.0.2.2:3000');
+      print('Connected to socket at http://192.168.1.6:3000');
       _isConnected = true;
       _socket.emit(
           'joinEvent', {'eventId': widget.eventId, 'userId': widget.userId});
