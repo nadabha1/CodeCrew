@@ -208,41 +208,85 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               },
             ),
             SizedBox(height: 20),
-            Text("Add photos",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Row(
-              children: [
-                ..._imageFileList!.map((image) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        image: DecorationImage(
-                          image: FileImage(File(image.path)),
-                          fit: BoxFit.cover,
-                        ),
+            // Affichage des images
+            const SizedBox(height: 8),
+            Text(
+              "Images enregistrées",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection:
+                  Axis.horizontal, // Permet le défilement horizontal
+              child: Row(
+                children: [
+                  // Afficher les images existantes
+                  ..._imageUrls.map((imageUrl) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      child: Stack(
+                        children: [
+                          // Afficher l'image
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              image: DecorationImage(
+                                image: NetworkImage(imageUrl),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          // Ajouter un bouton de suppression
+                          Positioned(
+                            top: 45,
+                            right: -15,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white, // Fond blanc pour l'icône
+                                borderRadius: BorderRadius.circular(
+                                    30), // Arrondir les coins
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12, // Ombre légère
+                                    blurRadius: 4.0,
+                                    offset: Offset(2, 2),
+                                  ),
+                                ],
+                              ),
+                              // Réduire l'espace autour de l'icône
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  color: Color.fromARGB(
+                                      255, 255, 0, 0), // Couleur de l'icône
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  // Gérer la suppression de l'image
+                                  setState(() {
+                                    _imageUrls.remove(
+                                        imageUrl); // Supprimer l'image de la liste
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                }).toList(),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Icon(Icons.add, size: 30, color: Colors.grey),
+                    );
+                  }).toList(),
+
+                  // Ajouter un bouton + à la fin des images
+                  IconButton(
+                    icon: const Icon(Icons.add,
+                        size: 30, color: Color(0xFFFE7B32)),
+                    onPressed:
+                        _pickImage, // Ouvre la galerie pour ajouter une image
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             SizedBox(height: 20),
             Row(

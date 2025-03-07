@@ -22,7 +22,7 @@ class AuthProvider with ChangeNotifier {
 
   bool get isLoading => _isLoading;
   final String baseUrl =
-      "http://10.0.2.2:3000/auth"; // Remplace par ton URL de base
+      "http://localhost:3000/auth"; // Remplace par ton URL de base
 
   /// Handles user login
   Future<void> login(String email, String password) async {
@@ -135,7 +135,7 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    const String apiUrl = "http://10.0.2.2:3000/users/register";
+    const String apiUrl = "http://localhost:3000/users/register";
 
     try {
       final response = await http.post(
@@ -163,7 +163,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> saveUserPreferences(
       UserPreferences preferences, String userId) async {
-    String apiUrl = "http://10.0.2.2:3000/users/$userId/preferences/update";
+    String apiUrl = "http://localhost:3000/users/$userId/preferences/update";
 
     try {
       final response = await http.put(
@@ -246,7 +246,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> checkUserVerification(String email) async {
-    final String apiUrl = "http://10.0.2.2:3000/users/checkverification";
+    final String apiUrl = "http://localhost:3000/users/checkverification";
 
     try {
       debugPrint("🔄 Checking verification status for: $email");

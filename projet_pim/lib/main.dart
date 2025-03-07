@@ -37,12 +37,14 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ReviewProvider()),
+        ChangeNotifierProvider<ReviewProvider>(create: (_) => ReviewProvider()),
+
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
         ChangeNotifierProvider<LoginViewModel>(
             create: (_) => LoginViewModel()..loadSession()),
 
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
+
         ChangeNotifierProvider<UserPreferences>(
             create: (_) => UserPreferences()),
         ChangeNotifierProvider<UserProvider>(

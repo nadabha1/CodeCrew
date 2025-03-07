@@ -29,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _cardFadeAnimation;
   late AnimationController _cardAnimationController;
 
+  InheritedWidget? _ancestor;
+
   void _reloadData() async {
     if (provider != null && eventProvider != null) {
       await provider!.fetchCarnetsExcludingUser(widget.userId);
@@ -45,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.didChangeDependencies();
     provider ??= Provider.of<CarnetProvider>(context, listen: false);
     eventProvider ??= Provider.of<EventProvider>(context, listen: false);
+    _ancestor = context.dependOnInheritedWidgetOfExactType<InheritedWidget>();
   }
 
   @override
@@ -62,6 +65,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    // Use the saved reference to the ancestor
+    if (_ancestor != null) {
+      // Perform any necessary cleanup with the ancestor reference
+    }
     _cardAnimationController.dispose();
     eventProvider = null;
     super.dispose();

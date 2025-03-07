@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
+import 'package:projet_pim/View/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
 import 'package:projet_pim/View/FavoritesScreen.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
+import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
@@ -96,6 +98,38 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
       print('Erreur : $e');
     }
+  }
+
+  void _confirmerSuppression(BuildContext context, String carnetId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Supprimer le carnet'),
+          content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await CarnetService()
+                      .deleteCarnet(carnetId); // 🔥 Suppression API
+                  Navigator.of(context).pop(); // Fermer la boîte de dialogue
+                  print("Carnet supprimé avec succès !");
+                } catch (e) {
+                  print("Erreur lors de la suppression : $e");
+                }
+              },
+              child:
+                  const Text('Supprimer', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -289,13 +323,57 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    const Text(
-                      'Carnet d’adresses',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Carnet d’adresses',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            String carnetId =
+                                userCarnet.isNotEmpty ? userCarnet[0].id : '';
+                            switch (value) {
+                              case 'details':
+                                // Action pour voir les détails du carnet
+                                break;
+                              case 'ajouter':
+                                // Action pour ajouter un carnet
+                                break;
+                              case 'supprimer':
+                                _confirmerSuppression(context, carnetId);
+                                break;
+                              case 'editer':
+                                // Action pour éditer un carnet
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'details',
+                              child: Text('Voir les détails du carnet'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'ajouter',
+                              child: Text('Ajouter un carnet'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'supprimer',
+                              child: Text('Supprimer le carnet'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'editer',
+                              child: Text('Éditer le carnet'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+
                     const SizedBox(height: 16),
 
                     // 📌 Section Carnet d’Adresses avec les données du carnet
@@ -308,8 +386,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             : 0,
                         itemBuilder: (context, index) {
                           return AddressCard(
-                            place: userCarnet[0].places[
-                                index], // Passe directement l'objet Place
+                            place: userCarnet[0].places[index],
+                            fetchUser: fetchUser,
+                            // Passe directement l'objet Place
                           );
                         },
                       ),
@@ -369,24 +448,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
 // 📌 Widget pour afficher les adresses
 class AddressCard extends StatelessWidget {
-  final Place place; // Utilise un objet Place directement
+  final Place place; // Accepting a Place object
+  final VoidCallback fetchUser; // Callback to fetch user data
 
-  const AddressCard({required this.place, Key? key}) : super(key: key);
+  const AddressCard({required this.place, required this.fetchUser, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Naviguer vers PlaceDetailsScreen en passant l'objet Place
+        // Navigate to Place Details screen on tap
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChangeNotifierProvider(
-              create: (context) => ReviewProvider(),
-              child: PlaceDetailsScreen(place: place),
-            ),
+            builder: (context) => Details(place: place),
           ),
-        );
+        ).then((_) {
+          // This will refresh the data after navigating back from Details screen
+          fetchUser();
+        });
       },
       child: SizedBox(
         width: 300,
@@ -428,8 +509,11 @@ class AddressCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.location_on,
-                            color: Colors.white, size: 16),
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                         Text(
                           place.latitude != null && place.longitude != null
                               ? '${place.latitude}, ${place.longitude}'

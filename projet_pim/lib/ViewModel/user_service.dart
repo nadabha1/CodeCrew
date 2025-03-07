@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/conversation.dart';
 
 class UserService {
-  final String baseUrl = 'http://10.0.2.2:3000'; // Pour l'émulateur Android
+  final String baseUrl = 'http://localhost:3000'; // Pour l'émulateur Android
   final http.Client client = http.Client();
 
   // Récupérer les informations de l'utilisateur avec un token
