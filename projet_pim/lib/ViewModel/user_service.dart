@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/conversation.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class UserService {
-  final String baseUrl = 'http://192.168.1.10:3000'; // Pour l'émulateur Android
   final http.Client client = http.Client();
 
   // Récupérer les informations de l'utilisateur avec un token
   Future<Map<String, dynamic>> getUserById(String userId, String token) async {
     try {
       final response = await client.get(
-        Uri.parse('$baseUrl/users/$userId'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ class UserService {
     try {
       final response = await http.get(
         Uri.parse(
-            '$baseUrl/users/all'), // Assure-toi que cette route correspond à celle de ton backend
+            '${ApiConstants.baseUrl}/users/all'), // Assure-toi que cette route correspond à celle de ton backend
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ class UserService {
 
   Future<void> followUser(String loggedInUserId, String travelerId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/follow'),
+      Uri.parse('${ApiConstants.baseUrl}/follow'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({"follower": loggedInUserId, "following": travelerId}),
     );
@@ -70,7 +70,7 @@ class UserService {
 
   Future<void> unfollowUser(String loggedInUserId, String travelerId) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/follow'),
+      Uri.parse('${ApiConstants.baseUrl}/follow'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({"follower": loggedInUserId, "following": travelerId}),
     );
@@ -86,7 +86,7 @@ class UserService {
   // ✅ Get Followers List
   Future<List<String>> getFollowers(String userId) async {
     final response =
-        await http.get(Uri.parse('$baseUrl/follow/followers/$userId'));
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -99,7 +99,7 @@ class UserService {
   // ✅ Get Following List
   Future<List<String>> getFollowing(String userId) async {
     final response =
-        await http.get(Uri.parse('$baseUrl/follow/following/$userId'));
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/following/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -112,7 +112,7 @@ class UserService {
   // ✅ Get Followers Count
   Future<int> getFollowersCount(String userId) async {
     final response =
-        await http.get(Uri.parse('$baseUrl/follow/followers/count/$userId'));
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/count/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -125,7 +125,7 @@ class UserService {
   // ✅ Get Following Count
   Future<int> getFollowingCount(String userId) async {
     final response =
-        await http.get(Uri.parse('$baseUrl/follow/following/count/$userId'));
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/following/count/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -147,7 +147,7 @@ class UserService {
       print("🔄 Preparing Profile Update Request...");
 
       var response = await http.put(
-        Uri.parse('$baseUrl/users/$userId/update'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/update'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ class UserService {
       print("🗑 Deleting User Profile: $userId");
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/users/$userId'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -213,7 +213,7 @@ class UserService {
   Future<List<String>> getUserFavorites(String userId, String token) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/users/$userId/favorites'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/favorites'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -241,7 +241,7 @@ class UserService {
     try {
       final response = await http
           .put(
-            Uri.parse('$baseUrl/users/$userId/favorites/$placeId'),
+            Uri.parse('${ApiConstants.baseUrl}/users/$userId/favorites/$placeId'),
             headers: {
               'Authorization': 'Bearer $token',
               'Content-Type': 'application/json',
@@ -264,7 +264,7 @@ class UserService {
       String userId, String placeId, String token) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/users/$userId/favorites/$placeId'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/favorites/$placeId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ class UserService {
       String placeId, String token) async {
     try {
       final response = await client.get(
-        Uri.parse('$baseUrl/carnets/place/$placeId'), // Updated endpoint
+        Uri.parse('${ApiConstants.baseUrl}/carnets/place/$placeId'), // Updated endpoint
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -307,11 +307,10 @@ class UserService {
     }
   }
 
-  static final String baseUrl2 = 'http://192.168.1.6:3000';
 
   static Future<List<Conversation>> getUserConversations(String userId) async {
     final response =
-        await http.get(Uri.parse('$baseUrl2/conversations/$userId'));
+        await http.get(Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'));
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
@@ -323,7 +322,7 @@ class UserService {
 
   void startConversation(BuildContext context, String userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/conversations'),
+      Uri.parse('${ApiConstants.baseUrl}/conversations'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"participantId": userId}),
     );

@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final String baseUrl =
-      'http://192.168.1.10:3000/auth'; // Replace with your backend URL
+
+    final http.Client client = http.Client();
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/login'),
+      Uri.parse('${ApiConstants.baseUrl}/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -22,7 +23,7 @@ class AuthService {
 
   Future<String> forgotPassword(String email) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/forgot-password'),
+      Uri.parse('${ApiConstants.baseUrl}/auth/forgot-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email}),
     );
@@ -38,7 +39,7 @@ class AuthService {
 
   Future<String> verifyOtp(String email, String otp) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/verify-otp'),
+      Uri.parse('${ApiConstants.baseUrl}/auth/verify-otp'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'otp': otp}),
     );
@@ -54,7 +55,7 @@ class AuthService {
   Future<String> resetPasswordWithOtp(
       String email, String otp, String newPassword) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/reset-password-with-otp'),
+      Uri.parse('${ApiConstants.baseUrl}/auth/reset-password-with-otp'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email,
@@ -78,7 +79,7 @@ class AuthService {
     String? token = prefs.getString('token'); // Récupération dynamique du token
 
     final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
+      Uri.parse('${ApiConstants.baseUrl}/auth$endpoint'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null)

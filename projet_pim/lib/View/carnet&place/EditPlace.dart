@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -58,7 +59,7 @@ class _EditPlaceState extends State<EditPlace> {
   // Méthode pour uploader une image
   Future<void> _uploadImage(XFile image) async {
     try {
-      var uri = Uri.parse('http://localhost:3000/upload'); // URL de ton serveur
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload'); // URL de ton serveur
 
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath('photo', image.path));

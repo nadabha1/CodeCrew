@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -27,7 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> fetchMessages() async {
     final url =
-        'http://192.168.1.6:3000/messages/conversation/${widget.conversationId}';
+        '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}';
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
     final response = await http.get(Uri.parse(url));
@@ -91,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    final url = 'http://192.168.1.6:3000/messages';
+    final url = '${ApiConstants.baseUrl}/messages';
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},

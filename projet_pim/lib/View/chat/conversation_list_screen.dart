@@ -4,6 +4,7 @@ import 'package:projet_pim/View/chat/chat_screen.dart';
 import 'dart:convert';
 
 import 'package:projet_pim/View/chat/new_conversation_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConversationListScreen extends StatefulWidget {
@@ -27,7 +28,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     _userId = prefs.getString("user_id");
 
     final response = await http
-        .get(Uri.parse('http://192.168.1.6:3000/conversations/$_userId'));
+        .get(Uri.parse('${ApiConstants.baseUrl}/conversations/$_userId'));
 
     if (response.statusCode == 200) {
       setState(() {

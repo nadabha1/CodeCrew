@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class EventProvider with ChangeNotifier {
   List<Event> _events = [];
@@ -10,8 +11,7 @@ class EventProvider with ChangeNotifier {
   List<Event> get events => _events;
   bool get isLoading => _isLoading;
 
-  final String baseUrl =
-      'http://192.168.1.6:3000'; // Replace with your backend URL
+  // Replace with your backend URL
 
   EventProvider({required this.userId});
 
@@ -20,7 +20,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
     try {
       final response =
-          await http.get(Uri.parse('$baseUrl/events?userId=$userId'));
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/events?userId=$userId'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _events = data.map((json) => Event.fromJson(json, userId)).toList();
@@ -39,7 +39,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
     try {
       final response = await http
-          .get(Uri.parse('$baseUrl/events/all')); // Match backend findAllEvents
+          .get(Uri.parse('${ApiConstants.baseUrl}/events/all')); // Match backend findAllEvents
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _events = data.map((json) => Event.fromJson(json, userId)).toList();
@@ -60,7 +60,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/events'),
+        Uri.parse('${ApiConstants.baseUrl}/events'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'creatorId': userId,
@@ -90,7 +90,7 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/events/$eventId/join'),
+        Uri.parse('${ApiConstants.baseUrl}/events/$eventId/join'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'userId': userId}),
       );

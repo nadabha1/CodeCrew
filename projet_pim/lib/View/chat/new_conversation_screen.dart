@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +23,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
 
   Future<void> fetchUsers() async {
     final response = await http.get(
-        Uri.parse('http://localhost:3000/users/all')); // Remplace par ton API
+        Uri.parse('${ApiConstants.baseUrl}/users/all')); // Remplace par ton API
     if (response.statusCode == 200) {
       setState(() {
         users = json.decode(response.body);
@@ -38,7 +39,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   void startConversation(String otherUserId) async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
-    final url = 'http://localhost:3000/conversations/$_userId';
+    final url = '${ApiConstants.baseUrl}/conversations/$_userId';
     final body = jsonEncode({"otherUserId": otherUserId}); // ✅ Corrigé
 
     print("📤 Envoi de la requête: $url avec body: $body");

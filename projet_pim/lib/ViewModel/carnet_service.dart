@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class CarnetService {
-  final String baseUrl = 'http://192.168.1.10:3000/carnets';
 
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
-          await http.get(Uri.parse('http://192.168.1.10:3000/carnets'));
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets'));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -24,7 +24,7 @@ class CarnetService {
   Future<void> createCarnet(
       String title, String description, List places) async {
     final response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse('${ApiConstants.baseUrl}/carnets'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'title': title,
@@ -57,7 +57,7 @@ class CarnetService {
 
   Future<List<Carnet>> getUserCarnet(String userId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
@@ -85,7 +85,7 @@ class CarnetService {
   Future<void> unlockPlace(String userId, String placeId) async {
     try {
       final url =
-          Uri.parse('http://192.168.1.10:3000/users/$userId/unlock/$placeId');
+          Uri.parse('${ApiConstants.baseUrl}/users/$userId/unlock/$placeId');
 
       final response = await http.put(
         url,
@@ -104,7 +104,7 @@ class CarnetService {
   Future<List<String>> getUnlockedPlaces(String userId) async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.10:3000/users/$userId/unlocked-places'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/unlocked-places'),
         headers: {'Content-Type': 'application/json'},
       );
       print("Réponse brute : ${response.body}");
@@ -148,7 +148,7 @@ class CarnetService {
   // Implémentation de la méthode pour récupérer l'ID du carnet basé sur l'ID du lieu (placeId)
   Future<String> getCarnetIdByPlaceId(String placeId) async {
     final url =
-        'http://localhost:3000/carnets/place/$placeId/carnetid'; // Update this with your actual URL
+        '${ApiConstants.baseUrl}/carnets/carnets/place/$placeId/carnetid'; // Update this with your actual URL
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -162,7 +162,7 @@ class CarnetService {
 
   Future<Place> getPlaceById(String placeId) async {
     final response =
-        await http.get(Uri.parse('$baseUrl/carnets/place/$placeId'));
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/carnets/place/$placeId'));
 
     if (response.statusCode == 200) {
       // Si la réponse est réussie, décodez les données JSON
@@ -174,7 +174,7 @@ class CarnetService {
   }
 
   Future<void> deleteCarnet(String id) async {
-    final response = await http.delete(Uri.parse('$baseUrl/$id'));
+    final response = await http.delete(Uri.parse('${ApiConstants.baseUrl}/$id'));
 
     if (response.statusCode != 200) {
       throw Exception('Échec de la suppression du carnet: ${response.body}');

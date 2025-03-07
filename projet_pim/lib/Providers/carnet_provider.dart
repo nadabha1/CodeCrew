@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -17,7 +18,6 @@ class CarnetProvider with ChangeNotifier {
   List<Carnet> get carnets => _carnets;
   List<Map<String, dynamic>> get places => _places;
 
-  final String baseUrl = 'http://192.168.1.6:3000'; // Backend URL
 
   // Liste des images uploadées
   List<String> _imageUrls = [];
@@ -29,7 +29,7 @@ class CarnetProvider with ChangeNotifier {
     notifyListeners(); // Notify UI to show loading
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/carnets'));
+      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets'));
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -48,7 +48,7 @@ class CarnetProvider with ChangeNotifier {
   // Méthode pour télécharger l'image
   Future<String?> uploadImage(XFile image) async {
     try {
-      var uri = Uri.parse('$baseUrl/upload'); // URL of your backend
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload'); // URL of your backend
 
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath('photo', image.path));
@@ -95,7 +95,7 @@ class CarnetProvider with ChangeNotifier {
     try {
       // Now, send the place data including the image URLs
       final response = await http.post(
-        Uri.parse('$baseUrl/carnets/$carnetId/places'),
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': name,
@@ -138,7 +138,7 @@ class CarnetProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final response = await http.get(Uri.parse('$baseUrl/carnets/user/$userId'));
+    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -162,7 +162,7 @@ class CarnetProvider with ChangeNotifier {
   // Create a carnet for the user
   Future<void> createCarnet(String userId, String title) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/carnets/user/$userId'),
+      Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'title': title}),
     );
@@ -177,7 +177,7 @@ class CarnetProvider with ChangeNotifier {
   // Add a place to the user's carnet
   Future<void> addPlace(String userId, Map<String, dynamic> placeData) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/user/$userId/place'),
+      Uri.parse('${ApiConstants.baseUrl}/user/$userId/place'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(placeData),
     );
@@ -234,7 +234,7 @@ class CarnetProvider with ChangeNotifier {
 
     try {
       final response =
-          await http.get(Uri.parse('$baseUrl/carnets/exclude/$userId'));
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/exclude/$userId'));
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -269,7 +269,7 @@ class CarnetProvider with ChangeNotifier {
   Future<void> updatePlace(Place updatedPlace, String carnetId) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/carnets/$carnetId/places/${updatedPlace.id}'),
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places/${updatedPlace.id}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': updatedPlace.name,
@@ -313,7 +313,7 @@ class CarnetProvider with ChangeNotifier {
     try {
       // Call the API to get the place details by its ID
       final response =
-          await http.get(Uri.parse('$baseUrl/carnets/place/$placeId'));
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/place/$placeId'));
 
       if (response.statusCode == 200) {
         // If the response is successful, decode the data into a Place object

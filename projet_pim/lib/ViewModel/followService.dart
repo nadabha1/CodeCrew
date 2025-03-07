@@ -1,8 +1,10 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:projet_pim/ViewModel/api_constants.dart';
+
 class FollowService {
-  final String baseUrl = 'http://192.168.1.10:3000/follow';
+  final String baseUrl = '${ApiConstants.baseUrl}/follow';
 
   // Suivre un utilisateur
   Future<void> followUser(String targetUserId, String token) async {

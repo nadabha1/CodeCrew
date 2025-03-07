@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/review.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class ReviewService {
-  final String baseUrl = 'http://192.168.1.10:3000';
 
   // Get all reviews for a place
   Future<List<Review>> getAllReviews(String placeId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/reviews/$placeId'));
+      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/reviews/$placeId'));
 
       if (response.statusCode == 200) {
         // Decode the response body as a List of dynamic objects
@@ -29,7 +29,7 @@ class ReviewService {
   Future<void> addReview(String placeId, Review review) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/reviews/$placeId'),
+        Uri.parse('${ApiConstants.baseUrl}/reviews/$placeId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(review.toJson()),
       );

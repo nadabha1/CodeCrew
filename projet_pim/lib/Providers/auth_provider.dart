@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/user_model.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Providers/UserPreferences.dart';
@@ -22,7 +23,7 @@ class AuthProvider with ChangeNotifier {
 
   bool get isLoading => _isLoading;
   final String baseUrl =
-      "http://192.168.1.6:3000/auth"; // Remplace par ton URL de base
+      "${ApiConstants.baseUrl}/auth"; // Remplace par ton URL de base
 
   /// Handles user login
   Future<void> login(String email, String password) async {
@@ -135,7 +136,7 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    const String apiUrl = "http://192.168.1.6:3000/users/register";
+    const String apiUrl = "${ApiConstants.baseUrl}/users/register";
 
     try {
       final response = await http.post(
@@ -163,7 +164,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> saveUserPreferences(
       UserPreferences preferences, String userId) async {
-    String apiUrl = "http://192.168.1.6:3000/users/$userId/preferences/update";
+    String apiUrl = "${ApiConstants.baseUrl}/users/$userId/preferences/update";
 
     try {
       final response = await http.put(
@@ -246,7 +247,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> checkUserVerification(String email) async {
-    final String apiUrl = "http://192.168.1.6:3000/users/checkverification";
+    final String apiUrl = "${ApiConstants.baseUrl}/users/checkverification";
 
     try {
       debugPrint("🔄 Checking verification status for: $email");
