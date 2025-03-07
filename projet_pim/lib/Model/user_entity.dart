@@ -12,6 +12,7 @@ class User {
   final String? profileImage; // Peut être null
   final int likes;
   final int coins;
+  final int favorites;
 
   User({
     required this.id,
@@ -28,6 +29,7 @@ class User {
 
     required this.likes,
     required this.coins,
+    required this.favorites,
   });
 
   // Factory method to create a User instance from JSON
@@ -49,7 +51,8 @@ class User {
       profileImage: json['profileImage'] as String?, // Peut être null
 
       likes: json['likes'] as int? ?? 0, // Si null, met 0
-      coins: json['likes'] as int? ?? 0, // Si null, met 0
+      coins: json['coins'] as int? ?? 0, // Si null, met 0
+      favorites: json['favorites'] as int? ?? 0, // Si null, met 0
     );
   }
 
@@ -69,6 +72,7 @@ class User {
       'profileImage': profileImage,
       'likes': likes,
       'coins': coins,
+      'favorites': favorites,
     };
   }
 }
