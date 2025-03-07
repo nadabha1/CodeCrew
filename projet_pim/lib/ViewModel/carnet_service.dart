@@ -3,12 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
 
 class CarnetService {
-  final String baseUrl = 'http://192.168.1.6:3000/carnets';
+  final String baseUrl = 'http://192.168.1.10:3000/carnets';
 
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
-          await http.get(Uri.parse('http://192.168.1.6:3000/carnets'));
+          await http.get(Uri.parse('http://192.168.1.10:3000/carnets'));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -85,7 +85,7 @@ class CarnetService {
   Future<void> unlockPlace(String userId, String placeId) async {
     try {
       final url =
-          Uri.parse('http://192.168.1.6:3000/users/$userId/unlock/$placeId');
+          Uri.parse('http://192.168.1.10:3000/users/$userId/unlock/$placeId');
 
       final response = await http.put(
         url,
@@ -104,7 +104,7 @@ class CarnetService {
   Future<List<String>> getUnlockedPlaces(String userId) async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.6:3000/users/$userId/unlocked-places'),
+        Uri.parse('http://192.168.1.10:3000/users/$userId/unlocked-places'),
         headers: {'Content-Type': 'application/json'},
       );
       print("Réponse brute : ${response.body}");
@@ -137,6 +137,47 @@ class CarnetService {
     } catch (e) {
       print("Error in getAllPlacesFromCarnets: $e");
       throw Exception('Network error: Unable to fetch all places.');
+    }
+  }
+
+  Future<void> updatePlace(Place place) async {
+    // Simulation d'une mise à jour (ajoute ici l'appel à l'API ou la base de données)
+    print("Lieu mis à jour : ${place.name}");
+  }
+
+  // Implémentation de la méthode pour récupérer l'ID du carnet basé sur l'ID du lieu (placeId)
+  Future<String> getCarnetIdByPlaceId(String placeId) async {
+    final url =
+        'http://localhost:3000/carnets/place/$placeId/carnetid'; // Update this with your actual URL
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      // Directly use the response body as a string (it's the carnetId)
+      String carnetId = response.body;
+      return carnetId;
+    } else {
+      throw Exception('Failed to load carnetId');
+    }
+  }
+
+  Future<Place> getPlaceById(String placeId) async {
+    final response =
+        await http.get(Uri.parse('$baseUrl/carnets/place/$placeId'));
+
+    if (response.statusCode == 200) {
+      // Si la réponse est réussie, décodez les données JSON
+      return Place.fromJson(json.decode(response.body));
+    } else {
+      // Si la réponse échoue, lancez une exception
+      throw Exception('Failed to load place');
+    }
+  }
+
+  Future<void> deleteCarnet(String id) async {
+    final response = await http.delete(Uri.parse('$baseUrl/$id'));
+
+    if (response.statusCode != 200) {
+      throw Exception('Échec de la suppression du carnet: ${response.body}');
     }
   }
 }

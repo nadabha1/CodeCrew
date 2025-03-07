@@ -10,7 +10,6 @@ class Place {
   final int unlockCost;
   final List<String> images; // Liste des URLs des images
   final List<Review> reviews; // Liste des avis associés au lieu
-
   Place({
     required this.id,
     required this.name,
@@ -33,6 +32,30 @@ class Place {
       categories: List<String>.from(json['categories']),
       unlockCost: json['unlockCost'],
       images: List<String>.from(json['images']), // Initialisation des images
+    );
+  }
+
+  // The copyWith method
+  Place copyWith({
+    String? name,
+    String? description,
+    List<String>? images,
+    List<String>? categories, // Add categories to the copyWith method
+    int? unlockCost,
+    double? latitude,
+    double? longitude,
+  }) {
+    return Place(
+      id: this.id, // Keep the same ID
+      name: name ??
+          this.name, // If a new name is passed, use it; otherwise, keep the current one
+      description: description ?? this.description,
+      images: images ?? this.images,
+      categories:
+          categories ?? this.categories, // Update categories if provided
+      unlockCost: unlockCost ?? this.unlockCost,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }

@@ -32,6 +32,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         if (provider.reviews.isEmpty) {
           provider.fetchReviews(widget.place.id);
         }
+        _checkIfFavorite(); // Vérifier si le lieu est en favori
       }
     });
   }
@@ -55,26 +56,32 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     String? userId = prefs.getString("user_id");
 
     if (token == null || userId == null) {
-      // Si l'utilisateur n'est pas connecté, affiche un message ou redirige
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Veuillez vous connecter pour ajouter aux favoris.')),
+            content: Text('Veuillez vous connecter pour gérer vos favoris.')),
       );
       return;
     }
 
     try {
-      // Appeler la méthode pour ajouter un lieu aux favoris
-      await UserService().addPlaceToFavorites(userId, widget.place.id, token);
-
-      // Si l'ajout est réussi, mettre à jour l'interface
-      setState(() {
-        _isFavorite = true;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lieu ajouté aux favoris !')),
-      );
+      if (_isFavorite) {
+        await UserService()
+            .removePlaceFromFavorites(userId, widget.place.id, token);
+        setState(() {
+          _isFavorite = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lieu retiré des favoris.')),
+        );
+      } else {
+        await UserService().addPlaceToFavorites(userId, widget.place.id, token);
+        setState(() {
+          _isFavorite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lieu ajouté aux favoris !')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur: $e')),
@@ -89,6 +96,26 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       await launchUrl(url);
     } else {
       throw 'Could not launch $url';
+    }
+  }
+
+  Future<void> _checkIfFavorite() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("jwt_token");
+    String? userId = prefs.getString("user_id");
+
+    if (token == null || userId == null) {
+      return;
+    }
+
+    try {
+      List<String> favorites =
+          await UserService().getUserFavorites(userId, token);
+      setState(() {
+        _isFavorite = favorites.contains(widget.place.id);
+      });
+    } catch (e) {
+      print('Erreur lors de la récupération des favoris: $e');
     }
   }
 

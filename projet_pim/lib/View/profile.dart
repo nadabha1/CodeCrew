@@ -30,14 +30,15 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
   String? _userId;
   String? _token;
   UserService userService = UserService();
-  late CarnetProvider carnetProvider;
+  CarnetProvider? carnetProvider;
 
   @override
   void initState() {
     super.initState();
+    carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
+
     fetchTravelerProfile();
     fetchFollowerData();
-    carnetProvider = CarnetProvider();
   }
 
   Future<void> fetchFollowerData() async {
@@ -79,7 +80,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
 
 // Fetch unlocked places for the user
       if (_userId != null) {
-        await carnetProvider.fetchUnlockedPlaces(_userId!);
+        await carnetProvider?.fetchUnlockedPlaces(_userId!);
       }
       // Vérifier si l'utilisateur connecté suit déjà le voyageur
       List<String> followers =
@@ -102,7 +103,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
 
   void _reloadData() async {
     if (_userId != null) {
-      await carnetProvider.fetchUnlockedPlaces(_userId!);
+      await carnetProvider?.fetchUnlockedPlaces(_userId!);
       setState(() {
         // Force the UI to update based on the latest data
       });
@@ -210,7 +211,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                 try {
                   // Use the logged-in user ID to unlock the place
                   if (_userId != null) {
-                    await carnetProvider.unlockPlace(_userId!, place.id);
+                    await carnetProvider?.unlockPlace(_userId!, place.id);
                     _showUnlockDialog(placeName);
                     _reloadData();
                   } else {
@@ -230,188 +231,180 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => CarnetProvider()),
-        ChangeNotifierProvider(create: (_) => ReviewProvider()),
-      ],
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: isLoading
-            ? Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Color(0xFFDBD9FE),
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(30),
-                          bottomRight: Radius.circular(30),
+    final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFDBD9FE),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: travelerData?['profilePicture'] !=
+                                  null
+                              ? NetworkImage(travelerData!['profilePicture'])
+                              : const AssetImage('assets/default_profile.png')
+                                  as ImageProvider,
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundImage: travelerData?['profilePicture'] !=
-                                    null
-                                ? NetworkImage(travelerData!['profilePicture'])
-                                : const AssetImage('assets/default_profile.png')
-                                    as ImageProvider,
+                        SizedBox(height: 10),
+                        Text(
+                          travelerData?['name'] ?? 'Unknown Traveler',
+                          style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        Text(travelerData?['location'] ?? 'Unknown Location'),
+                        SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: toggleFollow,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isFollowing
+                                ? const Color(0xF6F6666)
+                                : const Color(0xFFD4F98F),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          SizedBox(height: 10),
-                          Text(
-                            travelerData?['name'] ?? 'Unknown Traveler',
-                            style: TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.bold),
-                          ),
-                          Text(travelerData?['location'] ?? 'Unknown Location'),
-                          SizedBox(height: 10),
-                          ElevatedButton(
-                            onPressed: toggleFollow,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isFollowing
-                                  ? const Color(0xF6F6666)
-                                  : const Color(0xFFD4F98F),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
+                          child: Text(isFollowing ? "Unfollow" : "Follow"),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _StatItem(
+                              count:
+                                  travelerData?['followersCount']?.toString() ??
+                                      '0',
+                              label: 'Followers',
                             ),
-                            child: Text(isFollowing ? "Unfollow" : "Follow"),
-                          ),
-                          SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _StatItem(
-                                count: travelerData?['followersCount']
-                                        ?.toString() ??
-                                    '0',
-                                label: 'Followers',
-                              ),
-                              SizedBox(width: 20),
-                              _StatItem(
-                                count: travelerData?['followingCount']
-                                        ?.toString() ??
-                                    '0',
-                                label: 'Following',
-                              ),
-                              SizedBox(width: 20),
-                              _StatItem(
-                                count:
-                                    travelerData?['likes']?.toString() ?? '0',
-                                label: 'Likes',
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            SizedBox(width: 20),
+                            _StatItem(
+                              count:
+                                  travelerData?['followingCount']?.toString() ??
+                                      '0',
+                              label: 'Following',
+                            ),
+                            SizedBox(width: 20),
+                            _StatItem(
+                              count: travelerData?['likes']?.toString() ?? '0',
+                              label: 'Likes',
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 20),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Carnet d'Adresses",
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 10),
-                          FutureBuilder<List<Carnet>>(
-                            future: travelerCarnets,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return Center(
-                                    child: CircularProgressIndicator());
-                              }
+                  ),
+                  SizedBox(height: 20),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Carnet d'Adresses",
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 10),
+                        FutureBuilder<List<Carnet>>(
+                          future: travelerCarnets,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            }
 
-                              if (snapshot.hasError) {
-                                return Center(
-                                    child: Text('Error loading carnets'));
-                              }
+                            if (snapshot.hasError) {
+                              return Center(
+                                  child: Text('Error loading carnets'));
+                            }
 
-                              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                return Center(
-                                    child: Text("No carnet available"));
-                              }
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return Center(child: Text("No carnet available"));
+                            }
 
-                              return Column(
-                                children: snapshot.data!
-                                    .map<Widget>((carnet) => Card(
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10)),
-                                          child: Column(
-                                            children: [
-                                              Text(
-                                                carnet.title,
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 18),
+                            return Column(
+                              children: snapshot.data!
+                                  .map<Widget>((carnet) => Card(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              carnet.title,
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18),
+                                            ),
+                                            SizedBox(height: 10),
+                                            // PageView for swiping through places
+                                            Container(
+                                              height:
+                                                  250, // Adjust height as needed
+                                              child: PageView(
+                                                children: carnet.places
+                                                    .map<Widget>((place) {
+                                                  bool isUnlocked =
+                                                      carnetProvider
+                                                          .isPlaceUnlocked(
+                                                              place.id);
+                                                  // Afficher la carte verrouillée ou déverrouillée en fonction de l'état
+                                                  return isUnlocked
+                                                      ? PlaceCard(
+                                                          place: place,
+                                                          onTap: () =>
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder: (context) =>
+                                                                      PlaceDetailsScreen(
+                                                                          place:
+                                                                              place),
+                                                                ),
+                                                              ))
+                                                      : LockedPlaceCard(
+                                                          place: place,
+                                                          onUnlock: () {
+                                                            if (_userId !=
+                                                                null) {
+                                                              _showConfirmUnlockDialog(
+                                                                place.name,
+                                                                place
+                                                                    .unlockCost,
+                                                                place,
+                                                              );
+                                                            } else {
+                                                              _showErrorDialog(
+                                                                  "Utilisateur non connecté.");
+                                                            }
+                                                          },
+                                                        );
+                                                }).toList(),
                                               ),
-                                              SizedBox(height: 10),
-                                              // PageView for swiping through places
-                                              Container(
-                                                height:
-                                                    250, // Adjust height as needed
-                                                child: PageView(
-                                                  children: carnet.places
-                                                      .map<Widget>((place) {
-                                                    bool isUnlocked =
-                                                        carnetProvider
-                                                            .isPlaceUnlocked(
-                                                                place.id);
-                                                    // Afficher la carte verrouillée ou déverrouillée en fonction de l'état
-                                                    return isUnlocked
-                                                        ? PlaceCard(
-                                                            place: place,
-                                                            onTap: () =>
-                                                                Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder: (context) =>
-                                                                    PlaceDetailsScreen(
-                                                                        place:
-                                                                            place),
-                                                              ),
-                                                            ),
-                                                          )
-                                                        : LockedPlaceCard(
-                                                            place: place,
-                                                            onUnlock: () {
-                                                              if (_userId !=
-                                                                  null) {
-                                                                _showConfirmUnlockDialog(
-                                                                  place.name,
-                                                                  place
-                                                                      .unlockCost,
-                                                                  place,
-                                                                );
-                                                              } else {
-                                                                _showErrorDialog(
-                                                                    "Utilisateur non connecté.");
-                                                              }
-                                                            },
-                                                          );
-                                                  }).toList(),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ))
-                                    .toList(),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                                            ),
+                                          ],
+                                        ),
+                                      ))
+                                  .toList(),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-      ),
+            ),
     );
   }
 }

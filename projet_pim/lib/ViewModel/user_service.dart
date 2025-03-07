@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/conversation.dart';
 
 class UserService {
-  final String baseUrl = 'http://192.168.1.6:3000'; // Pour l'émulateur Android
+  final String baseUrl = 'http://192.168.1.10:3000'; // Pour l'émulateur Android
   final http.Client client = http.Client();
 
   // Récupérer les informations de l'utilisateur avec un token
@@ -257,6 +257,27 @@ class UserService {
       }
     } catch (e) {
       throw Exception("Error adding place to favorites: $e");
+    }
+  }
+
+  Future<void> removePlaceFromFavorites(
+      String userId, String placeId, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/users/$userId/favorites/$placeId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        print("✅ Place removed from favorites successfully!");
+      } else {
+        throw Exception("Failed to remove place from favorites");
+      }
+    } catch (e) {
+      throw Exception("Error removing place from favorites: $e");
     }
   }
 

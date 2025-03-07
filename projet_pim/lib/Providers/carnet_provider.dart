@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 class CarnetProvider with ChangeNotifier {
   final CarnetService _carnetService = CarnetService();
   List<Carnet> _carnets = [];
+
   List<Map<String, dynamic>> _places = [];
   bool _isLoading = false;
 
@@ -262,5 +263,74 @@ class CarnetProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+// Update a place in an existing carnet
+  Future<void> updatePlace(Place updatedPlace, String carnetId) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/carnets/$carnetId/places/${updatedPlace.id}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': updatedPlace.name,
+          'description': updatedPlace.description,
+          'categories': updatedPlace.categories,
+          'unlockCost': updatedPlace.unlockCost,
+          'images': updatedPlace.images,
+          "latitude": updatedPlace.latitude,
+          "longitude": updatedPlace.longitude,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        fetchCarnets(); // Refresh the list of carnets after the update
+      } else {
+        throw Exception("Failed to update place: ${response.body}");
+      }
+    } catch (e) {
+      print("Error in updatePlace: $e");
+      throw Exception("Failed to update place");
+    }
+  }
+
+  Future<String> getCarnetIdByPlaceId(String placeId) async {
+    try {
+      String? carnetId = await _carnetService.getCarnetIdByPlaceId(placeId);
+      if (carnetId == null) {
+        throw Exception('Carnet ID not found');
+      }
+      return carnetId;
+    } catch (e) {
+      print("Error fetching carnetId: $e");
+      throw Exception('Error fetching carnetId: $e');
+    }
+  }
+
+  Future<Place> getPlaceById(String placeId) async {
+    _isLoading = true;
+    notifyListeners(); // Notify the UI to show the loading state
+
+    try {
+      // Call the API to get the place details by its ID
+      final response =
+          await http.get(Uri.parse('$baseUrl/carnets/place/$placeId'));
+
+      if (response.statusCode == 200) {
+        // If the response is successful, decode the data into a Place object
+        final placeData = jsonDecode(response.body);
+        final place = Place.fromJson(placeData);
+
+        return place; // Return the place object
+      } else {
+        // If the response fails, throw an exception
+        throw Exception('Failed to load place');
+      }
+    } catch (e) {
+      print("Error fetching place by ID: $e");
+      throw Exception('Error fetching place by ID');
+    } finally {
+      _isLoading = false; // Set the loading state to false
+      notifyListeners(); // Notify the UI to update after the request
+    }
   }
 }
