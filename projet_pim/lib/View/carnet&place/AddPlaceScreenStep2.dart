@@ -93,6 +93,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+                        SizedBox(height: 40),  // ✅ Ajouter un espace au-dessus du nom
               Row(
                 children: [
                   Expanded(

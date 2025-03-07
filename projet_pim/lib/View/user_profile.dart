@@ -100,38 +100,35 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  void _confirmerSuppression(BuildContext context, String carnetId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Supprimer le carnet'),
-          content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await CarnetService()
-                      .deleteCarnet(carnetId); // 🔥 Suppression API
-                  Navigator.of(context).pop(); // Fermer la boîte de dialogue
-                  print("Carnet supprimé avec succès !");
-                } catch (e) {
-                  print("Erreur lors de la suppression : $e");
-                }
-              },
-              child:
-                  const Text('Supprimer', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
+void _confirmerSuppression(BuildContext context, String carnetId, String userId) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Supprimer le carnet'),
+        content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await CarnetService().deleteCarnet(carnetId, userId); // 🔥 Appel avec 2 paramètres
+                Navigator.of(context).pop(); // Fermer la boîte de dialogue
+                print("✅ Carnet supprimé avec succès !");
+              } catch (e) {
+                print("❌ Erreur lors de la suppression : $e");
+              }
+            },
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      );
+    },
+  );
+}
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -345,7 +342,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 // Action pour ajouter un carnet
                                 break;
                               case 'supprimer':
-                                _confirmerSuppression(context, carnetId);
+                               _confirmerSuppression(context, carnetId, widget.userId);
                                 break;
                               case 'editer':
                                 // Action pour éditer un carnet

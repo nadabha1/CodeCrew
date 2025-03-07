@@ -148,7 +148,7 @@ class CarnetService {
   // Implémentation de la méthode pour récupérer l'ID du carnet basé sur l'ID du lieu (placeId)
   Future<String> getCarnetIdByPlaceId(String placeId) async {
     final url =
-        '${ApiConstants.baseUrl}/carnets/carnets/place/$placeId/carnetid'; // Update this with your actual URL
+        '${ApiConstants.baseUrl}/carnets/place/$placeId/carnetid'; // Update this with your actual URL
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -173,11 +173,23 @@ class CarnetService {
     }
   }
 
-  Future<void> deleteCarnet(String id) async {
-    final response = await http.delete(Uri.parse('${ApiConstants.baseUrl}/$id'));
+  Future<void> deleteCarnet(String carnetId, String userId) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId');
+
+    final response = await http.delete(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'userId': userId, // 🛠 Envoi du userId dans le corps de la requête
+      }),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Échec de la suppression du carnet: ${response.body}');
+    } else {
+      print("✅ Carnet supprimé avec succès !");
     }
   }
 }
