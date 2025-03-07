@@ -62,7 +62,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   // Méthode pour uploader une image
   Future<void> _uploadImage(XFile image) async {
     try {
-      var uri = Uri.parse('http://localhost:3000/upload'); // URL de ton serveur
+      var uri = Uri.parse('http://192.168.1.6:3000/upload'); // URL de ton serveur
 
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath('photo', image.path));
