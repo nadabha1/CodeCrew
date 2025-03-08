@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
@@ -86,6 +89,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
+      //fetchEvents
+      EventProvider eventProvider =
+          Provider.of<EventProvider>(context, listen: false);
+      await eventProvider
+          .fetchEvents(widget.userId); // Remplacez par fetchEvents
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
@@ -100,7 +108,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  void _confirmerSuppression(BuildContext context, String carnetId) {
+  void _confirmerSuppression(
+      BuildContext context, String carnetId, String userId) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -115,12 +124,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             TextButton(
               onPressed: () async {
                 try {
-                  await CarnetService()
-                      .deleteCarnet(carnetId); // 🔥 Suppression API
+                  await CarnetService().deleteCarnet(
+                      carnetId, userId); // 🔥 Appel avec 2 paramètres
                   Navigator.of(context).pop(); // Fermer la boîte de dialogue
-                  print("Carnet supprimé avec succès !");
+                  print("✅ Carnet supprimé avec succès !");
                 } catch (e) {
-                  print("Erreur lors de la suppression : $e");
+                  print("❌ Erreur lors de la suppression : $e");
                 }
               },
               child:
@@ -135,6 +144,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+    final eventProvider = Provider.of<EventProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -345,7 +355,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 // Action pour ajouter un carnet
                                 break;
                               case 'supprimer':
-                                _confirmerSuppression(context, carnetId);
+                                _confirmerSuppression(
+                                    context, carnetId, widget.userId);
                                 break;
                               case 'editer':
                                 // Action pour éditer un carnet
@@ -427,6 +438,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         },
                       ),
                     ),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Événements',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    const SizedBox(height: 16),
+
+                    eventProvider.events.isEmpty
+                        ? const Center(
+                            child: Text("Aucun événement disponible"))
+                        : Column(
+                            children: eventProvider.events.map((event) {
+                              return Card(
+                                elevation: 3,
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                child: ListTile(
+                                  leading: Icon(Icons.event,
+                                      color: Colors.deepPurple),
+                                  title: Text(event.title),
+                                  subtitle: Text(event.description),
+                                  trailing:
+                                      Icon(Icons.arrow_forward_ios, size: 16),
+                                  onTap: () {
+                                    // Naviguer vers la page des détails de l'événement
+                                    /* Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            EventDetailScreen(event: event),
+                                      ),
+                                    );*/
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
 
                     const SizedBox(height: 32),
                     const Text(

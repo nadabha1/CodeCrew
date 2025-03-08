@@ -1,3 +1,4 @@
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatService {
@@ -5,7 +6,7 @@ class ChatService {
 
   void connect(String userId) {
     socket = IO.io(
-        'http://localhost:3000',
+        '${ApiConstants.baseUrl}/carnets',
         IO.OptionBuilder()
             .setTransports(['websocket']).setQuery({'userId': userId}).build());
 

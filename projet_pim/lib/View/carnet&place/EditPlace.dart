@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -35,60 +36,30 @@ class _EditPlaceState extends State<EditPlace> {
 
   // Méthode pour sélectionner des images
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
-
-      // Upload the image after picking it
-      final carnetProvider =
-          Provider.of<CarnetProvider>(context, listen: false);
-      String? imageUrl = await carnetProvider.uploadImage(pickedFile);
-      if (imageUrl != null) {
-        setState(() {
-          _imageUrls.add(imageUrl); // Add URL to list
-        });
-      }
+      await _uploadImage(pickedFile);
     }
   }
 
   // Méthode pour uploader une image
   Future<void> _uploadImage(XFile image) async {
     try {
-      var uri = Uri.parse('http://localhost:3000/upload'); // URL de ton serveur
-
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload');
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath('photo', image.path));
 
       var response = await request.send();
-
       if (response.statusCode == 201) {
-        // HTTP 201 Created
         final responseBody = await response.stream.bytesToString();
         final uploadedImage = jsonDecode(responseBody);
-
-        // Vérifie si l'URL est bien présente dans la réponse
-        if (uploadedImage != null &&
-            uploadedImage['response'] != null &&
-            uploadedImage['response']['url'] is String &&
-            uploadedImage['response']['url'].isNotEmpty) {
+        if (uploadedImage != null && uploadedImage['filename'] != null) {
+          final fullImageUrl =
+              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
           setState(() {
-            _imageUrls
-                .add(uploadedImage['response']['url']); // Utilisation de l'URL
-            _imageFileList?.add(
-                image); // Optionnellement, ajouter l'image à la liste des fichiers
+            _imageUrls.add(fullImageUrl);
           });
-
-          print(
-              'Image uploaded successfully: ${uploadedImage['response']['url']}');
-        } else {
-          print('Error: URL is null, empty, or invalid');
         }
-      } else {
-        print('Failed to upload image. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error uploading image: $e');
@@ -290,80 +261,49 @@ class _EditPlaceState extends State<EditPlace> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection:
-                    Axis.horizontal, // Permet le défilement horizontal
-                child: Row(
-                  children: [
-                    // Afficher les images existantes
-                    ..._imageUrls.map((imageUrl) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                        child: Stack(
-                          children: [
-                            // Afficher l'image
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                image: DecorationImage(
-                                  image: NetworkImage(imageUrl),
-                                  fit: BoxFit.cover,
-                                ),
+              Row(
+                children: [
+                  ..._imageUrls.map((imageUrl) {
+                    return Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Stack(
+                        children: [
+                          Image.network(
+                            imageUrl,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _imageUrls.remove(imageUrl);
+                                });
+                              },
+                              child: CircleAvatar(
+                                radius: 12,
+                                backgroundColor: Colors.red,
+                                child: Icon(Icons.close,
+                                    size: 16, color: Colors.white),
                               ),
                             ),
-                            // Ajouter un bouton de suppression
-                            Positioned(
-                              top: 45,
-                              right: -15,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color:
-                                      Colors.white, // Fond blanc pour l'icône
-                                  borderRadius: BorderRadius.circular(
-                                      30), // Arrondir les coins
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black12, // Ombre légère
-                                      blurRadius: 4.0,
-                                      offset: Offset(2, 2),
-                                    ),
-                                  ],
-                                ),
-                                // Réduire l'espace autour de l'icône
-
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.delete,
-                                    color: Color.fromARGB(
-                                        255, 255, 0, 0), // Couleur de l'icône
-                                    size: 18,
-                                  ),
-                                  onPressed: () {
-                                    // Gérer la suppression de l'image
-                                    setState(() {
-                                      _imageUrls.remove(
-                                          imageUrl); // Supprimer l'image de la liste
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-
-                    // Ajouter un bouton + à la fin des images
-                    IconButton(
-                      icon: const Icon(Icons.add,
-                          size: 30, color: Color(0xFFFE7B32)),
-                      onPressed:
-                          _pickImage, // Ouvre la galerie pour ajouter une image
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      backgroundColor: Colors.orange,
+                      radius: 30,
+                      child: Icon(Icons.add, color: Colors.white),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
 
