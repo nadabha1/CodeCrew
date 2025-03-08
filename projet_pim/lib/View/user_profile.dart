@@ -6,6 +6,7 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/View/EventDetailsScreen.dart';
 import 'package:projet_pim/View/FavoritesScreen.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
@@ -441,36 +442,99 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(height: 32),
                     const Text(
                       'Événements',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color:
+                            Color.fromARGB(255, 0, 0, 0), // Color for the title
+                      ),
                     ),
                     const SizedBox(height: 16),
 
                     eventProvider.events.isEmpty
                         ? const Center(
-                            child: Text("Aucun événement disponible"))
+                            child: Text(
+                              "Aucun événement disponible",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          )
                         : Column(
                             children: eventProvider.events.map((event) {
-                              return Card(
-                                elevation: 3,
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                child: ListTile(
-                                  leading: Icon(Icons.event,
-                                      color: Colors.deepPurple),
-                                  title: Text(event.title),
-                                  subtitle: Text(event.description),
-                                  trailing:
-                                      Icon(Icons.arrow_forward_ios, size: 16),
-                                  onTap: () {
-                                    // Naviguer vers la page des détails de l'événement
-                                    /* Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            EventDetailScreen(event: event),
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Card(
+                                  elevation: 10,
+                                  shadowColor: Colors.deepPurpleAccent
+                                      .withOpacity(0.3), // More subtle shadow
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        16), // More rounded corners
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(
+                                        16), // Padding around the content
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          const Color.fromARGB(
+                                              255, 191, 168, 252),
+                                          const Color.fromARGB(
+                                                  255, 164, 125, 171)
+                                              .withOpacity(0.7)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
                                       ),
-                                    );*/
-                                  },
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: const Color.fromARGB(
+                                            255, 212, 196, 255),
+                                        child: Icon(Icons.event,
+                                            color: Colors.white),
+                                      ),
+                                      title: Text(
+                                        event.title,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.white),
+                                      ),
+                                      subtitle: Text(
+                                        event.description,
+                                        style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14),
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.arrow_forward_ios,
+                                              size: 16, color: Colors.white),
+                                        ],
+                                      ),
+                                      onTap: () {
+                                        // Navigate to event details
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                EventDetailsScreen(
+                                              event: event,
+                                              userId: widget.userId,
+                                              eventProvider: eventProvider,
+                                              token: widget.token,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
                                 ),
                               );
                             }).toList(),

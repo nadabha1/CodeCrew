@@ -124,4 +124,54 @@ class EventProvider with ChangeNotifier {
       throw Exception('Erreur lors du chargement des événements');
     }
   }
+
+  Future<void> updateEvent(Event updatedEvent) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConstants.baseUrl}/events/${updatedEvent.id}'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'title': updatedEvent.title,
+          'description': updatedEvent.description,
+          'date': updatedEvent.date.toIso8601String(),
+          'location': updatedEvent.location,
+          'joinPrice': updatedEvent.joinPrice,
+        }),
+      );
+      if (response.statusCode == 200) {
+        await fetchEvents(updatedEvent
+            .creatorId); // Refresh the list of events after the update
+      } else {
+        throw Exception(
+            'Failed to update event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/events/$eventId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        await fetchEvents(userId); // Refresh events after deletion
+      } else {
+        throw Exception(
+            'Failed to delete event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
 }
