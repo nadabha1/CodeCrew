@@ -18,7 +18,6 @@ class CarnetProvider with ChangeNotifier {
   List<Carnet> get carnets => _carnets;
   List<Map<String, dynamic>> get places => _places;
 
-
   // Liste des images uploadées
   List<String> _imageUrls = [];
   List<String> get imageUrls => _imageUrls;
@@ -29,7 +28,8 @@ class CarnetProvider with ChangeNotifier {
     notifyListeners(); // Notify UI to show loading
 
     try {
-      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets'));
+      final response =
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets'));
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -48,7 +48,8 @@ class CarnetProvider with ChangeNotifier {
   // Méthode pour télécharger l'image
   Future<String?> uploadImage(XFile image) async {
     try {
-      var uri = Uri.parse('${ApiConstants.baseUrl}/upload'); // URL of your backend
+      var uri =
+          Uri.parse('${ApiConstants.baseUrl}/upload'); // URL of your backend
 
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath('photo', image.path));
@@ -138,7 +139,8 @@ class CarnetProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -233,8 +235,8 @@ class CarnetProvider with ChangeNotifier {
     notifyListeners(); // Notify UI to show loading
 
     try {
-      final response =
-          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/exclude/$userId'));
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/exclude/$userId'));
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -269,7 +271,8 @@ class CarnetProvider with ChangeNotifier {
   Future<void> updatePlace(Place updatedPlace, String carnetId) async {
     try {
       final response = await http.put(
-        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places/${updatedPlace.id}'),
+        Uri.parse(
+            '${ApiConstants.baseUrl}/carnets/$carnetId/places/${updatedPlace.id}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': updatedPlace.name,
@@ -312,8 +315,8 @@ class CarnetProvider with ChangeNotifier {
 
     try {
       // Call the API to get the place details by its ID
-      final response =
-          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/place/$placeId'));
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/place/$placeId'));
 
       if (response.statusCode == 200) {
         // If the response is successful, decode the data into a Place object

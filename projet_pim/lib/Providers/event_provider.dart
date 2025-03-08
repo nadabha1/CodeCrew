@@ -6,12 +6,15 @@ import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class EventProvider with ChangeNotifier {
   List<Event> _events = [];
+  List<Event> _userEvents = []; // or whatever the type of userEvents should be
+  List<Event> get userEvents {
+    return _userEvents;
+  }
+
   bool _isLoading = false;
   final String userId;
   List<Event> get events => _events;
   bool get isLoading => _isLoading;
-
-  // Replace with your backend URL
 
   EventProvider({required this.userId});
 
@@ -19,8 +22,8 @@ class EventProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final response =
-          await http.get(Uri.parse('${ApiConstants.baseUrl}/events?userId=$userId'));
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/events?userId=$userId'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _events = data.map((json) => Event.fromJson(json, userId)).toList();
@@ -38,8 +41,8 @@ class EventProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await http
-          .get(Uri.parse('${ApiConstants.baseUrl}/events/all')); // Match backend findAllEvents
+      final response = await http.get(Uri.parse(
+          '${ApiConstants.baseUrl}/events/all')); // Match backend findAllEvents
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _events = data.map((json) => Event.fromJson(json, userId)).toList();
@@ -101,6 +104,72 @@ class EventProvider with ChangeNotifier {
       }
     } catch (e) {
       print('Error joining event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<List<Event>> fetchUserEvents(String userId, String token) async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/events/user/$userId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data
+          .map((e) => Event.fromJson(e, userId))
+          .toList(); // Ajout de userId
+    } else {
+      throw Exception('Erreur lors du chargement des événements');
+    }
+  }
+
+  Future<void> updateEvent(Event updatedEvent) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConstants.baseUrl}/events/${updatedEvent.id}'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'title': updatedEvent.title,
+          'description': updatedEvent.description,
+          'date': updatedEvent.date.toIso8601String(),
+          'location': updatedEvent.location,
+          'joinPrice': updatedEvent.joinPrice,
+        }),
+      );
+      if (response.statusCode == 200) {
+        await fetchEvents(updatedEvent
+            .creatorId); // Refresh the list of events after the update
+      } else {
+        throw Exception(
+            'Failed to update event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/events/$eventId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        await fetchEvents(userId); // Refresh events after deletion
+      } else {
+        throw Exception(
+            'Failed to delete event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting event: $e');
     }
     _isLoading = false;
     notifyListeners();

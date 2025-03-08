@@ -85,8 +85,8 @@ class UserService {
 
   // ✅ Get Followers List
   Future<List<String>> getFollowers(String userId) async {
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/$userId'));
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -98,8 +98,8 @@ class UserService {
 
   // ✅ Get Following List
   Future<List<String>> getFollowing(String userId) async {
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/following/$userId'));
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/follow/following/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -111,8 +111,8 @@ class UserService {
 
   // ✅ Get Followers Count
   Future<int> getFollowersCount(String userId) async {
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/count/$userId'));
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/follow/followers/count/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -124,8 +124,8 @@ class UserService {
 
   // ✅ Get Following Count
   Future<int> getFollowingCount(String userId) async {
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl}/follow/following/count/$userId'));
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/follow/following/count/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -241,7 +241,8 @@ class UserService {
     try {
       final response = await http
           .put(
-            Uri.parse('${ApiConstants.baseUrl}/users/$userId/favorites/$placeId'),
+            Uri.parse(
+                '${ApiConstants.baseUrl}/users/$userId/favorites/$placeId'),
             headers: {
               'Authorization': 'Bearer $token',
               'Content-Type': 'application/json',
@@ -285,7 +286,8 @@ class UserService {
       String placeId, String token) async {
     try {
       final response = await client.get(
-        Uri.parse('${ApiConstants.baseUrl}/carnets/place/$placeId'), // Updated endpoint
+        Uri.parse(
+            '${ApiConstants.baseUrl}/carnets/place/$placeId'), // Updated endpoint
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -307,10 +309,9 @@ class UserService {
     }
   }
 
-
   static Future<List<Conversation>> getUserConversations(String userId) async {
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'));
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'));
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);

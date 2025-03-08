@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/View/EventDetailsScreen.dart';
 import 'package:projet_pim/View/FavoritesScreen.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
@@ -86,6 +90,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
+      //fetchEvents
+      EventProvider eventProvider =
+          Provider.of<EventProvider>(context, listen: false);
+      await eventProvider
+          .fetchEvents(widget.userId); // Remplacez par fetchEvents
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
@@ -100,38 +109,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-void _confirmerSuppression(BuildContext context, String carnetId, String userId) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Supprimer le carnet'),
-        content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await CarnetService().deleteCarnet(carnetId, userId); // 🔥 Appel avec 2 paramètres
-                Navigator.of(context).pop(); // Fermer la boîte de dialogue
-                print("✅ Carnet supprimé avec succès !");
-              } catch (e) {
-                print("❌ Erreur lors de la suppression : $e");
-              }
-            },
-            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      );
-    },
-  );
-}
+  void _confirmerSuppression(
+      BuildContext context, String carnetId, String userId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Supprimer le carnet'),
+          content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await CarnetService().deleteCarnet(
+                      carnetId, userId); // 🔥 Appel avec 2 paramètres
+                  Navigator.of(context).pop(); // Fermer la boîte de dialogue
+                  print("✅ Carnet supprimé avec succès !");
+                } catch (e) {
+                  print("❌ Erreur lors de la suppression : $e");
+                }
+              },
+              child:
+                  const Text('Supprimer', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+    final eventProvider = Provider.of<EventProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -342,7 +356,8 @@ void _confirmerSuppression(BuildContext context, String carnetId, String userId)
                                 // Action pour ajouter un carnet
                                 break;
                               case 'supprimer':
-                               _confirmerSuppression(context, carnetId, widget.userId);
+                                _confirmerSuppression(
+                                    context, carnetId, widget.userId);
                                 break;
                               case 'editer':
                                 // Action pour éditer un carnet
@@ -424,6 +439,106 @@ void _confirmerSuppression(BuildContext context, String carnetId, String userId)
                         },
                       ),
                     ),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Événements',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color:
+                            Color.fromARGB(255, 0, 0, 0), // Color for the title
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    eventProvider.events.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "Aucun événement disponible",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          )
+                        : Column(
+                            children: eventProvider.events.map((event) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Card(
+                                  elevation: 10,
+                                  shadowColor: Colors.deepPurpleAccent
+                                      .withOpacity(0.3), // More subtle shadow
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        16), // More rounded corners
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(
+                                        16), // Padding around the content
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          const Color.fromARGB(
+                                              255, 191, 168, 252),
+                                          const Color.fromARGB(
+                                                  255, 164, 125, 171)
+                                              .withOpacity(0.7)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: const Color.fromARGB(
+                                            255, 212, 196, 255),
+                                        child: Icon(Icons.event,
+                                            color: Colors.white),
+                                      ),
+                                      title: Text(
+                                        event.title,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.white),
+                                      ),
+                                      subtitle: Text(
+                                        event.description,
+                                        style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14),
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.arrow_forward_ios,
+                                              size: 16, color: Colors.white),
+                                        ],
+                                      ),
+                                      onTap: () {
+                                        // Navigate to event details
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                EventDetailsScreen(
+                                              event: event,
+                                              userId: widget.userId,
+                                              eventProvider: eventProvider,
+                                              token: widget.token,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
 
                     const SizedBox(height: 32),
                     const Text(

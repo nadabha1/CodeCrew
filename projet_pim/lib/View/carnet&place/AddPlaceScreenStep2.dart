@@ -53,7 +53,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
         final responseBody = await response.stream.bytesToString();
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl = '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+          final fullImageUrl =
+              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
           setState(() {
             _imageUrls.add(fullImageUrl);
           });
@@ -80,7 +81,11 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
     {'icon': Icons.local_bar, 'name': 'Nightlife', 'color': Colors.pink},
     {'icon': Icons.hotel, 'name': 'Hotels', 'color': Colors.indigo},
     {'icon': Icons.directions_bus, 'name': 'Transport', 'color': Colors.brown},
-    {'icon': Icons.theater_comedy, 'name': 'Entertainment', 'color': Colors.teal},
+    {
+      'icon': Icons.theater_comedy,
+      'name': 'Entertainment',
+      'color': Colors.teal
+    },
   ];
 
   @override
@@ -93,7 +98,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                        SizedBox(height: 40),  // ✅ Ajouter un espace au-dessus du nom
+              SizedBox(height: 40), // ✅ Ajouter un espace au-dessus du nom
               Row(
                 children: [
                   Expanded(
@@ -129,12 +134,14 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: categories.map((category) {
-                    bool isSelected = _selectedCategories.contains(category['name']);
+                    bool isSelected =
+                        _selectedCategories.contains(category['name']);
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 5.0),
                       child: ChoiceChip(
                         avatar: Icon(category['icon'],
-                            color: isSelected ? Colors.white : category['color'],
+                            color:
+                                isSelected ? Colors.white : category['color'],
                             size: 20),
                         label: Text(category['name']),
                         selected: isSelected,
@@ -199,7 +206,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                               child: CircleAvatar(
                                 radius: 12,
                                 backgroundColor: Colors.red,
-                                child: Icon(Icons.close, size: 16, color: Colors.white),
+                                child: Icon(Icons.close,
+                                    size: 16, color: Colors.white),
                               ),
                             ),
                           ),
@@ -219,25 +227,26 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-onPressed: () async {
-  final carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
-  await carnetProvider.addPlaceToCarnet(
-    widget.carnetId,
-    _placeNameController.text,
-    _descriptionController.text,
-    _selectedCategories,
-    _cost,
-    _imageUrls,
-    widget.latitude,
-    widget.longitude,
-  );
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => MainScreen(),
-    ),
-  );
-},
+                onPressed: () async {
+                  final carnetProvider =
+                      Provider.of<CarnetProvider>(context, listen: false);
+                  await carnetProvider.addPlaceToCarnet(
+                    widget.carnetId,
+                    _placeNameController.text,
+                    _descriptionController.text,
+                    _selectedCategories,
+                    _cost,
+                    _imageUrls,
+                    widget.latitude,
+                    widget.longitude,
+                  );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MainScreen(),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   shape: RoundedRectangleBorder(

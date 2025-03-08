@@ -4,8 +4,7 @@ import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-
-    final http.Client client = http.Client();
+  final http.Client client = http.Client();
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(

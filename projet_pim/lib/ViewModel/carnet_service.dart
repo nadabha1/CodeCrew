@@ -4,7 +4,6 @@ import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class CarnetService {
-
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
@@ -57,7 +56,8 @@ class CarnetService {
 
   Future<List<Carnet>> getUserCarnet(String userId) async {
     try {
-      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
@@ -161,8 +161,8 @@ class CarnetService {
   }
 
   Future<Place> getPlaceById(String placeId) async {
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets/carnets/place/$placeId'));
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/carnets/place/$placeId'));
 
     if (response.statusCode == 200) {
       // Si la réponse est réussie, décodez les données JSON

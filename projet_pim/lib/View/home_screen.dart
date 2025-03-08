@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/event.dart';
@@ -378,31 +380,99 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                 carnet.places.map((place) {
                                               bool isUnlocked = carnetProvider
                                                   .isPlaceUnlocked(place.id);
+
                                               return Card(
                                                 margin: EdgeInsets.symmetric(
                                                     horizontal: 10),
                                                 child: Container(
-                                                  width: 190, // Card width
+                                                  width:
+                                                      190, // Largeur de la carte
                                                   padding: EdgeInsets.all(10),
                                                   child: Column(
                                                     children: [
-                                                      place.images.isNotEmpty
-                                                          ? Image.network(
-                                                              place
-                                                                  .images.first,
-                                                              width: 140,
-                                                              height: 120,
-                                                              fit: BoxFit.cover,
-                                                            )
-                                                          : Icon(
-                                                              isUnlocked
-                                                                  ? Icons
-                                                                      .lock_open
-                                                                  : Icons.lock,
-                                                              color: isUnlocked
-                                                                  ? Colors.green
-                                                                  : Colors.red,
+                                                      if (place
+                                                          .images.isNotEmpty)
+                                                        Stack(
+                                                          children: [
+                                                            // Image normale si déverrouillée, floue sinon
+                                                            ClipRRect(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          10),
+                                                              child: isUnlocked
+                                                                  ? Image
+                                                                      .network(
+                                                                      place
+                                                                          .images
+                                                                          .first, // Image normale
+                                                                      width:
+                                                                          140,
+                                                                      height:
+                                                                          120,
+                                                                      fit: BoxFit
+                                                                          .cover,
+                                                                      errorBuilder: (context,
+                                                                          error,
+                                                                          stackTrace) {
+                                                                        return Icon(
+                                                                            Icons
+                                                                                .broken_image,
+                                                                            size:
+                                                                                50,
+                                                                            color:
+                                                                                Colors.grey);
+                                                                      },
+                                                                    )
+                                                                  : ImageFiltered(
+                                                                      imageFilter: ImageFilter.blur(
+                                                                          sigmaX:
+                                                                              5,
+                                                                          sigmaY:
+                                                                              5), // Flou
+                                                                      child: Image
+                                                                          .network(
+                                                                        place
+                                                                            .images
+                                                                            .first, // Image floue
+                                                                        width:
+                                                                            140,
+                                                                        height:
+                                                                            120,
+                                                                        fit: BoxFit
+                                                                            .cover,
+                                                                        errorBuilder: (context,
+                                                                            error,
+                                                                            stackTrace) {
+                                                                          return Icon(
+                                                                              Icons.broken_image,
+                                                                              size: 50,
+                                                                              color: Colors.grey);
+                                                                        },
+                                                                      ),
+                                                                    ),
                                                             ),
+
+                                                            // Icône de cadenas si verrouillé
+                                                            if (!isUnlocked)
+                                                              Positioned(
+                                                                top: 40,
+                                                                left: 55,
+                                                                child: Icon(
+                                                                  Icons.lock,
+                                                                  size: 40,
+                                                                  color: Colors
+                                                                      .white
+                                                                      .withOpacity(
+                                                                          0.8),
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        )
+                                                      else
+                                                        Icon(Icons.broken_image,
+                                                            size: 50,
+                                                            color: Colors.grey),
                                                       SizedBox(height: 10),
                                                       Text(
                                                         place.name,
@@ -414,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                       ElevatedButton(
                                                         onPressed: isUnlocked
                                                             ? () {
-                                                                // Navigate to the PlaceDetailsScreen if the place is unlocked
+                                                                // Navigation vers les détails du lieu
                                                                 Navigator.push(
                                                                   context,
                                                                   MaterialPageRoute(
@@ -431,18 +501,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                                 );
                                                               }
                                                             : () async {
-                                                                // Show the unlock confirmation dialog if the place is not unlocked
+                                                                // Afficher la boîte de dialogue de confirmation
                                                                 _showConfirmUnlockDialog(
                                                                     place.name,
                                                                     place
                                                                         .unlockCost,
                                                                     place);
                                                               },
-                                                        child: Text(
-                                                          isUnlocked
-                                                              ? "View Details"
-                                                              : "Unlock (5 coins)",
-                                                        ),
+                                                        child: Text(isUnlocked
+                                                            ? "View Details"
+                                                            : "Unlock (5 coins)"),
                                                         style: ElevatedButton
                                                             .styleFrom(
                                                           backgroundColor:

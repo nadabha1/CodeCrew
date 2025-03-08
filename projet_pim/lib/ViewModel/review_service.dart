@@ -4,11 +4,11 @@ import 'package:projet_pim/Model/review.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class ReviewService {
-
   // Get all reviews for a place
   Future<List<Review>> getAllReviews(String placeId) async {
     try {
-      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/reviews/$placeId'));
+      final response =
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/reviews/$placeId'));
 
       if (response.statusCode == 200) {
         // Decode the response body as a List of dynamic objects
