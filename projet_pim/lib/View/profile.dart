@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
@@ -240,6 +242,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
           : SingleChildScrollView(
               child: Column(
                 children: [
+                  // Profil de l'utilisateur
                   Container(
                     padding: EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -256,7 +259,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                           backgroundImage: travelerData?['profilePicture'] !=
                                   null
                               ? NetworkImage(travelerData!['profilePicture'])
-                              : const AssetImage('assets/default_profile.png')
+                              : AssetImage('assets/default_profile.png')
                                   as ImageProvider,
                         ),
                         SizedBox(height: 10),
@@ -271,8 +274,8 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                           onPressed: toggleFollow,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isFollowing
-                                ? const Color(0xF6F6666)
-                                : const Color(0xFFD4F98F),
+                                ? Color(0xF6F6666)
+                                : Color(0xFFD4F98F),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
@@ -305,15 +308,20 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                       ],
                     ),
                   ),
+
                   SizedBox(height: 20),
+
+                  // Section Carnet d'Adresses
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Carnet d'Adresses",
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Carnet d'Adresses",
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
                         SizedBox(height: 10),
                         FutureBuilder<List<Carnet>>(
                           future: travelerCarnets,
@@ -333,69 +341,170 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                             }
 
                             return Column(
-                              children: snapshot.data!
-                                  .map<Widget>((carnet) => Card(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10)),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              carnet.title,
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18),
-                                            ),
-                                            SizedBox(height: 10),
-                                            // PageView for swiping through places
-                                            Container(
-                                              height:
-                                                  250, // Adjust height as needed
-                                              child: PageView(
-                                                children: carnet.places
-                                                    .map<Widget>((place) {
-                                                  bool isUnlocked =
-                                                      carnetProvider
-                                                          .isPlaceUnlocked(
-                                                              place.id);
-                                                  // Afficher la carte verrouillée ou déverrouillée en fonction de l'état
-                                                  return isUnlocked
-                                                      ? PlaceCard(
-                                                          place: place,
-                                                          onTap: () =>
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder: (context) =>
-                                                                      PlaceDetailsScreen(
-                                                                          place:
-                                                                              place),
+                              children: snapshot.data!.map((carnet) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      carnet.title,
+                                      style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 10),
+
+                                    // Liste des places affichées horizontalement
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: carnet.places.map((place) {
+                                          bool isUnlocked = carnetProvider
+                                              .isPlaceUnlocked(place.id);
+
+                                          return Card(
+                                            margin: EdgeInsets.symmetric(
+                                                horizontal: 10),
+                                            child: Container(
+                                              width: 190, // Largeur de la carte
+                                              padding: EdgeInsets.all(10),
+                                              child: Column(
+                                                children: [
+                                                  if (place.images.isNotEmpty)
+                                                    Stack(
+                                                      children: [
+                                                        ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(10),
+                                                          child: isUnlocked
+                                                              ? Image.network(
+                                                                  place.images
+                                                                      .first,
+                                                                  width: 140,
+                                                                  height: 120,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  errorBuilder:
+                                                                      (context,
+                                                                          error,
+                                                                          stackTrace) {
+                                                                    return Icon(
+                                                                        Icons
+                                                                            .broken_image,
+                                                                        size:
+                                                                            50,
+                                                                        color: Colors
+                                                                            .grey);
+                                                                  },
+                                                                )
+                                                              : ImageFiltered(
+                                                                  imageFilter:
+                                                                      ImageFilter.blur(
+                                                                          sigmaX:
+                                                                              5,
+                                                                          sigmaY:
+                                                                              5),
+                                                                  child: Image
+                                                                      .network(
+                                                                    place.images
+                                                                        .first,
+                                                                    width: 140,
+                                                                    height: 120,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    errorBuilder:
+                                                                        (context,
+                                                                            error,
+                                                                            stackTrace) {
+                                                                      return Icon(
+                                                                          Icons
+                                                                              .broken_image,
+                                                                          size:
+                                                                              50,
+                                                                          color:
+                                                                              Colors.grey);
+                                                                    },
+                                                                  ),
                                                                 ),
-                                                              ))
-                                                      : LockedPlaceCard(
-                                                          place: place,
-                                                          onUnlock: () {
-                                                            if (_userId !=
-                                                                null) {
-                                                              _showConfirmUnlockDialog(
+                                                        ),
+
+                                                        // Icône de cadenas si verrouillé
+                                                        if (!isUnlocked)
+                                                          Positioned(
+                                                            top: 40,
+                                                            left: 55,
+                                                            child: Icon(
+                                                              Icons.lock,
+                                                              size: 40,
+                                                              color: Colors
+                                                                  .white
+                                                                  .withOpacity(
+                                                                      0.8),
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    )
+                                                  else
+                                                    Icon(Icons.broken_image,
+                                                        size: 50,
+                                                        color: Colors.grey),
+                                                  SizedBox(height: 10),
+                                                  Text(
+                                                    place.name,
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: isUnlocked
+                                                        ? () {
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder: (context) =>
+                                                                    ChangeNotifierProvider<
+                                                                        ReviewProvider>(
+                                                                  create: (_) =>
+                                                                      ReviewProvider(),
+                                                                  child: PlaceDetailsScreen(
+                                                                      place:
+                                                                          place),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+                                                        : () async {
+                                                            _showConfirmUnlockDialog(
                                                                 place.name,
                                                                 place
                                                                     .unlockCost,
-                                                                place,
-                                                              );
-                                                            } else {
-                                                              _showErrorDialog(
-                                                                  "Utilisateur non connecté.");
-                                                            }
+                                                                place);
                                                           },
-                                                        );
-                                                }).toList(),
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          isUnlocked
+                                                              ? Color(
+                                                                  0xFF9E9E9E)
+                                                              : Color(
+                                                                  0xFFD4F98F),
+                                                    ),
+                                                    child: Text(isUnlocked
+                                                        ? "View Details"
+                                                        : "Unlock (5 coins)"),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      ))
-                                  .toList(),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+
+                                    SizedBox(height: 20),
+                                  ],
+                                );
+                              }).toList(),
                             );
                           },
                         ),

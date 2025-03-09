@@ -336,4 +336,52 @@ class CarnetProvider with ChangeNotifier {
       notifyListeners(); // Notify the UI to update after the request
     }
   }
+
+  Future<void> updateCarnet(String carnetId, String title) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'title': title}),
+      );
+
+      if (response.statusCode == 200) {
+        await fetchCarnets(); // Met à jour la liste après modification
+        print("Carnet mis à jour avec succès !");
+      } else {
+        print("Erreur updateCarnet: ${response.body}");
+        throw Exception('Échec de la mise à jour du carnet');
+      }
+    } catch (e) {
+      print("Erreur lors de la mise à jour du carnet: $e");
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> deletePlace(
+      String carnetId, String placeId, String jwtToken) async {
+    final url =
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places/$placeId');
+
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $jwtToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Remove the place from the local list if deletion is successful
+      final carnet = _carnets.firstWhere((carnet) => carnet.id == carnetId);
+      carnet.places.removeWhere((place) => place.id == placeId);
+      notifyListeners();
+    } else {
+      throw Exception('Failed to delete place');
+    }
+  }
 }

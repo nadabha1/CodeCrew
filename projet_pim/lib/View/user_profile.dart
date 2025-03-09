@@ -4,9 +4,9 @@ import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
-import 'package:projet_pim/View/CarnetDetailsScreen.dart';
+import 'package:projet_pim/View/carnet&place/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
-import 'package:projet_pim/View/EventDetailsScreen.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/View/FavoritesScreen.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
@@ -350,17 +350,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 userCarnet.isNotEmpty ? userCarnet[0].id : '';
                             switch (value) {
                               case 'details':
-                                // Action pour voir les détails du carnet
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CarnetDetailsPage(
+                                        carnet: userCarnet[0]),
+                                  ),
+                                ).then((_) {
+                                  fetchUser(); // Rafraîchir les données après le retour
+                                });
+
                                 break;
-                              case 'ajouter':
-                                // Action pour ajouter un carnet
-                                break;
+
                               case 'supprimer':
                                 _confirmerSuppression(
                                     context, carnetId, widget.userId);
-                                break;
-                              case 'editer':
-                                // Action pour éditer un carnet
                                 break;
                             }
                           },
@@ -370,16 +374,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               child: Text('Voir les détails du carnet'),
                             ),
                             const PopupMenuItem(
-                              value: 'ajouter',
-                              child: Text('Ajouter un carnet'),
-                            ),
-                            const PopupMenuItem(
                               value: 'supprimer',
                               child: Text('Supprimer le carnet'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'editer',
-                              child: Text('Éditer le carnet'),
                             ),
                           ],
                         ),

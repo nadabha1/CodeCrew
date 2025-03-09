@@ -192,4 +192,47 @@ class CarnetService {
       print("✅ Carnet supprimé avec succès !");
     }
   }
+
+  Future<void> updateCarnet(String carnetId, String title) async {
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': title,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Échec de la mise à jour du carnet: ${response.body}');
+      }
+    } catch (e) {
+      print("Erreur dans updateCarnet: $e");
+      throw Exception('Erreur lors de la mise à jour du carnet.');
+    }
+  }
+
+  // Delete a place from a carnet
+  Future<void> deletePlace(
+      String carnetId, String placeId, String jwtToken) async {
+    final url =
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places/$placeId');
+
+    // Sending the DELETE request with the JWT token for authorization
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $jwtToken', // Adding the JWT token here
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // The place was successfully deleted
+      print('Place deleted successfully');
+    } else {
+      // Error if the place is not found or another issue occurs
+      print('Failed to delete place: ${response.statusCode}');
+      print('Error message: ${response.body}');
+    }
+  }
 }

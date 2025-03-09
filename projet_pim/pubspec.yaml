@@ -70,7 +70,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/default_avatar.png
+    - assets/default_image.png
     - assets/default_profile.png
     - assets/whatsapp.jpeg
 

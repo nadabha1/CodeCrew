@@ -15,7 +15,7 @@ import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
 import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
 import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
-import 'package:projet_pim/View/event_chat_screen.dart';
+import 'package:projet_pim/View/Event/event_chat_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
