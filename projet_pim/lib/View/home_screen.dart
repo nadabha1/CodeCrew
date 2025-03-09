@@ -274,16 +274,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _openInGoogleMaps(double latitude, double longitude) async {
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
   void _loadWeather() async {
     print("Chargement de la météo...");
     try {
@@ -338,8 +328,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) =>
-                                                WeatherScreen()),
+                                            builder: (context) => WeatherScreen(
+                                                  userId: 'userId',
+                                                )),
                                       );
                                     },
                                     child: weatherData != null

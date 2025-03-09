@@ -235,4 +235,22 @@ class CarnetService {
       print('Error message: ${response.body}');
     }
   }
+
+  Future<List<Place>> getPlacesByCategory(String category) async {
+    try {
+      print("Fetching places for category: $category");
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/category/$category'));
+
+      if (response.statusCode == 200) {
+        final placesData = jsonDecode(response.body) as List;
+        return placesData.map((place) => Place.fromJson(place)).toList();
+      } else {
+        throw Exception('Failed to load places: ${response.body}');
+      }
+    } catch (e) {
+      print("Error fetching places for category $category: $e");
+      return [];
+    }
+  }
 }

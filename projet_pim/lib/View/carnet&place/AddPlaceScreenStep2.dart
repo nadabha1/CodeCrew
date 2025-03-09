@@ -86,6 +86,31 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
       'name': 'Entertainment',
       'color': Colors.teal
     },
+    {'icon': Icons.local_cafe, 'name': 'Café', 'color': Colors.amber},
+    {
+      'icon': Icons.art_track,
+      'name': 'Art & Expositions',
+      'color': Colors.deepOrange
+    },
+    {'icon': Icons.explore, 'name': 'Aventure', 'color': Colors.blueGrey},
+    {'icon': Icons.beach_access, 'name': 'Plages', 'color': Colors.cyan},
+    {'icon': Icons.event, 'name': 'Événements', 'color': Colors.purpleAccent},
+    {
+      'icon': Icons.local_parking,
+      'name': 'Marchés',
+      'color': Colors.greenAccent
+    },
+    {
+      'icon': Icons.music_note,
+      'name': 'Musique Live',
+      'color': Colors.redAccent
+    },
+    {'icon': Icons.spa, 'name': 'Relaxation', 'color': Colors.lightBlue},
+    {
+      'icon': Icons.self_improvement,
+      'name': 'Yoga & Bien-être',
+      'color': Colors.indigoAccent
+    }
   ];
 
   @override
