@@ -192,17 +192,22 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   await provider!
                       .unlockPlace(userId!, placeId); // Déverrouiller l'endroit
 
-                  // Force an immediate UI update
-                  setState(() {
-                    // Rafraîchir les lieux basés sur la météo
-                    _loadPlacesBasedOnWeather(
-                        weatherData!['weather'][0]['main']);
-                  });
+                  // Fetch unlocked places
+                  await provider!.fetchUnlockedPlaces(userId!);
+
+                  // Reload the entire page
+                  await _initializeScreen();
 
                   if (mounted) {
+                    setState(() {
+                      // Trigger a rebuild
+                    });
                     _showUnlockDialog(
                         placeName); // Afficher le message de succès après la mise à jour
                   }
+
+                  // Navigate back to HomeScreen
+                  Navigator.of(context).pop(); // Close the WeatherScreen
                 } catch (e) {
                   // Show error dialog if something goes wrong
                   print('Error: $e'); // Debugging
@@ -292,26 +297,33 @@ class _WeatherScreenState extends State<WeatherScreen> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: places.map((place) {
-              // Remplacer la logique d'images par celle qui correspond à tes objets Place
               bool isUnlocked = carnetProvider.isPlaceUnlocked(place.id);
 
               return Card(
-                margin: EdgeInsets.symmetric(horizontal: 10),
+                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                elevation: 5,
                 child: Container(
-                  width: 190, // Largeur de la carte
+                  width: 200, // Width of the card
                   padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: const Color.fromARGB(234, 249, 225, 225),
+                  ),
                   child: Column(
                     children: [
+                      // Displaying image with blur effect if not unlocked
                       if (place.images.isNotEmpty)
                         Stack(
                           children: [
-                            // Image normale si déverrouillée, floue sinon
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(15),
                               child: isUnlocked
                                   ? Image.network(
-                                      place.images.first, // Image normale
-                                      width: 140,
+                                      place.images.first,
+                                      width: 160,
                                       height: 120,
                                       fit: BoxFit.cover,
                                       errorBuilder:
@@ -322,10 +334,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                     )
                                   : ImageFiltered(
                                       imageFilter: ImageFilter.blur(
-                                          sigmaX: 5, sigmaY: 5), // Flou
+                                          sigmaX: 5, sigmaY: 5),
                                       child: Image.network(
-                                        place.images.first, // Image floue
-                                        width: 140,
+                                        place.images.first,
+                                        width: 160,
                                         height: 120,
                                         fit: BoxFit.cover,
                                         errorBuilder:
@@ -336,7 +348,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       ),
                                     ),
                             ),
-                            // Icône de cadenas si verrouillé
                             if (!isUnlocked)
                               Positioned(
                                 top: 40,
@@ -352,41 +363,55 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       else
                         Icon(Icons.broken_image, size: 50, color: Colors.grey),
                       SizedBox(height: 10),
+                      // Displaying place name
                       Text(
                         place.name,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                        textAlign: TextAlign.center,
                       ),
+                      SizedBox(height: 8),
+                      // Additional information (short description or location)
+                      Text(
+                        place.description ?? 'No description available',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 8),
+                      // Show button based on place unlocked state
                       ElevatedButton(
                         onPressed: isUnlocked
                             ? () {
-                                // Navigation vers les détails du lieu
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PlaceDetailsScreen(
-                                        place:
-                                            place), // Assure-toi de définir PlaceDetailsScreen
+                                      place: place,
+                                    ),
                                   ),
                                 );
                               }
                             : () async {
-                                // Afficher la boîte de dialogue de confirmation
                                 _showConfirmUnlockDialog(
-                                    place.name, place.unlockCost, place);
-                                setState(() {
-                                  // Rafraîchir les lieux basés sur la météo
-                                  _loadWeather();
-                                });
+                                  place.name,
+                                  place.unlockCost,
+                                  place,
+                                );
                               },
-                        child: Text(isUnlocked
-                            ? "Voir détails"
-                            : "Déverrouiller (5 coins)"),
+                        child:
+                            Text(isUnlocked ? "Voir détails" : "Déverrouiller"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isUnlocked
                               ? Color(0xFF9E9E9E)
                               : Color(0xFFD4F98F),
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ),
