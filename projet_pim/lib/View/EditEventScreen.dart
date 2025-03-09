@@ -61,6 +61,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
       participants: widget.event.participants,
       isParticipating: widget.event.isParticipating,
       joinPrice: widget.event.joinPrice,
+      conversationId: widget.event.conversationId
     );
 
     widget.onSave(updatedEvent);

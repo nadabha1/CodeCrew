@@ -8,6 +8,8 @@ class Event {
   final List<String> participants;
   final bool isParticipating;
   final int joinPrice;
+    final String conversationId;  // ➡️ Nouvelle propriété
+
 
   Event({
     required this.id,
@@ -19,6 +21,8 @@ class Event {
     required this.participants,
     required this.isParticipating,
     required this.joinPrice,
+    required this.conversationId,  // ➡️ Assure-toi de l'inclure ici aussi
+
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {
@@ -32,6 +36,8 @@ class Event {
       participants: List<String>.from(json['participants']),
       isParticipating: List<String>.from(json['participants']).contains(userId),
       joinPrice: json['joinPrice'] ?? 5,
+      conversationId: json['conversationId'],  // ➡️ Assure-toi de l'inclure ici aussi
+
     );
   }
 }

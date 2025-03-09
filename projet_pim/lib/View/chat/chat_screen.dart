@@ -19,18 +19,69 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   String? _userId;
   String? otherUserName; // Stocke le nom du correspondant
+  List conversations = [];
 
   @override
   void initState() {
     super.initState();
+    getUserId();
+    fetchConversations(); // ✅ Appel pour récupérer les noms des participants
     fetchMessages();
   }
 
-  Future<void> fetchMessages() async {
-    final url =
-        '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}';
+  Future<void> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
+  }
+  Future<void> fetchConversations() async {
+  final prefs = await SharedPreferences.getInstance();
+  _userId = prefs.getString("user_id");
+  bool isLoading = true;
+
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/conversations/name/${widget.conversationId}'));
+
+  if (response.statusCode == 200) {
+    // ✅ Correction: utilise Map au lieu de List
+    final Map<String, dynamic> conversationData = json.decode(response.body);
+
+    setState(() {
+      isLoading = false;
+
+      // ✅ Accède aux participants de la conversation
+      final List participants = conversationData['participants'] ?? [];
+      
+      // ✅ Récupère le nom du participant
+      String name = getParticipantName(participants);
+      setState(() {
+        otherUserName = name; // ✅ Met à jour le nom du correspondant
+      });
+    });
+  } else {
+    setState(() {
+      isLoading = false;
+    });
+    print('❌ Erreur lors du chargement des conversations');
+  }
+}
+String getParticipantName(List<dynamic> participants) {
+  try {
+    final otherParticipant = participants.firstWhere(
+      (p) => p['_id'] != _userId,
+      orElse: () => null,
+    );
+
+    if (otherParticipant != null && otherParticipant is Map && otherParticipant.containsKey('name')) {
+      return otherParticipant['name'] ?? 'Utilisateur inconnu';
+    }
+  } catch (e) {
+    print("🚨 Erreur lors de la récupération du nom: $e");
+  }
+  return 'Utilisateur inconnu';
+}
+
+
+  Future<void> fetchMessages() async {
+    final url = '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -44,23 +95,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   'createdAt': msg['createdAt'],
                 })
             .toList();
-
-        // ✅ Trouver le nom de l'autre utilisateur dès le premier message de lui
-        String? detectedOtherUserName;
-        for (var msg in messages) {
-          if (msg['sender']?['_id'].toString() != _userId.toString()) {
-            detectedOtherUserName =
-                msg['sender']?['name'] ?? "Utilisateur inconnu";
-            break; // Dès qu'on trouve le nom, on arrête la boucle
-          }
-        }
-
-        // ✅ Si on a trouvé un nom, on le met à jour
-        if (detectedOtherUserName != null) {
-          otherUserName = detectedOtherUserName;
-        } else {
-          otherUserName = "Utilisateur inconnu"; // Valeur par défaut
-        }
       });
     } else {
       print("❌ Erreur de chargement: ${response.body}");
@@ -68,7 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String formatTimestamp(dynamic timestamp) {
-    if (timestamp == null || timestamp == "") return "⏳"; // Handle null case
+    if (timestamp == null || timestamp == "") return "⏳";
     try {
       DateTime dateTime;
       if (timestamp is String) {
@@ -78,19 +112,16 @@ class _ChatScreenState extends State<ChatScreen> {
       } else {
         return "⏳";
       }
-
       return DateFormat('HH:mm').format(dateTime);
     } catch (e) {
       print("Error parsing timestamp: $timestamp");
-      return "⏳"; // Default fallback
+      return "⏳";
     }
   }
 
   Future<void> sendMessage() async {
     final messageText = _messageController.text;
     if (messageText.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString("user_id");
 
     final url = '${ApiConstants.baseUrl}/messages';
     final response = await http.post(
@@ -100,8 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
         "conversationId": widget.conversationId,
         "senderId": _userId,
         "content": messageText,
-        "createdAt": DateTime.now()
-            .millisecondsSinceEpoch, // Utilise DateTime.now().millisecondsSinceEpoch pour récupérer le timestamp en millisecondes
+        "createdAt": DateTime.now().toIso8601String(),
       }),
     );
 
@@ -117,7 +147,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(otherUserName ?? "Chat"), // Nom du correspondant
+        title: Text(otherUserName ?? "Utilisateur inconnu"),
         backgroundColor: const Color(0xFFFFCDB1),
       ),
       body: Stack(
@@ -139,68 +169,38 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: EdgeInsets.all(10),
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final isMe = message['sender']?['_id'].toString() ==
-                        _userId.toString();
+                    final isMe = message['sender']?['_id'].toString() == _userId.toString();
 
                     return Align(
-                      alignment:
-                          isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: isMe
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                        children: [
-                          if (!isMe) // N'affiche le nom que pour l'autre utilisateur
-                            Padding(
-                              padding: EdgeInsets.only(left: 50, right: 0),
-                              child: Text(
-                                message['sender']?['name'] ??
-                                    "Utilisateur inconnu",
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[700]),
-                              ),
-                            ),
-                          Container(
-                            margin: EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 10),
-                            padding: EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? const Color(0xFFF3C7F9)
-                                  : Colors.grey[300],
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                topRight: Radius.circular(12),
-                                bottomLeft: isMe
-                                    ? Radius.circular(12)
-                                    : Radius.circular(0),
-                                bottomRight: isMe
-                                    ? Radius.circular(0)
-                                    : Radius.circular(12),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  message['content'],
-                                  style: TextStyle(
-                                      color: isMe ? Colors.white : Colors.black,
-                                      fontSize: 16),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  formatTimestamp(message['createdAt']),
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.white70),
-                                ),
-                              ],
-                            ),
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: isMe ? const Color(0xFFF3C7F9) : Colors.grey[300],
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                            bottomLeft: isMe ? Radius.circular(12) : Radius.circular(0),
+                            bottomRight: isMe ? Radius.circular(0) : Radius.circular(12),
                           ),
-                        ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              message['content'],
+                              style: TextStyle(
+                                  color: isMe ? Colors.white : Colors.black,
+                                  fontSize: 16),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              formatTimestamp(message['createdAt']),
+                              style: TextStyle(fontSize: 12, color: Colors.white70),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

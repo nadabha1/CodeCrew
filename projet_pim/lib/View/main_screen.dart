@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
+import 'package:projet_pim/View/NotificationScreen.dart';
 import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
 import 'package:projet_pim/View/chat/conversation_list_screen.dart';
+import 'package:projet_pim/ViewModel/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/user_profile.dart';
@@ -15,17 +17,18 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   String? _userId;
   String? _token;
-  bool _isLoading = true; // To prevent null errors before loading session
+  bool _isLoading = true;
+  int _unreadNotifications = 0; // 🛑 Compteur de notifications non lues
+  final NotificationService _notificationService = NotificationService(); // 🔔 Instance du service
 
   List<Widget> _pages = [];
 
   @override
   void initState() {
     super.initState();
-    _loadSession(); // Load token and userId from SharedPreferences
+    _loadSession();
   }
 
-  /// ✅ Load User Session (Token & UserID)
   Future<void> _loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -33,22 +36,29 @@ class _MainScreenState extends State<MainScreen> {
       _token = prefs.getString("jwt_token");
       _isLoading = false;
 
-      // ✅ If token & userId are missing, redirect to Login
       if (_userId == null || _token == null) {
         Navigator.pushReplacementNamed(context, "/login");
       } else {
+        _fetchUnreadNotifications(); // 🔔 Récupère les notifications non lues
         _pages = [
-          HomeScreen(userId: _userId!), // ✅ Pass dynamic userId
-          ExploreScreen(userId: _userId!), // ✅ Page Explore avec token
-
-          ConversationListScreen(), // Messages (To be replaced)
-          UserProfileScreen(
-              userId: _userId!, token: _token!), // ✅ Pass userId & token
+          HomeScreen(userId: _userId!),
+          ExploreScreen(userId: _userId!),
+          ConversationListScreen(),
+          NotificationScreen(userId: _userId!), // 🔔 Page de notifications
+          UserProfileScreen(userId: _userId!, token: _token!),
         ];
       }
     });
   }
-
+  // 🛑 Récupération des notifications non lues
+  Future<void> _fetchUnreadNotifications() async {
+    if (_userId != null) {
+      final count = await _notificationService.getUnreadNotificationsCount(_userId!);
+      setState(() {
+        _unreadNotifications = count;
+      });
+    }
+  }
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -57,7 +67,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Show loading screen while retrieving session data
     if (_isLoading) {
       return Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -69,6 +78,8 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
+        unreadNotifications: _unreadNotifications, // 🛑 Passe le compteur dynamique
+
       ),
     );
   }

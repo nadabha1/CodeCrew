@@ -3,11 +3,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -63,6 +66,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         parent: _cardAnimationController, curve: Curves.easeInOut);
     _cardAnimationController.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) => _reloadData());
+      AuthService().initSocket('67c9f3fa7d62e01a60e2a6c5');
+
   }
 
   @override
@@ -659,11 +664,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                               child: ElevatedButton(
                                                 onPressed: () {
                                                   if (event.isParticipating) {
-                                                    Navigator.pushNamed(
-                                                      context,
-                                                      '/event-chat',
-                                                      arguments: event.id,
-                                                    );
+                                                    Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => GroupChatScreen(
+        conversationId: event.conversationId!,  // Assure-toi que 'event' contient 'conversationId'
+        groupName: event.title
+      
+      ),
+    ),
+  );
                                                   } else {
                                                     _showJoinConfirmationDialog(
                                                         event); // Show confirmation dialog
