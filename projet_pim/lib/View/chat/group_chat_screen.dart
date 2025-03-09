@@ -35,7 +35,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    socket = IO.io('http://192.168.1.22:3000', <String, dynamic>{
+    socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });

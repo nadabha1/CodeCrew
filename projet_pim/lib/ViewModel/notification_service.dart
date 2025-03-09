@@ -45,6 +45,7 @@ Future<List<Map<String, dynamic>>> fetchNotifications(String userId) async {
   }
 }
 
+
     Future<int> getUnreadNotificationsCount(String userId) async {
     final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/notifications/unread-count/$userId'));
 
@@ -56,4 +57,17 @@ Future<List<Map<String, dynamic>>> fetchNotifications(String userId) async {
       return 0; // Retourne 0 en cas d'erreur
     }
   }
+
+ Future<void> markAsRead(String notificationId) async {
+    final response = await http.patch(
+      Uri.parse('${ApiConstants.baseUrl}/notifications/$notificationId/read'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Erreur lors du marquage comme lu');
+    }
+  }
+
+
+
 }
