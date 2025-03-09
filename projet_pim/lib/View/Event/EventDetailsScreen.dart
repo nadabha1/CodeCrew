@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
-import 'package:projet_pim/View/EditEventScreen.dart';
+import 'package:projet_pim/View/Event/EditEventScreen.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {

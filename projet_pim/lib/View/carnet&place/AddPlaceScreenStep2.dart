@@ -85,6 +85,31 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
       'name': 'Entertainment',
       'color': Colors.teal
     },
+    {'icon': Icons.local_cafe, 'name': 'Café', 'color': Colors.amber},
+    {
+      'icon': Icons.art_track,
+      'name': 'Art & Expositions',
+      'color': Colors.deepOrange
+    },
+    {'icon': Icons.explore, 'name': 'Aventure', 'color': Colors.blueGrey},
+    {'icon': Icons.beach_access, 'name': 'Plages', 'color': Colors.cyan},
+    {'icon': Icons.event, 'name': 'Événements', 'color': Colors.purpleAccent},
+    {
+      'icon': Icons.local_parking,
+      'name': 'Marchés',
+      'color': Colors.greenAccent
+    },
+    {
+      'icon': Icons.music_note,
+      'name': 'Musique Live',
+      'color': Colors.redAccent
+    },
+    {'icon': Icons.spa, 'name': 'Relaxation', 'color': Colors.lightBlue},
+    {
+      'icon': Icons.self_improvement,
+      'name': 'Yoga & Bien-être',
+      'color': Colors.indigoAccent
+    }
   ];
 
   @override
@@ -179,50 +204,58 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                 "Photos de l'adresse",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  ..._imageUrls.map((imageUrl) {
-                    return Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Stack(
-                        children: [
-                          Image.network(
-                            imageUrl,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _imageUrls.remove(imageUrl);
-                                });
-                              },
-                              child: CircleAvatar(
-                                radius: 12,
-                                backgroundColor: Colors.red,
-                                child: Icon(Icons.close,
-                                    size: 16, color: Colors.white),
+              SizedBox(
+                height: 90, // Ajuste la hauteur pour contenir les images
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ..._imageUrls.map((imageUrl) {
+                        return Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  imageUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            ),
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _imageUrls.remove(imageUrl);
+                                    });
+                                  },
+                                  child: CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: Colors.red,
+                                    child: Icon(Icons.close,
+                                        size: 16, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        );
+                      }).toList(),
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: CircleAvatar(
+                          backgroundColor: Colors.orange,
+                          radius: 30,
+                          child: Icon(Icons.add, color: Colors.white),
+                        ),
                       ),
-                    );
-                  }).toList(),
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.orange,
-                      radius: 30,
-                      child: Icon(Icons.add, color: Colors.white),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
               SizedBox(height: 20),
               ElevatedButton(

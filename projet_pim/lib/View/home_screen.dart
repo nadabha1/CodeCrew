@@ -35,6 +35,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _cardAnimationController;
 
   InheritedWidget? _ancestor;
+  final WeatherService _weatherService = WeatherService();
+  Map<String, dynamic>? weatherData;
 
   void _reloadData() async {
     if (provider != null && eventProvider != null) {
@@ -68,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) => _reloadData());
       AuthService().initSocket('67c9f3fa7d62e01a60e2a6c5');
 
+    _loadWeather();
   }
 
   @override
@@ -274,13 +277,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _openInGoogleMaps(double latitude, double longitude) async {
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
+  void _loadWeather() async {
+    print("Chargement de la météo...");
+    try {
+      final data = await _weatherService.fetchWeather("Tunis");
+      print("Données météo reçues: $data");
+      setState(() {
+        weatherData = data;
+      });
+    } catch (e) {
+      print("Erreur : $e");
     }
   }
 
@@ -314,11 +320,108 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(Icons.menu, color: Colors.black, size: 28),
-                              CircleAvatar(
-                                backgroundImage:
-                                    AssetImage('assets/default_profile.png'),
-                                radius: 22,
+                              Icon(Icons.menu,
+                                  color: Colors.black,
+                                  size: 28), // Icône du menu
+
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => WeatherScreen(
+                                                  userId: 'userId',
+                                                )),
+                                      );
+                                    },
+                                    child: weatherData != null
+                                        ? Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              // Icône météo dans un cercle avec ombre
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  // Icône dans un cercle avec ombre
+                                                  Container(
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.grey
+                                                              .withOpacity(0.3),
+                                                          blurRadius: 4,
+                                                          spreadRadius: 1,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: ClipOval(
+                                                      child: Image.network(
+                                                        "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                                                        width:
+                                                            60, // Taille de l'icône ajustée pour plus de visibilité
+                                                        height: 60,
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  // Texte superposé sur l'icône
+                                                  Positioned(
+                                                    bottom:
+                                                        15, // Positionne le texte en bas de l'icône
+                                                    child: Text(
+                                                      "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
+                                                      style: TextStyle(
+                                                        fontSize:
+                                                            18, // Taille de la police ajustée pour une meilleure visibilité
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors
+                                                            .white, // Texte en blanc pour le contraste
+                                                        shadows: [
+                                                          Shadow(
+                                                            blurRadius: 6.0,
+                                                            color: Colors.black
+                                                                .withOpacity(
+                                                                    0.6),
+                                                            offset: Offset(
+                                                                1.0, 1.0),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(
+                                                  height:
+                                                      6), // Espacement sous l'icône
+                                            ],
+                                          )
+                                        : Text(
+                                            "N/A °C",
+                                            style: TextStyle(
+                                              fontSize:
+                                                  16, // Taille de la police réduite
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                  ),
+
+                                  SizedBox(width: 10), // Espacement
+
+                                  // Avatar de profil
+                                  CircleAvatar(
+                                    backgroundImage: AssetImage(
+                                        'assets/default_profile.png'),
+                                    radius: 22,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
