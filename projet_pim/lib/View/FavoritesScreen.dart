@@ -87,69 +87,95 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Mes Favoris"),
+        backgroundColor: const Color(0xFFD1C4E9),
       ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : favorites.isEmpty
-              ? Center(
-                  child: Text("Vous n'avez pas encore de favoris",
-                      style: TextStyle(fontSize: 18, color: Colors.grey)))
-              : ListView.builder(
-                  itemCount: favorites.length,
-                  itemBuilder: (context, index) {
-                    Place place = favorites[index];
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 16),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(16),
-                        title: Text(place.name,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFD1C4E9), // Couleur bas
+
+              Color(0xFFEDE7F6), // Couleur haut
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : favorites.isEmpty
+                ? Center(
+                    child: Text(
+                      "Vous n'avez pas encore de favoris",
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: favorites.length,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    itemBuilder: (context, index) {
+                      Place place = favorites[index];
+                      return Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 16),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.all(16),
+                          title: Text(
+                            place.name,
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 18)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 4),
-                            Text(place.description,
-                                style: TextStyle(color: Colors.grey[600])),
-                            SizedBox(height: 8),
-                            place.images.isNotEmpty
-                                ? Image.network(
-                                    place.images[0],
-                                    height: 150,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Container(
-                                    height: 150,
-                                    color: Colors.grey[200],
-                                    child: Center(
-                                        child: Icon(Icons.image,
-                                            color: Colors.grey, size: 50)),
-                                  ),
-                          ],
-                        ),
-                        isThreeLine: true,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MultiProvider(
-                                providers: [
-                                  ChangeNotifierProvider(
-                                    create: (_) => ReviewProvider(),
-                                  ),
-                                ],
-                                child: PlaceDetailsScreen(place: place),
+                                fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 4),
+                              Text(place.description,
+                                  style: TextStyle(color: Colors.grey[600])),
+                              SizedBox(height: 8),
+                              place.images.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        place.images[0],
+                                        height: 150,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Container(
+                                      height: 150,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                          child: Icon(Icons.image,
+                                              color: Colors.grey, size: 50)),
+                                    ),
+                            ],
+                          ),
+                          isThreeLine: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MultiProvider(
+                                  providers: [
+                                    ChangeNotifierProvider(
+                                      create: (_) => ReviewProvider(),
+                                    ),
+                                  ],
+                                  child: PlaceDetailsScreen(place: place),
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+      ),
     );
   }
 }

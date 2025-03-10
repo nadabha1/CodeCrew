@@ -105,24 +105,24 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           false;
 
       if (shouldDelete) {
-        final jwtToken =
-            'YOUR_JWT_TOKEN'; // Get JWT token from your auth provider
+        final jwtToken = 'YOUR_JWT_TOKEN'; // À récupérer dynamiquement
+        print("🛠 Suppression de ${place.name} avec ID: ${place.id}");
+
         await Provider.of<CarnetProvider>(context, listen: false)
             .deletePlace(widget.carnet.id, place.id, jwtToken);
 
         setState(() {
-          widget.carnet.places.remove(place);
+          widget.carnet.places.removeWhere((p) => p.id == place.id);
         });
 
+        print("✅ ${place.name} supprimé avec succès");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${place.name} deleted successfully')),
+          SnackBar(content: Text('${place.name} supprimé avec succès')),
         );
       }
-    } catch (e) {
-      print("❌ Error deleting place: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting place")),
-      );
+    } catch (e, stacktrace) {
+      print("❌ Erreur lors de la suppression de ${place.name}: $e");
+      print(stacktrace);
     }
   }
 

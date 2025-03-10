@@ -228,11 +228,8 @@ class CarnetService {
 
     if (response.statusCode == 200) {
       // The place was successfully deleted
-      print('Place deleted successfully');
     } else {
       // Error if the place is not found or another issue occurs
-      print('Failed to delete place: ${response.statusCode}');
-      print('Error message: ${response.body}');
     }
   }
 

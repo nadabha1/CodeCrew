@@ -375,13 +375,13 @@ class CarnetProvider with ChangeNotifier {
       },
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 201 || response.statusCode == 200) {
       // Remove the place from the local list if deletion is successful
       final carnet = _carnets.firstWhere((carnet) => carnet.id == carnetId);
       carnet.places.removeWhere((place) => place.id == placeId);
       notifyListeners();
     } else {
-      throw Exception('Failed to delete place');
+      throw Exception('');
     }
   }
 }
