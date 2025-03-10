@@ -10,6 +10,7 @@ class Event {
   final int joinPrice;
     final String conversationId;  // ➡️ Nouvelle propriété
 
+  final String type; // Add event type
 
   Event({
     required this.id,
@@ -23,6 +24,7 @@ class Event {
     required this.joinPrice,
     required this.conversationId,  // ➡️ Assure-toi de l'inclure ici aussi
 
+    required this.type, // Initialize type
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {
@@ -38,6 +40,7 @@ class Event {
       joinPrice: json['joinPrice'] ?? 5,
       conversationId: json['conversationId'],  // ➡️ Assure-toi de l'inclure ici aussi
 
+      type: json['type'] ?? 'Other', // Handle missing type
     );
   }
 }
