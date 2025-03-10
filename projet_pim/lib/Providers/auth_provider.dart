@@ -158,8 +158,7 @@ class AuthProvider with ChangeNotifier {
       debugPrint("User ID not set. Cannot add preferences.");
       return false;
     }
-
-    String apiUrl = "${ApiConstants.baseUrl}/users/$userId/preferences/update";
+      String apiUrl = "${ApiConstants.baseUrl}/users/$_userId/preferences";
 
     try {
       final response = await http.post(

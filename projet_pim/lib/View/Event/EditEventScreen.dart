@@ -52,17 +52,19 @@ class _EditEventScreenState extends State<EditEventScreen> {
 
   void _saveChanges() {
     Event updatedEvent = Event(
-      id: widget.event.id,
-      title: titleController.text,
-      description: descriptionController.text,
-      creatorId: widget.event.creatorId,
-      date: selectedDate,
-      location: locationController.text,
-      participants: widget.event.participants,
-      isParticipating: widget.event.isParticipating,
-      joinPrice: widget.event.joinPrice,
-      conversationId: widget.event.conversationId
-    );
+  id: widget.event.id,
+  title: titleController.text,
+  description: descriptionController.text,
+  creatorId: widget.event.creatorId,
+  date: selectedDate,
+  location: locationController.text,
+  participants: widget.event.participants,
+  isParticipating: widget.event.isParticipating,
+  joinPrice: widget.event.joinPrice,
+  conversationId: widget.event.conversationId,
+  type: widget.event.type, // 🟢 Ajouter cette ligne
+);
+
 
     widget.onSave(updatedEvent);
     Navigator.pop(context);
