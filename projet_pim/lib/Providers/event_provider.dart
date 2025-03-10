@@ -57,36 +57,64 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> createEvent(String userId, String title, String description,
-      DateTime date, String location, int joinPrice) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/events'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'creatorId': userId,
-          'title': title,
-          'description': description,
-          'date': date.toIso8601String(),
-          'location': location,
-          'joinPrice': joinPrice,
-          'participants': [userId], // Creator is the only default participant
-        }),
-      );
-      if (response.statusCode == 201) {
-        await fetchEvents(userId); // Refresh events for the current user
-      } else {
-        throw Exception(
-            'Failed to create event: Status ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error creating event: $e');
+Future<void> fetchSpecificEvents(String userId) async {
+  _isLoading = true;
+  notifyListeners();
+  try {
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/events/specific/$userId')); // Fetch specific events
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      _userEvents = data.map((json) => Event.fromJson(json, userId)).toList();
+    } else {
+      throw Exception(
+          'Failed to load specific events: Status ${response.statusCode}');
     }
-    _isLoading = false;
-    notifyListeners();
+  } catch (e) {
+    print('Error fetching specific events: $e');
   }
+  _isLoading = false;
+  notifyListeners();
+}
+
+Future<void> createEvent(
+  String userId,
+  String title,
+  String description,
+  DateTime date,
+  String location,
+  int joinPrice,
+  String type, // Include type
+) async {
+  _isLoading = true;
+  notifyListeners();
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/events'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'creatorId': userId,
+        'title': title,
+        'description': description,
+        'date': date.toIso8601String(),
+        'location': location,
+        'joinPrice': joinPrice,
+        'type': type, // Include event type
+        'participants': [userId], // Creator is the only default participant
+      }),
+    );
+    if (response.statusCode == 201) {
+      await fetchEvents(userId); // Refresh events
+    } else {
+      throw Exception('Failed to create event: Status ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error creating event: $e');
+  }
+  _isLoading = false;
+  notifyListeners();
+}
+
 
   Future<void> joinEvent(String userId, String eventId) async {
     _isLoading = true;

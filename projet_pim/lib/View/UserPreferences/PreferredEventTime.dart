@@ -11,20 +11,24 @@ class PreferredEventTimePage extends StatefulWidget {
 class _PreferredEventTimePageState extends State<PreferredEventTimePage> {
   String? _selectedTime;
 
-  void _navigateToNextPage() {
-    if (_selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select your preferred event timing!")),
-      );
-      return;
-    }
-    Provider.of<UserPreferences>(context, listen: false)
-        .setPreferredEventTime(_selectedTime!);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => FinalConfirmationPage()),
+void _navigateToNextPage() {
+  if (_selectedTime == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Please select your preferred event timing!")),
     );
+    return;
   }
+  Provider.of<UserPreferences>(context, listen: false)
+      .setPreferredEventTime(_selectedTime!);
+
+  // ✅ Navigate to FinalConfirmationPage and indicate it's from Signup
+  Navigator.pushNamed(
+    context,
+    "/final-confirmation",
+    arguments: {"fromSignup": true}, // Comes from Signup
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {

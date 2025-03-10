@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class AuthService {
   final http.Client client = http.Client();
@@ -94,4 +95,26 @@ class AuthService {
       throw Exception(error);
     }
   }
+  late IO.Socket socket;
+
+  void initSocket(String userId) {
+    socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    socket.connect();
+    socket.onConnect((_) {
+      print("✅ Connecté à Socket.IO");
+      socket.emit('join', userId);
+    });
+
+    socket.on('new_notification', (data) {
+      print("📩 Nouvelle notification reçue: $data");
+    });
+
+    socket.onDisconnect((_) => print("❌ Déconnecté"));
+  }
+
+
 }

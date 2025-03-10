@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
@@ -26,6 +24,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/login.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/ViewModel/login.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+late IO.Socket socket;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,28 +38,77 @@ void main() async {
   String? userId = prefs.getString("user_id");
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
 
+  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+
+ await flutterLocalNotificationsPlugin.initialize(
+  initializationSettings,
+  onDidReceiveNotificationResponse: (NotificationResponse response) async {
+    if (response.payload != null) {
+      // Gérer le clic sur la notification
+      print("📥 Notification click payload: ${response.payload}");
+    }
+  },
+);
+
+
+  // ✅ Initialiser Socket.IO
+  socket = IO.io('http://192.168.1.10:3000', <String, dynamic>{
+    'transports': ['websocket'],
+    'autoConnect': false,
+  });
+
+  socket.connect();
+
+  socket.onConnect((_) {
+    print("✅ Connecté à Socket.IO");
+    if (userId != null) {
+      socket.emit('join', userId);
+    }
+  });
+
+  // ✅ Gérer les notifications en temps réel
+  socket.on('new_notification', (data) {
+    print("📥 Nouvelle notification: $data");
+    _showNotification(data);
+  });
+
+  socket.onDisconnect((_) => print("❌ Déconnecté de Socket.IO"));
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<ReviewProvider>(create: (_) => ReviewProvider()),
-
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
-        ChangeNotifierProvider<LoginViewModel>(
-            create: (_) => LoginViewModel()..loadSession()),
-
+        ChangeNotifierProvider<LoginViewModel>(create: (_) => LoginViewModel()..loadSession()),
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
-
-        ChangeNotifierProvider<UserPreferences>(
-            create: (_) => UserPreferences()),
-        ChangeNotifierProvider<UserProvider>(
-            create: (_) => UserProvider()), // Add UserProvider here
-        ChangeNotifierProvider<ThemeProvider>(
-            create: (_) => ThemeProvider(isDarkMode)),
-        ChangeNotifierProvider<EventProvider>(
-            create: (_) => EventProvider(userId: userId ?? '')),
+        ChangeNotifierProvider<UserPreferences>(create: (_) => UserPreferences()),
+        ChangeNotifierProvider<UserProvider>(create: (_) => UserProvider()),
+        ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider(isDarkMode)),
+        ChangeNotifierProvider<EventProvider>(create: (_) => EventProvider(userId: userId ?? '')),
       ],
       child: MyApp(userId: userId, token: token),
     ),
+  );
+}
+
+// ✅ Afficher les notifications locales
+Future<void> _showNotification(Map<String, dynamic> data) async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    'default_channel',
+    'Notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    data['type'],          // Titre de la notification
+    data['message'],       // Contenu de la notification
+    platformChannelSpecifics,
+    payload: data.toString(),  // Charger des données supplémentaires
   );
 }
 
@@ -74,10 +127,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
         themeMode: ThemeProvider.themeMode,
-        // theme: ThemeData(primarySwatch: Colors.blue),
-        home: userId != null && token != null
-            ? MainScreen() // ✅ If session exists, go to MainScreen
-            : LoginView(), // Otherwise, show login screen
+        home: userId != null && token != null ? MainScreen() : LoginView(),
         routes: {
           '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
           '/signup': (context) => SignUpPage(),
@@ -94,11 +144,9 @@ class MyApp extends StatelessWidget {
                 userId: 'exampleId',
                 token: 'exampleToken',
               ),
-          '/add-place': (context) =>
-              AddPlaceScreen(carnetId: ''), // ✅ New Route
+          '/add-place': (context) => AddPlaceScreen(carnetId: ''),
           '/event-chat': (context) => EventChatScreen(
-                eventId:
-                    ModalRoute.of(context)?.settings.arguments as String? ?? '',
+                eventId: ModalRoute.of(context)?.settings.arguments as String? ?? '',
                 userId: userId ?? '',
               ),
         },

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
-import 'package:projet_pim/View/Event/EditEventScreen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
+import 'package:projet_pim/View/main_screen.dart';
+import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {
@@ -49,46 +52,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     });
   }
 
-  // Show confirmation dialog before deleting the event
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Supprimer l'événement"),
-          content: Text("Êtes-vous sûr de vouloir supprimer cet événement ?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Annuler"),
-            ),
-            TextButton(
-              onPressed: () async {
-                // Delete event
-                await _deleteEvent();
-                Navigator.of(context).pop();
-              },
-              child: Text("Supprimer", style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _deleteEvent() async {
-    try {
-      // Your logic for deleting the event, e.g. calling a delete method in eventProvider
-      await widget.eventProvider.deleteEvent(widget.event.id);
-      // Go back to the previous screen after deleting
-      Navigator.pop(context);
-    } catch (e) {
-      print("❌ Erreur lors de la suppression de l'événement : $e");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,27 +59,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         title: Text(widget.event.title,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: const Color.fromARGB(255, 247, 248, 249),
+              color: Colors.white,
             )),
-        backgroundColor: const Color.fromARGB(207, 196, 189, 255),
-        actions: [
-          // Add the delete icon to the app bar
-          if (widget.event.creatorId == widget.userId)
-            IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () {
-                _showDeleteConfirmation(
-                    context); // Show delete confirmation dialog
-              },
-            ),
-        ],
+        backgroundColor: const Color(0xFF6C63FF),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color.fromARGB(207, 196, 189, 255),
-              Color.fromARGB(185, 217, 212, 255),
+              Color(0xFFEDE7F6),
+              Color(0xFFD1C4E9),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -130,6 +82,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15)),
                 elevation: 5,
+                color: Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -137,33 +90,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     children: [
                       Text(widget.event.title,
                           style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold)),
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black)),
                       SizedBox(height: 10),
                       Text(widget.event.description,
-                          style:
-                              TextStyle(fontSize: 16, color: Colors.grey[700])),
+                          style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[800])),
                       SizedBox(height: 15),
-                      _buildDetailRow(
-                          Icons.location_on, "Lieu", widget.event.location,
-                          iconColor: const Color.fromARGB(255, 255, 201,
-                              148), // Example: Change the icon color to blue
-                          textColor: const Color.fromARGB(255, 0, 0,
-                              0) // Example: Change the text color to white
-                          ),
-                      _buildDetailRow(Icons.event, "Date",
-                          "${widget.event.date.toLocal()}".split(' ')[0],
-                          iconColor: const Color.fromARGB(255, 255, 169,
-                              104), // Example: Change the icon color to green
-                          textColor: const Color.fromARGB(255, 0, 0,
-                              0) // Example: Change the text color to white
-                          ),
-                      _buildDetailRow(Icons.people, "Participants",
-                          "${widget.event.participants.length} inscrits",
-                          iconColor: const Color.fromARGB(255, 244, 120,
-                              54), // Example: Change the icon color to red
-                          textColor: const Color.fromARGB(255, 0, 0,
-                              0) // Example: Change the text color to white
-                          ),
+                      _buildDetailRow(Icons.location_on, "Lieu", widget.event.location,
+                          iconColor: Color(0xFFFF8A65)),
+                      _buildDetailRow(Icons.event, "Date", "${widget.event.date.toLocal()}".split(' ')[0],
+                          iconColor: Color(0xFF4CAF50)),
+                      _buildDetailRow(Icons.people, "Participants", "${widget.event.participants.length} inscrits",
+                          iconColor: Color(0xFF29B6F6)),
                     ],
                   ),
                 ),
@@ -173,13 +114,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white)),
+                      color: Color(0xFF4E4E4E))),
               SizedBox(height: 10),
               isLoading
                   ? Center(child: CircularProgressIndicator())
                   : widget.event.participants.isEmpty
                       ? Text("Aucun participant pour l’instant.",
-                          style: TextStyle(color: Colors.white))
+                          style: TextStyle(color: Colors.grey[700]))
                       : ListView.builder(
                           shrinkWrap: true,
                           physics: NeverScrollableScrollPhysics(),
@@ -187,46 +128,73 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           itemBuilder: (context, index) {
                             String userId = widget.event.participants[index];
                             var user = participantDetails[userId];
+                            bool isCurrentUser = userId == widget.userId;
 
-                            return Card(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundImage: user?["profileImage"] != null
-                                      ? NetworkImage(user["profileImage"])
-                                      : AssetImage("assets/default_avatar.png")
-                                          as ImageProvider,
+                            return GestureDetector(
+                              onTap: () {
+                                if (isCurrentUser) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                                                builder: (context) => MainScreen(initialIndex: 4),
+
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TravelerProfileScreen(
+                                        travelerId: userId,
+                                        loggedInUserId: widget.userId,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Card(
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundImage: user?["profileImage"] != null
+                                        ? NetworkImage(user["profileImage"])
+                                        : AssetImage("assets/default_avatar.png")
+                                            as ImageProvider,
+                                  ),
+                                  title: Text(
+                                    "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  subtitle: Text(user?["email"] ?? "Email inconnu"),
                                 ),
-                                title: Text(user?["name"] ?? "Inconnu",
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle:
-                                    Text(user?["email"] ?? "Email inconnu"),
                               ),
                             );
                           },
                         ),
               SizedBox(height: 20),
-              if (widget.event.creatorId == widget.userId)
-                _buildActionButton(
-                  icon: Icons.edit,
-                  label: "Modifier l'événement",
-                  color: Colors.orange,
+              if (widget.event.participants.contains(widget.userId))
+                ElevatedButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EditEventScreen(
-                          event: widget.event,
-                          onSave: (updatedEvent) {
-                            widget.eventProvider.updateEvent(updatedEvent);
-                            Navigator.pop(context);
-                          },
+                        builder: (context) => GroupChatScreen(
+                          conversationId: widget.event.conversationId,
+                          groupName: widget.event.title,
                         ),
                       ),
                     );
                   },
+                  icon: Icon(Icons.chat, color: Colors.white),
+                  label: Text("Rejoindre le Chat"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF6C63FF),
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -236,39 +204,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value,
-      {Color iconColor = Colors.white, Color textColor = Colors.white}) {
+      {Color iconColor = Colors.black}) {
     return Row(
       children: [
-        Icon(icon, color: iconColor), // Use the dynamic icon color
+        Icon(icon, color: iconColor),
         SizedBox(width: 8),
         Text("$label : ",
             style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: textColor)), // Use the dynamic text color
+                color: Colors.black)),
         Expanded(
             child: Text(value,
                 style: TextStyle(
                     fontSize: 16,
-                    color: textColor))), // Use the dynamic text color
+                    color: Colors.black))),
       ],
-    );
-  }
-
-  Widget _buildActionButton(
-      {required IconData icon,
-      required String label,
-      required Color color,
-      VoidCallback? onPressed}) {
-    return Center(
-      child: ElevatedButton.icon(
-        icon: Icon(icon),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        ),
-        onPressed: onPressed,
-      ),
     );
   }
 }

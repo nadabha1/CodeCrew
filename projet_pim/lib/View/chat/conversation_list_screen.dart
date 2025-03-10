@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/View/chat/chat_screen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'dart:convert';
-
 import 'package:projet_pim/View/chat/new_conversation_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConversationListScreen extends StatefulWidget {
@@ -26,8 +27,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    final response = await http
-        .get(Uri.parse('http://localhost:3000/conversations/$_userId'));
+    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/conversations/$_userId'));
 
     if (response.statusCode == 200) {
       setState(() {
@@ -40,6 +40,22 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       });
       throw Exception('Erreur lors du chargement des conversations');
     }
+  }
+
+  String getParticipantName(List<dynamic> participants) {
+    try {
+      final otherParticipant = participants.firstWhere(
+        (p) => p['_id'] != _userId,
+        orElse: () => null,
+      );
+
+      if (otherParticipant != null && otherParticipant is Map && otherParticipant.containsKey('name')) {
+        return otherParticipant['name'] ?? 'Utilisateur inconnu';
+      }
+    } catch (e) {
+      print("🚨 Erreur lors de la récupération du nom: $e");
+    }
+    return 'Utilisateur inconnu';
   }
 
   @override
@@ -57,24 +73,28 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                   itemCount: conversations.length,
                   itemBuilder: (context, index) {
                     final conversation = conversations[index];
-                    final lastMessage = conversation['lastMessage']
-                            ?['content'] ??
-                        'Aucun message';
+                    final lastMessage = conversation['lastMessage']?['content'] ?? 'Aucun message';
                     final List participants = conversation['participants'];
-                    final otherParticipant = participants.firstWhere(
-                      (p) =>
-                          p['_id'] !=
-                          _userId, // Remplace par l'ID du user connecté
-                      orElse: () => null,
-                    );
+                    final isGroupChat = conversation['title'] != null && conversation['title'].isNotEmpty;
+                    final participantName = isGroupChat
+                        ? conversation['title']
+                        : getParticipantName(participants);
 
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundImage:
-                            NetworkImage(otherParticipant?['avatarUrl'] ?? ''),
+                        backgroundImage: NetworkImage(
+                          participants.firstWhere(
+                            (p) => p['_id'] != _userId,
+                            orElse: () => {'avatarUrl': null},
+                          )['avatarUrl'] ?? 'https://example.com/default-avatar.png',
+                        ),
+                        child: isGroupChat
+                            ? Icon(Icons.group, color: Colors.white)
+                            : Icon(Icons.person, color: Colors.white),
+                        backgroundColor: const Color(0xFFC8C4FF),
                       ),
                       title: Text(
-                        otherParticipant?['name'] ?? "Utilisateur inconnu",
+                        participantName,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
@@ -83,23 +103,33 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ChatScreen(conversationId: conversation['_id']),
-                          ),
-                        );
-                      },
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => isGroupChat
+          ? GroupChatScreen(
+              conversationId: conversation['_id'],
+              groupName: conversation['title'],  // ✅ Passe le titre du groupe
+            )
+          : ChatScreen(
+              conversationId: conversation['_id'],
+            ),
+    ),
+  );
+},
+
                     );
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => NewConversationScreen()),
           );
+          if (result != null) {
+            fetchConversations(); // ✅ Mettre à jour les conversations
+          }
         },
         backgroundColor: const Color(0xFFC8C4FF),
         child: Icon(Icons.add, color: Colors.white),

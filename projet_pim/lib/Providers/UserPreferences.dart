@@ -31,4 +31,24 @@ class UserPreferences with ChangeNotifier {
     preferredEventTime = eventTime;
     notifyListeners();
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "gender": gender,
+      "favoriteActivities": favoriteActivities,
+      "eventPreferences": eventPreferences,
+      "socialPreference": socialPreference,
+      "preferredEventTime": preferredEventTime,
+    };
+  }
+
+  static UserPreferences fromJson(Map<String, dynamic> json) {
+    final prefs = UserPreferences();
+    prefs.gender = json['gender'];
+    prefs.favoriteActivities = List<String>.from(json['favoriteActivities'] ?? []);
+    prefs.eventPreferences = List<String>.from(json['eventPreferences'] ?? []);
+    prefs.socialPreference = json['socialPreference'];
+    prefs.preferredEventTime = json['preferredEventTime'];
+    return prefs;
+  }
 }
