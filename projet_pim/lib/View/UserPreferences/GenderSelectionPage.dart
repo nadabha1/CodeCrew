@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/View/login.dart';
 import 'package:provider/provider.dart';
-
 import 'activity_selection_page.dart';
-
 
 class GenderSelectionPage extends StatefulWidget {
   @override
@@ -22,7 +20,8 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
       return;
     }
 
-    Provider.of<UserPreferences>(context, listen: false).setGender(_selectedGender!);
+    Provider.of<UserPreferences>(context, listen: false)
+        .setGender(_selectedGender!);
 
     Navigator.push(
       context,
@@ -56,7 +55,10 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
                   onPressed: _skipToLogin,
                   child: Text(
                     "Skip",
-                    style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                 ),
               ],
@@ -65,14 +67,19 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
             LinearProgressIndicator(value: 0.3, color: Colors.green),
             SizedBox(height: 20),
 
-            Text("What is your gender?", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
+            Text("What is your gender?",
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange)),
             Column(
               children: ["Male", "Female", "Other", "Prefer not to declare"]
                   .map((gender) => RadioListTile<String>(
                         title: Text(gender),
                         value: gender,
                         groupValue: _selectedGender,
-                        onChanged: (value) => setState(() => _selectedGender = value),
+                        onChanged: (value) =>
+                            setState(() => _selectedGender = value),
                       ))
                   .toList(),
             ),
@@ -82,8 +89,11 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton(onPressed: () => Navigator.pop(context), child: Text("Previous")),
-                ElevatedButton(onPressed: _navigateToNextPage, child: Text("Next")),
+                ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text("Previous")),
+                ElevatedButton(
+                    onPressed: _navigateToNextPage, child: Text("Next")),
               ],
             ),
           ],

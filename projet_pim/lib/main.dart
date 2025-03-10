@@ -1,7 +1,11 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
 import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
@@ -11,6 +15,7 @@ import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
 import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
 import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
+import 'package:projet_pim/View/Event/event_chat_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
@@ -32,15 +37,22 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider<ReviewProvider>(create: (_) => ReviewProvider()),
+
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
         ChangeNotifierProvider<LoginViewModel>(
             create: (_) => LoginViewModel()..loadSession()),
+
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
-          ChangeNotifierProvider<UserPreferences>(create: (_) => UserPreferences()),
+
+        ChangeNotifierProvider<UserPreferences>(
+            create: (_) => UserPreferences()),
         ChangeNotifierProvider<UserProvider>(
             create: (_) => UserProvider()), // Add UserProvider here
         ChangeNotifierProvider<ThemeProvider>(
             create: (_) => ThemeProvider(isDarkMode)),
+        ChangeNotifierProvider<EventProvider>(
+            create: (_) => EventProvider(userId: userId ?? '')),
       ],
       child: MyApp(userId: userId, token: token),
     ),
@@ -84,6 +96,11 @@ class MyApp extends StatelessWidget {
               ),
           '/add-place': (context) =>
               AddPlaceScreen(carnetId: ''), // ✅ New Route
+          '/event-chat': (context) => EventChatScreen(
+                eventId:
+                    ModalRoute.of(context)?.settings.arguments as String? ?? '',
+                userId: userId ?? '',
+              ),
         },
       );
     });

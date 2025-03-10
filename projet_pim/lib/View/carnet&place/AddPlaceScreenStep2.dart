@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:projet_pim/View/main_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import '../../Providers/carnet_provider.dart';
 
@@ -23,9 +29,48 @@ class AddPlaceScreenStep2 extends StatefulWidget {
 
 class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _placeNameController = TextEditingController();
   int _cost = 5;
   List<String> _selectedCategories = [];
-  List<String> _images = [];
+  List<String> _imageUrls = [];
+
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _placeNameController.text = widget.placeName;
+  }
+
+  Future<void> _uploadImage(XFile image) async {
+    try {
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload');
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath('photo', image.path));
+
+      var response = await request.send();
+      if (response.statusCode == 201) {
+        final responseBody = await response.stream.bytesToString();
+        final uploadedImage = jsonDecode(responseBody);
+        if (uploadedImage != null && uploadedImage['filename'] != null) {
+          final fullImageUrl =
+              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+          setState(() {
+            _imageUrls.add(fullImageUrl);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      await _uploadImage(pickedFile);
+    }
+  }
 
   final List<Map<String, dynamic>> categories = [
     {'icon': Icons.restaurant, 'name': 'Food', 'color': Colors.red},
@@ -46,33 +91,46 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFCEFEF),
+      backgroundColor: Color(0xFFFDF5E6),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 40),
-            Text(
-              widget.placeName,
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple),
-            ),
-            Text(
-              widget.placeAddress,
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Categories of the address",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Container(
-              height: 80,
-              child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 40), // ✅ Ajouter un espace au-dessus du nom
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _placeNameController,
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: "Enter place name...",
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.edit, color: Colors.grey),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+              Text(
+                widget.placeAddress,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              SizedBox(height: 20),
+              Text(
+                "Categories of the address",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: categories.map((category) {
@@ -105,95 +163,107 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   }).toList(),
                 ),
               ),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                hintText: "Enter a description...",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                fillColor: Colors.white,
-                filled: true,
+              SizedBox(height: 20),
+              TextField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  hintText: "Saisir",
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  fillColor: Colors.white,
+                  filled: true,
+                ),
+                maxLines: 3,
               ),
-              maxLines: 3,
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Price to unlock: $_cost Coins",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Slider(
-              value: _cost.toDouble(),
-              min: 1,
-              max: 10,
-              divisions: 9,
-              activeColor: Colors.purple[400],
-              label: "$_cost Coins",
-              onChanged: (value) {
-                setState(() {
-                  _cost = value.toInt();
-                });
-              },
-            ),
-            SizedBox(height: 20),
-            Text("Add photos",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Row(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.shade300),
+              SizedBox(height: 20),
+              Text(
+                "Photos de l'adresse",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(
+                height: 90, // Ajuste la hauteur pour contenir les images
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ..._imageUrls.map((imageUrl) {
+                        return Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  imageUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _imageUrls.remove(imageUrl);
+                                    });
+                                  },
+                                  child: CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: Colors.red,
+                                    child: Icon(Icons.close,
+                                        size: 16, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: CircleAvatar(
+                          backgroundColor: Colors.orange,
+                          radius: 30,
+                          child: Icon(Icons.add, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Icon(Icons.add, size: 30, color: Colors.grey),
                 ),
-              ],
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade400,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
-                  ),
-                  child:
-                      Text("Previous", style: TextStyle(color: Colors.white)),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  final carnetProvider =
+                      Provider.of<CarnetProvider>(context, listen: false);
+                  await carnetProvider.addPlaceToCarnet(
+                    widget.carnetId,
+                    _placeNameController.text,
+                    _descriptionController.text,
+                    _selectedCategories,
+                    _cost,
+                    _imageUrls,
+                    widget.latitude,
+                    widget.longitude,
+                  );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MainScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
                 ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final carnetProvider =
-                        Provider.of<CarnetProvider>(context, listen: false);
-                    await carnetProvider.addPlaceToCarnet(
-                      widget.carnetId,
-                      widget.placeName,
-                      _descriptionController.text,
-                      _selectedCategories,
-                      _cost,
-                      _images,
-                      widget.latitude,
-                      widget.longitude,
-                    );
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
-                  ),
-                  child: Text("Finish", style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          ],
+                child: Text("Valider", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
         ),
       ),
     );

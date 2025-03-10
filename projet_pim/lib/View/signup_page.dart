@@ -10,14 +10,15 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final TextEditingController nameController     = TextEditingController();
-  final TextEditingController emailController    = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
-  bool _isPasswordObscured         = true;
-  bool _isConfirmPasswordObscured  = true;
-  bool _isVerificationPending      = false;
+  bool _isPasswordObscured = true;
+  bool _isConfirmPasswordObscured = true;
+  bool _isVerificationPending = false;
   Timer? _verificationTimer;
 
   void _registerUser(BuildContext context) async {
@@ -27,7 +28,8 @@ class _SignUpPageState extends State<SignUpPage> {
         confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Veuillez remplir tous les champs!", style: TextStyle(color: Colors.white)),
+          content: Text("Veuillez remplir tous les champs!",
+              style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.orange,
         ),
       );
@@ -37,7 +39,8 @@ class _SignUpPageState extends State<SignUpPage> {
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Les mots de passe ne correspondent pas!", style: TextStyle(color: Colors.white)),
+          content: Text("Les mots de passe ne correspondent pas!",
+              style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
@@ -69,7 +72,8 @@ class _SignUpPageState extends State<SignUpPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Inscription réussie! Veuillez vérifier votre email.", style: TextStyle(color: Colors.white)),
+          content: Text("Inscription réussie! Veuillez vérifier votre email.",
+              style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
       );
@@ -77,7 +81,8 @@ class _SignUpPageState extends State<SignUpPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("L'inscription a échoué. Veuillez réessayer.", style: TextStyle(color: Colors.white)),
+          content: Text("L'inscription a échoué. Veuillez réessayer.",
+              style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
@@ -94,7 +99,8 @@ class _SignUpPageState extends State<SignUpPage> {
   // Vérifier le statut de vérification de l'email
   Future<void> _checkVerificationStatus() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    bool isVerified = await authProvider.checkUserVerification(emailController.text);
+    bool isVerified =
+        await authProvider.checkUserVerification(emailController.text);
     if (isVerified) {
       _verificationTimer?.cancel();
       setState(() {
@@ -102,7 +108,8 @@ class _SignUpPageState extends State<SignUpPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Email vérifié avec succès!", style: TextStyle(color: Colors.white)),
+          content: Text("Email vérifié avec succès! Redirection...",
+              style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
       );
@@ -133,7 +140,8 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   // Décoration spécifique pour les champs mot de passe avec bouton de visibilité
-  InputDecoration _buildPasswordDecoration(String label, bool isObscured, VoidCallback toggleVisibility) {
+  InputDecoration _buildPasswordDecoration(
+      String label, bool isObscured, VoidCallback toggleVisibility) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey),
@@ -144,7 +152,8 @@ class _SignUpPageState extends State<SignUpPage> {
         borderSide: BorderSide.none,
       ),
       suffixIcon: IconButton(
-        icon: Icon(isObscured ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+        icon: Icon(isObscured ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey),
         onPressed: toggleVisibility,
       ),
     );
@@ -210,7 +219,8 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextField(
                   controller: passwordController,
                   obscureText: _isPasswordObscured,
-                  decoration: _buildPasswordDecoration("Mot de passe", _isPasswordObscured, () {
+                  decoration: _buildPasswordDecoration(
+                      "Mot de passe", _isPasswordObscured, () {
                     setState(() {
                       _isPasswordObscured = !_isPasswordObscured;
                     });
@@ -220,7 +230,9 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextField(
                   controller: confirmPasswordController,
                   obscureText: _isConfirmPasswordObscured,
-                  decoration: _buildPasswordDecoration("Confirmer le mot de passe", _isConfirmPasswordObscured, () {
+                  decoration: _buildPasswordDecoration(
+                      "Confirmer le mot de passe", _isConfirmPasswordObscured,
+                      () {
                     setState(() {
                       _isConfirmPasswordObscured = !_isConfirmPasswordObscured;
                     });
@@ -235,7 +247,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             SizedBox(height: 10),
                             Text(
                               "Veuillez vérifier votre email pour continuer",
-                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -243,19 +257,22 @@ class _SignUpPageState extends State<SignUpPage> {
                     : ElevatedButton(
                         onPressed: () => _registerUser(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF2C2C54), // Bouton bleu marine
+                          backgroundColor:
+                              Color(0xFF2C2C54), // Bouton bleu marine
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           padding: EdgeInsets.symmetric(vertical: 16),
-                          textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          textStyle: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         child: Center(child: Text("S'inscrire")),
                       ),
                 SizedBox(height: 20),
                 Center(
                   child: GestureDetector(
-                    onTap: () => Navigator.pushReplacementNamed(context, "/login"),
+                    onTap: () =>
+                        Navigator.pushReplacementNamed(context, "/login"),
                     child: Text(
                       "Vous avez déjà un compte ? Connectez-vous",
                       style: TextStyle(

@@ -6,6 +6,7 @@ import 'package:location/location.dart' as loc;
 import 'package:geocoding/geocoding.dart';
 import 'package:projet_pim/Providers/user_provider.dart'; // Updated import for UserProvider
 import 'package:projet_pim/View/UserProfilePage.dart';
+import 'package:projet_pim/View/profile.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -200,9 +201,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => UserProfilePage(
-                      userId: userId, // Pass the tapped user's ID
-                      token: token, // Pass the logged-in user's token
+                    builder: (context) => TravelerProfileScreen(
+                      travelerId: user['_id'], // Pass the tapped user's ID
+                      loggedInUserId:
+                          widget.userId, // Pass the logged-in user's token
                     ),
                   ),
                 );
