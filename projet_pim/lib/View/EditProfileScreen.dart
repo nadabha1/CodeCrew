@@ -60,7 +60,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _profileImage = newImage;
       });
 
-      print("Image enregistrée à : ${_profileImage!.path}");
+      print("Image enregistrée à   : ${_profileImage!.path}");
     }
   }
 
