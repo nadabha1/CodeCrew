@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
-import 'package:projet_pim/View/EventDetailsScreen.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/View/chat/chat_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
