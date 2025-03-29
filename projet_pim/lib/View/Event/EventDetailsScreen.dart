@@ -59,9 +59,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         title: Text(widget.event.title,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: const Color.fromARGB(255, 0, 0, 0),
             )),
-        backgroundColor: const Color(0xFF6C63FF),
+        backgroundColor: const Color(0xFFEDE7F6),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -95,15 +95,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               color: Colors.black)),
                       SizedBox(height: 10),
                       Text(widget.event.description,
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[800])),
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.grey[800])),
                       SizedBox(height: 15),
-                      _buildDetailRow(Icons.location_on, "Lieu", widget.event.location,
+                      _buildDetailRow(
+                          Icons.location_on, "Lieu", widget.event.location,
                           iconColor: Color(0xFFFF8A65)),
-                      _buildDetailRow(Icons.event, "Date", "${widget.event.date.toLocal()}".split(' ')[0],
+                      _buildDetailRow(Icons.event, "Date",
+                          "${widget.event.date.toLocal()}".split(' ')[0],
                           iconColor: Color(0xFF4CAF50)),
-                      _buildDetailRow(Icons.people, "Participants", "${widget.event.participants.length} inscrits",
+                      _buildDetailRow(Icons.people, "Participants",
+                          "${widget.event.participants.length} inscrits",
                           iconColor: Color(0xFF29B6F6)),
                     ],
                   ),
@@ -136,15 +138,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                                                builder: (context) => MainScreen(initialIndex: 4),
-
+                                      builder: (context) =>
+                                          MainScreen(initialIndex: 4),
                                     ),
                                   );
                                 } else {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => TravelerProfileScreen(
+                                      builder: (context) =>
+                                          TravelerProfileScreen(
                                         travelerId: userId,
                                         loggedInUserId: widget.userId,
                                       ),
@@ -157,16 +160,20 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                     borderRadius: BorderRadius.circular(12)),
                                 child: ListTile(
                                   leading: CircleAvatar(
-                                    backgroundImage: user?["profileImage"] != null
-                                        ? NetworkImage(user["profileImage"])
-                                        : AssetImage("assets/default_avatar.png")
-                                            as ImageProvider,
+                                    backgroundImage:
+                                        user?["profileImage"] != null
+                                            ? NetworkImage(user["profileImage"])
+                                            : AssetImage(
+                                                    "assets/default_avatar.png")
+                                                as ImageProvider,
                                   ),
                                   title: Text(
                                     "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                  subtitle: Text(user?["email"] ?? "Email inconnu"),
+                                  subtitle:
+                                      Text(user?["email"] ?? "Email inconnu"),
                                 ),
                               ),
                             );
@@ -189,7 +196,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   icon: Icon(Icons.chat, color: Colors.white),
                   label: Text("Rejoindre le Chat"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6C63FF),
+                    backgroundColor: Color.fromARGB(255, 221, 170, 228),
                     padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -210,14 +217,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         Icon(icon, color: iconColor),
         SizedBox(width: 8),
         Text("$label : ",
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.black)),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
         Expanded(
             child: Text(value,
-                style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black))),
+                style: TextStyle(fontSize: 16, color: Colors.black))),
       ],
     );
   }

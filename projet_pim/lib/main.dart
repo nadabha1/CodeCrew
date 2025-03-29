@@ -27,7 +27,8 @@ import 'package:projet_pim/ViewModel/login.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 late IO.Socket socket;
 
@@ -38,22 +39,30 @@ void main() async {
   String? userId = prefs.getString("user_id");
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
 
-  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+  // 🛠️ Proper initialization settings for both platforms
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
- await flutterLocalNotificationsPlugin.initialize(
-  initializationSettings,
-  onDidReceiveNotificationResponse: (NotificationResponse response) async {
-    if (response.payload != null) {
-      // Gérer le clic sur la notification
-      print("📥 Notification click payload: ${response.payload}");
-    }
-  },
-);
+  const DarwinInitializationSettings initializationSettingsIOS =
+      DarwinInitializationSettings();
 
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS, // ✅ Updated class name
+  );
+
+  // ✅ Ensure the notification plugin is initialized properly
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse response) async {
+      if (response.payload != null) {
+        print("📥 Notification clicked: ${response.payload}");
+      }
+    },
+  );
 
   // ✅ Initialiser Socket.IO
-  socket = IO.io('http://192.168.1.10:3000', <String, dynamic>{
+  socket = IO.io('http://localhost:3000', <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });
@@ -80,12 +89,16 @@ void main() async {
       providers: [
         ChangeNotifierProvider<ReviewProvider>(create: (_) => ReviewProvider()),
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
-        ChangeNotifierProvider<LoginViewModel>(create: (_) => LoginViewModel()..loadSession()),
+        ChangeNotifierProvider<LoginViewModel>(
+            create: (_) => LoginViewModel()..loadSession()),
         ChangeNotifierProvider<CarnetProvider>(create: (_) => CarnetProvider()),
-        ChangeNotifierProvider<UserPreferences>(create: (_) => UserPreferences()),
+        ChangeNotifierProvider<UserPreferences>(
+            create: (_) => UserPreferences()),
         ChangeNotifierProvider<UserProvider>(create: (_) => UserProvider()),
-        ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider(isDarkMode)),
-        ChangeNotifierProvider<EventProvider>(create: (_) => EventProvider(userId: userId ?? '')),
+        ChangeNotifierProvider<ThemeProvider>(
+            create: (_) => ThemeProvider(isDarkMode)),
+        ChangeNotifierProvider<EventProvider>(
+            create: (_) => EventProvider(userId: userId ?? '')),
       ],
       child: MyApp(userId: userId, token: token),
     ),
@@ -94,21 +107,23 @@ void main() async {
 
 // ✅ Afficher les notifications locales
 Future<void> _showNotification(Map<String, dynamic> data) async {
-  const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
     'default_channel',
     'Notifications',
     importance: Importance.max,
     priority: Priority.high,
   );
 
-  const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
 
   await flutterLocalNotificationsPlugin.show(
     0,
-    data['type'],          // Titre de la notification
-    data['message'],       // Contenu de la notification
+    data['type'], // Titre de la notification
+    data['message'], // Contenu de la notification
     platformChannelSpecifics,
-    payload: data.toString(),  // Charger des données supplémentaires
+    payload: data.toString(), // Charger des données supplémentaires
   );
 }
 
@@ -146,7 +161,8 @@ class MyApp extends StatelessWidget {
               ),
           '/add-place': (context) => AddPlaceScreen(carnetId: ''),
           '/event-chat': (context) => EventChatScreen(
-                eventId: ModalRoute.of(context)?.settings.arguments as String? ?? '',
+                eventId:
+                    ModalRoute.of(context)?.settings.arguments as String? ?? '',
                 userId: userId ?? '',
               ),
         },

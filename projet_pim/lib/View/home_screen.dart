@@ -7,7 +7,10 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/View/weather_screen.dart';
+import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,24 +44,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _cardAnimationController;
 
   InheritedWidget? _ancestor;
+  final WeatherService _weatherService = WeatherService();
+  Map<String, dynamic>? weatherData;
 
-void _reloadData() async {
-  if (provider != null && eventProvider != null) {
-    await provider!.fetchCarnetsExcludingUser(widget.userId);
-    await provider!.fetchUnlockedPlaces(widget.userId);
-    await fetchUsers(); // Fetch users when data is reloaded
+  void _reloadData() async {
+    if (provider != null && eventProvider != null) {
+      await provider!.fetchCarnetsExcludingUser(widget.userId);
+      await provider!.fetchUnlockedPlaces(widget.userId);
+      await fetchUsers(); // Fetch users when data is reloaded
 
-    // Fetch all events
-    await eventProvider!.fetchAllEvents();
+      // Fetch all events
+      await eventProvider!.fetchAllEvents();
 
-    // Fetch recommended events for "For You" section
-    await eventProvider!.fetchSpecificEvents(widget.userId);
+      // Fetch recommended events for "For You" section
+      await eventProvider!.fetchSpecificEvents(widget.userId);
 
-    if (mounted) setState(() {});
+      if (mounted) setState(() {});
+    }
   }
-}
-
-
 
   @override
   void didChangeDependencies() {
@@ -79,6 +82,7 @@ void _reloadData() async {
         parent: _cardAnimationController, curve: Curves.easeInOut);
     _cardAnimationController.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) => _reloadData());
+    _loadWeather();
   }
 
   @override
@@ -90,6 +94,19 @@ void _reloadData() async {
     _cardAnimationController.dispose();
     eventProvider = null;
     super.dispose();
+  }
+
+  void _loadWeather() async {
+    print("Chargement de la météo...");
+    try {
+      final data = await _weatherService.fetchWeather("Tunis");
+      print("Données météo reçues: $data");
+      setState(() {
+        weatherData = data;
+      });
+    } catch (e) {
+      print("Erreur : $e");
+    }
   }
 
   Future<void> fetchUsers() async {
@@ -106,92 +123,91 @@ void _reloadData() async {
     }
   }
 
-void _showCreateEventDialog() {
-  String title = '';
-  String description = '';
-  DateTime date = DateTime.now();
-  String location = '';
-  int joinPrice = 5; // Default join price
-  String selectedType = _eventTypes.first; // Default type
+  void _showCreateEventDialog() {
+    String title = '';
+    String description = '';
+    DateTime date = DateTime.now();
+    String location = '';
+    int joinPrice = 5; // Default join price
+    String selectedType = _eventTypes.first; // Default type
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Create Event'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(labelText: 'Title'),
-              onChanged: (value) => title = value,
-            ),
-            TextField(
-              decoration: InputDecoration(labelText: 'Description'),
-              onChanged: (value) => description = value,
-            ),
-            TextField(
-              decoration: InputDecoration(labelText: 'Location'),
-              onChanged: (value) => location = value,
-            ),
-            TextField(
-              decoration: InputDecoration(labelText: 'Join Price (coins)'),
-              keyboardType: TextInputType.number,
-              onChanged: (value) => joinPrice = int.tryParse(value) ?? 5,
-            ),
-            SizedBox(height: 10),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Create Event'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(labelText: 'Title'),
+                onChanged: (value) => title = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Description'),
+                onChanged: (value) => description = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Location'),
+                onChanged: (value) => location = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Join Price (coins)'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) => joinPrice = int.tryParse(value) ?? 5,
+              ),
+              SizedBox(height: 10),
 
-            // Dropdown for event type
-            DropdownButtonFormField<String>(
-              value: selectedType,
-              items: _eventTypes.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(type),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) selectedType = value;
-              },
-              decoration: InputDecoration(labelText: "Event Type"),
-            ),
+              // Dropdown for event type
+              DropdownButtonFormField<String>(
+                value: selectedType,
+                items: _eventTypes.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) selectedType = value;
+                },
+                decoration: InputDecoration(labelText: "Event Type"),
+              ),
 
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () async {
-                date = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                    ) ??
-                    date;
-              },
-              child: Text('Pick Date'),
-            ),
-          ],
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      ) ??
+                      date;
+                },
+                child: Text('Pick Date'),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (title.isNotEmpty && location.isNotEmpty) {
+                eventProvider!.createEvent(widget.userId, title, description,
+                    date, location, joinPrice, selectedType); // Include type
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Create'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            if (title.isNotEmpty && location.isNotEmpty) {
-              eventProvider!.createEvent(widget.userId, title, description,
-                  date, location, joinPrice, selectedType); // Include type
-              Navigator.pop(context);
-            }
-          },
-          child: Text('Create'),
-        ),
-      ],
-    ),
-  );
-}
-
+    );
+  }
 
   void _showJoinConfirmationDialog(Event event) {
     showDialog(
@@ -313,110 +329,114 @@ void _showCreateEventDialog() {
       throw 'Could not launch $url';
     }
   }
+
   Widget _buildEventCard(Event event) {
-  return Padding(
-    padding: EdgeInsets.only(right: 10),
-    child: Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        width: 300,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+    return Padding(
+      padding: EdgeInsets.only(right: 10),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                event.title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+        child: Container(
+          width: 300,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                event.description,
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'Date: ${event.date.toLocal().toString().split(' ')[0]}',
-                style: TextStyle(fontSize: 12, color: Colors.white54),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'Location: ${event.location}',
-                style: TextStyle(fontSize: 12, color: Colors.white54),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'Participants: ${event.participants.length}',
-                style: TextStyle(fontSize: 12, color: Colors.white54),
-              ),
-            ),
-            Spacer(),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (event.isParticipating) {
-                    Navigator.pushNamed(
-                      context,
-                      '/event-chat',
-                      arguments: event.id,
-                    );
-                  } else {
-                    _showJoinConfirmationDialog(event);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: event.isParticipating
-                      ? Color(0xFF50E3C2)
-                      : Color(0xFFF4A261),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(15),
-                      bottomRight: Radius.circular(15),
-                    ),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                ),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(12),
                 child: Text(
-                  event.isParticipating ? 'Chat' : 'Join',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                  event.title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-          ],
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  event.description,
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'Date: ${event.date.toLocal().toString().split(' ')[0]}',
+                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'Location: ${event.location}',
+                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'Participants: ${event.participants.length}',
+                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ),
+              Spacer(),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (event.isParticipating) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GroupChatScreen(
+                              conversationId: event
+                                  .conversationId!, // Assure-toi que 'event' contient 'conversationId'
+                              groupName: event.title),
+                        ),
+                      );
+                    } else {
+                      _showJoinConfirmationDialog(event);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: event.isParticipating
+                        ? Color(0xFF50E3C2)
+                        : Color(0xFFF4A261),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(15),
+                        bottomRight: Radius.circular(15),
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  child: Text(
+                    event.isParticipating ? 'Chat' : 'Join',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -448,11 +468,108 @@ void _showCreateEventDialog() {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(Icons.menu, color: Colors.black, size: 28),
-                              CircleAvatar(
-                                backgroundImage:
-                                    AssetImage('assets/default_profile.png'),
-                                radius: 22,
+                              Icon(Icons.menu,
+                                  color: Colors.black,
+                                  size: 28), // Icône du menu
+
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => WeatherScreen(
+                                                  userId: 'userId',
+                                                )),
+                                      );
+                                    },
+                                    child: weatherData != null
+                                        ? Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              // Icône météo dans un cercle avec ombre
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  // Icône dans un cercle avec ombre
+                                                  Container(
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.grey
+                                                              .withOpacity(0.3),
+                                                          blurRadius: 4,
+                                                          spreadRadius: 1,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: ClipOval(
+                                                      child: Image.network(
+                                                        "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                                                        width:
+                                                            60, // Taille de l'icône ajustée pour plus de visibilité
+                                                        height: 60,
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  // Texte superposé sur l'icône
+                                                  Positioned(
+                                                    bottom:
+                                                        15, // Positionne le texte en bas de l'icône
+                                                    child: Text(
+                                                      "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
+                                                      style: TextStyle(
+                                                        fontSize:
+                                                            18, // Taille de la police ajustée pour une meilleure visibilité
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors
+                                                            .white, // Texte en blanc pour le contraste
+                                                        shadows: [
+                                                          Shadow(
+                                                            blurRadius: 6.0,
+                                                            color: Colors.black
+                                                                .withOpacity(
+                                                                    0.6),
+                                                            offset: Offset(
+                                                                1.0, 1.0),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(
+                                                  height:
+                                                      6), // Espacement sous l'icône
+                                            ],
+                                          )
+                                        : Text(
+                                            "N/A °C",
+                                            style: TextStyle(
+                                              fontSize:
+                                                  16, // Taille de la police réduite
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                  ),
+
+                                  SizedBox(width: 10), // Espacement
+
+                                  // Avatar de profil
+                                  CircleAvatar(
+                                    backgroundImage: AssetImage(
+                                        'assets/default_profile.png'),
+                                    radius: 22,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -676,87 +793,96 @@ void _showCreateEventDialog() {
                               ],
                             ),
                           ),
-            SizedBox(height: 20),
+                    SizedBox(height: 20),
 // 🔹 "Events For You" Section
-Padding(
-  padding: EdgeInsets.symmetric(horizontal: 20),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        "Events For You",
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      IconButton(
-        icon: Icon(Icons.refresh, color: Colors.black54),
-        onPressed: _reloadData, // Refresh events when clicked
-      ),
-    ],
-  ),
-),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Events For You",
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.refresh, color: Colors.black54),
+                            onPressed:
+                                _reloadData, // Refresh events when clicked
+                          ),
+                        ],
+                      ),
+                    ),
 
-eventProvider!.userEvents.isEmpty
-    ? Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Text("No recommended events", style: TextStyle(color: Colors.grey)),
-        ),
-      )
-    : SizedBox(
-        height: 200, // Fixed height for carousel
-        child: FadeTransition(
-          opacity: _cardFadeAnimation,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            itemCount: eventProvider!.userEvents.length,
-            itemBuilder: (context, index) {
-              final event = eventProvider!.userEvents[index];
-              return _buildEventCard(event);
-            },
-          ),
-        ),
-      ),
+                    eventProvider!.userEvents.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: Text("No recommended events",
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                          )
+                        : SizedBox(
+                            height: 200, // Fixed height for carousel
+                            child: FadeTransition(
+                              opacity: _cardFadeAnimation,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                itemCount: eventProvider!.userEvents.length,
+                                itemBuilder: (context, index) {
+                                  final event =
+                                      eventProvider!.userEvents[index];
+                                  return _buildEventCard(event);
+                                },
+                              ),
+                            ),
+                          ),
 
 // 🔹 "All Events" Section
-SizedBox(height: 20),
-Padding(
-  padding: EdgeInsets.symmetric(horizontal: 20),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text("All Events", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      IconButton(
-        icon: Icon(Icons.add, color: Colors.black54),
-        onPressed: _showCreateEventDialog, // Open event creation dialog
-      ),
-    ],
-  ),
-),
+                    SizedBox(height: 20),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("All Events",
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          IconButton(
+                            icon: Icon(Icons.add, color: Colors.black54),
+                            onPressed:
+                                _showCreateEventDialog, // Open event creation dialog
+                          ),
+                        ],
+                      ),
+                    ),
 
-eventProvider!.events.isEmpty
-    ? Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Text("No events available", style: TextStyle(color: Colors.grey)),
-        ),
-      )
-    : SizedBox(
-        height: 200, // Fixed height for carousel
-        child: FadeTransition(
-          opacity: _cardFadeAnimation,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            itemCount: eventProvider!.events.length,
-            itemBuilder: (context, index) {
-              final event = eventProvider!.events[index];
-              print('Event: ${event.title}, isParticipating: ${event.isParticipating}');
-              return _buildEventCard(event);
-            },
-          ),
-        ),
-      ),
+                    eventProvider!.events.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: Text("No events available",
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                          )
+                        : SizedBox(
+                            height: 200, // Fixed height for carousel
+                            child: FadeTransition(
+                              opacity: _cardFadeAnimation,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                itemCount: eventProvider!.events.length,
+                                itemBuilder: (context, index) {
+                                  final event = eventProvider!.events[index];
+                                  print(
+                                      'Event: ${event.title}, isParticipating: ${event.isParticipating}');
+                                  return _buildEventCard(event);
+                                },
+                              ),
+                            ),
+                          ),
                     // Similar Traveler section
                     SizedBox(height: 20),
                     Padding(
