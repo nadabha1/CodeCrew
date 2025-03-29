@@ -450,7 +450,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               fontWeight: FontWeight.bold,
                               color: Colors.black87),
                         ),
-                        SizedBox(height: 10),
                         Image.network(
                           "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
                           width: 120,
