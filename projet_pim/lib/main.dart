@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
@@ -12,6 +13,8 @@ import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
 import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
 import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
 import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
+import 'package:projet_pim/View/carnet&place/PlaceDetailsProviderScreen.dart';
+import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
 import 'package:projet_pim/View/Event/event_chat_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
@@ -19,6 +22,7 @@ import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/View/signup_page.dart';
 import 'package:projet_pim/View/user_profile.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/login.dart';
@@ -62,7 +66,7 @@ void main() async {
   );
 
   // ✅ Initialiser Socket.IO
-  socket = IO.io('http://localhost:3000', <String, dynamic>{
+  socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });
@@ -87,7 +91,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<ReviewProvider>(create: (_) => ReviewProvider()),
+        ChangeNotifierProvider(create: (_) => ReviewProvider()),
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
         ChangeNotifierProvider<LoginViewModel>(
             create: (_) => LoginViewModel()..loadSession()),
@@ -165,6 +169,11 @@ class MyApp extends StatelessWidget {
                     ModalRoute.of(context)?.settings.arguments as String? ?? '',
                 userId: userId ?? '',
               ),
+              '/place': (context) {
+  final place = ModalRoute.of(context)?.settings.arguments as Place;
+  return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
+},
+
         },
       );
     });

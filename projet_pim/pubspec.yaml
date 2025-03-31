@@ -47,6 +47,7 @@ dependencies:
   intl: ^0.18.0 
   web_socket_channel: ^2.3.0  # Ajoute cette ligne
   flutter_local_notifications: ^18.0.1  # Pour les notifications locales
+  table_calendar: ^3.0.8
 
 
 

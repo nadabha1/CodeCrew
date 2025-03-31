@@ -1,4 +1,4 @@
-class Event {
+class Event2 {
   final String id;
   final String title;
   final String description;
@@ -11,7 +11,7 @@ class Event {
   final String conversationId;
   final String type;
 
-  Event({
+  Event2({
     required this.id,
     required this.title,
     required this.description,
@@ -25,15 +25,15 @@ class Event {
     required this.type,
   });
 
-  factory Event.fromJson(Map<String, dynamic> json, String userId) {
-    return Event(
+  factory Event2.fromJson(Map<String, dynamic> json, String userId) {
+    return Event2(
       id: json['_id'],
       title: json['title'],
       description: json['description'],
       creatorId: json['creatorId'],
       date: DateTime.parse(json['date']),
       location: json['location'],
-participants: List<Map<String, dynamic>>.from(json['participants'] ?? []),
+      participants: json['participants'] ?? [],
       isParticipating: (json['participants'] as List)
           .any((p) => p is Map && p['_id'] == userId),
       joinPrice: json['joinPrice'] ?? 5,

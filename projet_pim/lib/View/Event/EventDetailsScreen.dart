@@ -37,20 +37,22 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _fetchParticipants() async {
-    Map<String, dynamic> details = {};
-    for (String userId in widget.event.participants) {
-      try {
-        var user = await userService.getUserById(userId, widget.token);
-        details[userId] = user;
-      } catch (e) {
-        print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
-      }
+  Map<String, dynamic> details = {};
+  for (var participant in widget.event.participants) {
+    final userId = participant['_id'];
+    try {
+      var user = await userService.getUserById(userId, widget.token);
+      details[userId] = user;
+    } catch (e) {
+      print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
     }
-    setState(() {
-      participantDetails = details;
-      isLoading = false;
-    });
   }
+  setState(() {
+    participantDetails = details;
+    isLoading = false;
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +130,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           physics: NeverScrollableScrollPhysics(),
                           itemCount: widget.event.participants.length,
                           itemBuilder: (context, index) {
-                            String userId = widget.event.participants[index];
+final participant = widget.event.participants[index];
+final userId = participant['_id'];
                             var user = participantDetails[userId];
                             bool isCurrentUser = userId == widget.userId;
 

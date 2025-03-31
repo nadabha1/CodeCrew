@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class AllEventsScreen extends StatefulWidget {
   final String userId;
@@ -18,14 +20,92 @@ class AllEventsScreen extends StatefulWidget {
 
 class _AllEventsScreenState extends State<AllEventsScreen> {
   List<Event> _events = [];
+  List<Event> _filteredEvents = [];
   bool _isLoading = true;
-  late EventProvider _eventProvider;  // 🟢 Créer un `EventProvider` valide
+  late EventProvider _eventProvider;
+  TextEditingController _searchController = TextEditingController();
+  String _selectedSort = 'date';
+
+DateTime _focusedDay = DateTime.now();
+DateTime? _selectedDay;
+void _resetFilters() {
+  setState(() {
+    _searchController.clear();
+    _selectedDay = null;
+    _filteredEvents = _events;
+  });
+}
+
+Widget _buildHorizontalCalendar() {
+  return TableCalendar(
+    firstDay: DateTime.utc(2020, 1, 1),
+    lastDay: DateTime.utc(2030, 12, 31),
+    focusedDay: _focusedDay,
+    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+    onDaySelected: (selectedDay, focusedDay) {
+      setState(() {
+        _selectedDay = selectedDay;
+        _focusedDay = focusedDay;
+        _filterByDate(selectedDay);
+      });
+    },
+    calendarFormat: CalendarFormat.week,
+    startingDayOfWeek: StartingDayOfWeek.monday,
+    headerStyle: HeaderStyle(
+      formatButtonVisible: false,
+      titleCentered: true,
+    ),
+    calendarStyle: CalendarStyle(
+      todayDecoration: BoxDecoration(
+        color: Colors.deepPurple,
+        shape: BoxShape.circle,
+      ),
+      selectedDecoration: BoxDecoration(
+        color: Colors.blueAccent,
+        shape: BoxShape.circle,
+      ),
+    ),
+  );
+  
+}
+void _filterByDate(DateTime date) {
+  setState(() {
+    _filteredEvents = _events.where((event) {
+      return event.date.year == date.year &&
+             event.date.month == date.month &&
+             event.date.day == date.day;
+    }).toList();
+  });
+}
 
   @override
   void initState() {
     super.initState();
-    _eventProvider = EventProvider(userId: widget.userId);  // 🟢 Initialiser `EventProvider`
+    _eventProvider = EventProvider(userId: widget.userId);
     _fetchAllEvents();
+  }
+
+  void _filterEvents(String query) {
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _filteredEvents = _events.where((event) {
+final titleMatch = event.title.toLowerCase().contains(lowerQuery);
+        final participantMatch = event.participants.any((p) {
+          final name = p['name'] ?? '';
+          return name.toLowerCase().contains(lowerQuery);
+        });
+        return titleMatch || participantMatch;
+      }).toList();
+      _sortEvents();
+    });
+  }
+
+  void _sortEvents() {
+    if (_selectedSort == 'date') {
+      _filteredEvents.sort((a, b) => a.date.compareTo(b.date));
+    } else if (_selectedSort == 'location') {
+      _filteredEvents.sort((a, b) => a.location.compareTo(b.location));
+    }
   }
 
   Future<void> _fetchAllEvents() async {
@@ -34,16 +114,17 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
         Uri.parse('${ApiConstants.baseUrl}/events/all'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
-
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
           _events = data.map((json) => Event.fromJson(json, widget.userId)).toList();
+          _filteredEvents = _events;
+          _sortEvents();
           _isLoading = false;
         });
       } else {
-        print('🔴 Erreur: ${response.body}');
         setState(() => _isLoading = false);
+        print('🔴 Erreur: ${response.body}');
       }
     } catch (e) {
       print('🔴 Exception: $e');
@@ -51,35 +132,171 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Tous les événements")),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _events.length,
-              itemBuilder: (context, index) {
-                final event = _events[index];
-                return ListTile(
-                  title: Text(event.title),
-                  subtitle: Text(event.description),
-                  onTap: () {
+  void _showJoinConfirmationDialog(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Rejoindre l'événement ?"),
+          content: Text("Prix de participation : ${event.joinPrice} coins"),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: Text("Annuler")),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _eventProvider.joinEvent(widget.userId, event.id);
+                await _fetchAllEvents();
+              },
+              child: Text("Confirmer"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStyledEventCard(Event event) {
+    bool isParticipating = event.isParticipating;
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(event.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text(event.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+            SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.calendar_today, size: 14),
+              SizedBox(width: 6),
+              Text(event.date.toString().split(" ")[0], style: TextStyle(fontSize: 12)),
+            ]),
+            SizedBox(height: 4),
+            Row(children: [
+              Icon(Icons.location_on, size: 14),
+              SizedBox(width: 6),
+              Text(event.location, style: TextStyle(fontSize: 12)),
+            ]),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (isParticipating) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GroupChatScreen(
+                            conversationId: event.conversationId ?? "",
+                            groupName: event.title,
+                          ),
+                        ),
+                      );
+                    } else {
+                      _showJoinConfirmationDialog(event);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isParticipating ? Colors.green : Colors.deepOrange,
+                  ),
+                  child: Text(isParticipating ? "Rejoindre le Chat" : "Rejoindre"),
+                ),
+                IconButton(
+                  icon: Icon(Icons.more_horiz),
+                  onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EventDetailsScreen(
+                        builder: (_) => EventDetailsScreen(
                           event: event,
                           userId: widget.userId,
                           token: widget.token,
-                          eventProvider: _eventProvider,  // 🟢 Passer un `EventProvider` valide
+                          eventProvider: _eventProvider,
                         ),
                       ),
                     );
                   },
-                );
-              },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+ 
+  
+
+  @override
+  Widget build(BuildContext context) {
+    List<Event> recentEvents = _filteredEvents.where((e) => e.date.isBefore(DateTime.now())).toList();
+    List<Event> upcomingEvents = _filteredEvents.where((e) => e.date.isAfter(DateTime.now())).toList();
+
+    return Scaffold(
+      backgroundColor: Color(0xFFF7F4FC),
+      appBar: AppBar(
+        backgroundColor: Color(0xFFDBD9FE),
+        title: Text("Tous les événements"),
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    onChanged: _filterEvents,
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher par titre ou participant...',
+                      prefixIcon: Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                      _buildHorizontalCalendar(), // 👈 Ajoute ce widget
+                  if (_selectedDay != null)
+  Align(
+    alignment: Alignment.centerRight,
+    child: TextButton.icon(
+      onPressed: _resetFilters,
+      icon: Icon(Icons.refresh, color: Colors.deepPurple),
+      label: Text("Réinitialiser", style: TextStyle(color: Colors.deepPurple)),
+    ),
+  ),
+
+                  SizedBox(height: 10),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        if (recentEvents.isNotEmpty) ...[
+                          Text("\u{1F4C5} Événements récents", style: sectionStyle),
+                          ...recentEvents.map(_buildStyledEventCard),
+                          Divider(thickness: 1.5),
+                        ],
+                        if (upcomingEvents.isNotEmpty) ...[
+                          Text("\u{1F680} À venir", style: sectionStyle),
+                          ...upcomingEvents.map(_buildStyledEventCard),
+                        ]
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }
+
+  final sectionStyle = TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple);
 }

@@ -27,6 +27,16 @@ class UserService {
       return {'error': 'Erreur lors de la récupération de l’utilisateur: $e'};
     }
   }
+  Future<List<dynamic>> getMatchingUsers(String userId) async {
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Erreur lors du chargement des utilisateurs similaires");
+  }
+}
+
 
   // Récupérer la liste de tous les utilisateurs
   Future<List<Map<String, dynamic>>> getAllUsers(String token) async {
