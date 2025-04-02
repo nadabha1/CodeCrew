@@ -5,7 +5,9 @@ import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
+import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class AllEventsScreen extends StatefulWidget {
@@ -85,7 +87,8 @@ void _filterByDate(DateTime date) {
     _fetchAllEvents();
   }
 
-  void _filterEvents(String query) {
+  _filterEvents(String query) async {
+    
     final lowerQuery = query.toLowerCase();
     setState(() {
       _filteredEvents = _events.where((event) {
@@ -154,6 +157,18 @@ final titleMatch = event.title.toLowerCase().contains(lowerQuery);
       },
     );
   }
+TextEditingController searchController = TextEditingController();
+
+void onSearch(String keyword) {
+  if (keyword.isNotEmpty) {
+    ActivityLoggerService.logAction(
+      userId: widget.userId,
+      type: "search event",
+      value: keyword,
+    );
+  }
+}
+
 
   Widget _buildStyledEventCard(Event event) {
     bool isParticipating = event.isParticipating;
@@ -254,7 +269,8 @@ final titleMatch = event.title.toLowerCase().contains(lowerQuery);
                   TextField(
                     controller: _searchController,
                     onChanged: _filterEvents,
-                    decoration: InputDecoration(
+                    onSubmitted: onSearch,
+                      decoration: InputDecoration(
                       hintText: 'Rechercher par titre ou participant...',
                       prefixIcon: Icon(Icons.search),
                       filled: true,

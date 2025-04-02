@@ -5,6 +5,7 @@ import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
+import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {

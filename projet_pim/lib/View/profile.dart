@@ -7,6 +7,7 @@ import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsProviderScreen.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:provider/provider.dart';
@@ -43,6 +44,13 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> with Sing
     fetchTravelerProfile();
     fetchFollowerData();
   }
+void onPlaceClick(String name) {
+  ActivityLoggerService.logAction(
+    userId: widget.loggedInUserId,
+    type: "click",
+    value: name,
+  );
+}
 
   Future<void> fetchFollowerData() async {
     try {
@@ -330,10 +338,12 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> with Sing
     builder: (context) => PlaceDetailsScreen(place: place),
   ),
 );
-
                                                   }
-                                                : () => _showConfirmUnlockDialog(
-                                                    place.name, place.unlockCost, place),
+                                                : () =>{ _showConfirmUnlockDialog(
+                                          place.name, place.unlockCost, place),
+                                          onPlaceClick(place.name
+                                          )
+                                          },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: isUnlocked ? Colors.grey : Color(0xFFD4F98F),
                                             ),

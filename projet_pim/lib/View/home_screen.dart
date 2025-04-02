@@ -10,6 +10,7 @@ import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
+import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -184,7 +185,7 @@ Widget _buildDrawer() {
         MaterialPageRoute(
           builder: (context) => TravelerProfileScreen(
             travelerId: user['_id'],
-            loggedInUserId: _userId!,
+            loggedInUserId: widget.userId,
           ),
         ),
       ),
@@ -237,6 +238,23 @@ Widget _buildDrawer() {
       ),
     );
   }
+void onSearch(String keyword) {
+  if (keyword.isNotEmpty) {
+    ActivityLoggerService.logAction(
+      userId: widget.userId,
+      type: "search users",
+      value: keyword,
+    );
+  }
+}
+void onPlaceClick(String name, String type) {
+
+  ActivityLoggerService.logAction(
+    userId: widget.userId,
+    type: type,
+    value: name,
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +276,7 @@ Widget _buildDrawer() {
                       padding: const EdgeInsets.all(12.0),
                       child: TextField(
                         controller: _searchController,
+                        onSubmitted: onSearch,
                         decoration: InputDecoration(
                           hintText: 'Rechercher un utilisateur...',
                           prefixIcon: Icon(Icons.search),
@@ -293,10 +312,16 @@ Widget _buildDrawer() {
                               onSelected: (selected) {
                                 setState(() {
                                   selected
-                                      ? _selectedCategories.add(name)
-                                      : _selectedCategories.remove(name);
+                                      ? {_selectedCategories.add(name),
+                                          onPlaceClick(name,"click add")
+                                      }
+                                      :{
+                                        _selectedCategories.remove(name),
+                                        onPlaceClick(name,"remove")
+                                      } ;
                                   _applySmartFilter();
                                 });
+
                               },
                             ),
                           );
