@@ -98,28 +98,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       await eventProvider
           .fetchEvents(widget.userId); // Remplacez par fetchEvents
 
-      // Si la localisation de l'utilisateur est disponible
+      // Ensure 'location' is parsed correctly
       if (userData?['location'] != null) {
-        // Assure-toi que 'location' contient un objet avec latitude et longitude
-        LatLng userLocation = LatLng(
-          userData!['location']['latitude'],
-          userData!['location']['longitude'],
-        );
-
-        // Récupère l'adresse via le géocodage inverse
-        String address = await getAddressFromLatLng(userLocation);
-
-        // Met à jour 'userData' avec l'adresse formatée
-        userData?['locationName'] = address;
+        try {
+          LatLng userLocation = _parseLocation(userData!['location']);
+          String address = await getAddressFromLatLng(userLocation);
+          userData?['locationName'] = address;
+        } catch (e) {
+          print("❌ Error parsing user location: $e");
+          userData?['locationName'] = "Lieu inconnu"; // Default value
+        }
       }
 
       setState(() {
         userData = user;
-        userCarnet = carnet; // Met à jour le carnet de l'utilisateur
+        userCarnet = carnet; // Ensure userCarnet is updated correctly
         isLoading = false;
       });
 
-      await fetchFollowerData(); // ✅ Fetch follower data after user data
+      await fetchFollowerData(); // Fetch follower data after user data
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -163,41 +160,82 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<String> getAddressFromLatLng(LatLng location) async {
     try {
+      print(
+          "🌍 Fetching address for coordinates: ${location.latitude}, ${location.longitude}");
+
+      if (location.latitude == 0.0 && location.longitude == 0.0) {
+        print(
+            "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
+        return "Lieu inconnu";
+      }
+
       List<Placemark> placemarks =
           await placemarkFromCoordinates(location.latitude, location.longitude);
 
       if (placemarks.isNotEmpty) {
-        return "${placemarks.first.locality}, ${placemarks.first.country}";
+        Placemark place = placemarks.first;
+
+        // Extraire les informations utiles
+        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
+        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
+        String region = place.administrativeArea ?? "Région inconnue";
+        String country = place.country ?? "Pays inconnu";
+
+        // Construire une adresse détaillée
+        String formattedAddress = "$street, $city, $region, $country";
+        print("✅ Geocoding successful: $formattedAddress");
+
+        return formattedAddress;
+      } else {
+        print("⚠️ No placemarks found for the given coordinates.");
       }
     } catch (e) {
       print("❌ Erreur lors du géocodage : $e");
     }
-    return "Lieu inconnu"; // Valeur par défaut
+
+    return "Lieu inconnu";
   }
 
   LatLng _parseLocation(dynamic location) {
-    if (location is String) {
-      try {
-        List<String> coordinates = location.split(',');
+    try {
+      if (location is Map<String, dynamic>) {
+        print("📍 Parsing location as Map: $location");
         return LatLng(
-          double.parse(coordinates[0].trim()), // Latitude
-          double.parse(coordinates[1].trim()), // Longitude
+          location['latitude'] ?? 0.0,
+          location['longitude'] ?? 0.0,
         );
-      } catch (e) {
-        print("❌ Erreur parsing location: $e");
-        return LatLng(0, 0); // Valeur par défaut
+      } else if (location is String) {
+        print("📍 Parsing location as String: $location");
+        // Split the string into latitude and longitude
+        List<String> coordinates = location.split(',');
+        if (coordinates.length == 2) {
+          return LatLng(
+            double.parse(coordinates[0].trim()), // Latitude
+            double.parse(coordinates[1].trim()), // Longitude
+          );
+        } else {
+          print("⚠️ Invalid string format for location: $location");
+        }
       }
-    } else if (location is LatLng) {
-      return location;
+    } catch (e) {
+      print("❌ Error parsing location: $e");
     }
-    return LatLng(0, 0); // Valeur par défaut
+    print("⚠️ Invalid location format. Returning default coordinates.");
+    return LatLng(0, 0); // Default value
   }
 
   Future<String> getLocationName() async {
-    if (userData?['location'] != null) {
-      return await getAddressFromLatLng(_parseLocation(userData!['location']));
+    try {
+      if (userData?['location'] != null) {
+        LatLng parsedLocation = _parseLocation(userData!['location']);
+        return await getAddressFromLatLng(parsedLocation);
+      } else {
+        print("⚠️ No location data found in userData.");
+      }
+    } catch (e) {
+      print("❌ Error fetching location name: $e");
     }
-    return "Lieu inconnu";
+    return "Lieu inconnu"; // Default value
   }
 
   @override
@@ -289,11 +327,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             );
                           }
                           if (snapshot.hasError) {
+                            print(
+                                "❌ Error in FutureBuilder: ${snapshot.error}");
                             return const Text(
                               "Erreur de localisation",
                               style: TextStyle(color: Colors.red, fontSize: 14),
                             );
                           }
+                          print("📍 Location displayed: ${snapshot.data}");
                           return Text(
                             snapshot.data ?? "Lieu inconnu",
                             style: const TextStyle(
@@ -464,19 +505,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     // 📌 Section Carnet d’Adresses avec les données du carnet
                     SizedBox(
                       height: 180,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: userCarnet.isNotEmpty
-                            ? userCarnet[0].places.length
-                            : 0,
-                        itemBuilder: (context, index) {
-                          return AddressCard(
-                            place: userCarnet[0].places[index],
-                            fetchUser: fetchUser,
-                            // Passe directement l'objet Place
-                          );
-                        },
-                      ),
+                      child: userCarnet.isNotEmpty &&
+                              userCarnet[0].places.isNotEmpty
+                          ? ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: userCarnet[0].places.length,
+                              itemBuilder: (context, index) {
+                                return AddressCard(
+                                  place: userCarnet[0].places[index],
+                                  fetchUser: fetchUser,
+                                );
+                              },
+                            )
+                          : const Center(
+                              child: Text(
+                                "Aucune place disponible",
+                                style:
+                                    TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                            ),
                     ),
                     // ✅ Floating Action Button ici
                     Padding(
@@ -639,6 +686,25 @@ class AddressCard extends StatelessWidget {
   const AddressCard({required this.place, required this.fetchUser, Key? key})
       : super(key: key);
 
+  Future<String> getPlaceAddress() async {
+    try {
+      if (place.latitude != null && place.longitude != null) {
+        LatLng placeLocation = LatLng(place.latitude!, place.longitude!);
+        return await placemarkFromCoordinates(
+                placeLocation.latitude, placeLocation.longitude)
+            .then((placemarks) {
+          if (placemarks.isNotEmpty) {
+            return "${placemarks.first.locality}, ${placemarks.first.country}";
+          }
+          return "Lieu inconnu";
+        });
+      }
+    } catch (e) {
+      print("❌ Error fetching place address: $e");
+    }
+    return "Lieu inconnu"; // Default value
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -699,14 +765,31 @@ class AddressCard extends StatelessWidget {
                           color: Colors.white,
                           size: 16,
                         ),
-                        Text(
-                          place.latitude != null && place.longitude != null
-                              ? '${place.latitude}, ${place.longitude}'
-                              : 'Lieu inconnu',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                        const SizedBox(width: 4),
+                        FutureBuilder<String>(
+                          future: getPlaceAddress(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Text(
+                                "Chargement...",
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 14),
+                              );
+                            }
+                            if (snapshot.hasError) {
+                              return const Text(
+                                "Erreur de localisation",
+                                style:
+                                    TextStyle(color: Colors.red, fontSize: 14),
+                              );
+                            }
+                            return Text(
+                              snapshot.data ?? "Lieu inconnu",
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            );
+                          },
                         ),
                       ],
                     ),
