@@ -65,6 +65,10 @@
 </dict>
 <key>FirebaseAppDelegateProxyEnabled</key>
 <false/>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Your message here explaining why you need location</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Your message here explaining why you need location</string>
 
 </dict>
 </plist>

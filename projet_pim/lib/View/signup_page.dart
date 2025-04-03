@@ -1,5 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:projet_pim/View/select_location_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import '../Providers/auth_provider.dart';
 import '../Providers/UserPreferences.dart';
@@ -15,11 +23,59 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  final TextEditingController locationController = TextEditingController();
 
   bool _isPasswordObscured = true;
   bool _isConfirmPasswordObscured = true;
   bool _isVerificationPending = false;
+  bool _useAutoLocation = false;
+
   Timer? _verificationTimer;
+  String? latitudeLongitude; // Stocke les coordonnées pour la base
+  String? _profileImageUrl;
+  final ImagePicker _picker = ImagePicker();
+  // Fonction pour télécharger l'image sur le serveur
+  Future<void> _uploadImage(XFile image) async {
+    try {
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload');
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath('photo', image.path));
+
+      debugPrint("📤 Envoi de l'image à : $uri");
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        final responseBody = await response.stream.bytesToString();
+        debugPrint("✅ Réponse du serveur : $responseBody");
+
+        final uploadedImage = jsonDecode(responseBody);
+        if (uploadedImage != null && uploadedImage['filename'] != null) {
+          final fullImageUrl =
+              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+          setState(() {
+            _profileImageUrl = fullImageUrl;
+          });
+          debugPrint("🌐 URL de l'image mise à jour : $_profileImageUrl");
+        } else {
+          debugPrint(
+              "⚠️ Erreur : La réponse ne contient pas de champ 'filename'.");
+        }
+      } else {
+        debugPrint("❌ Échec de l'upload. Code : ${response.statusCode}");
+        final errorResponse = await response.stream.bytesToString();
+        debugPrint("❌ Détails de l'erreur : $errorResponse");
+      }
+    } catch (e) {
+      debugPrint("❌ Erreur lors de l'upload de l'image : $e");
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      await _uploadImage(pickedFile);
+    }
+  }
 
   void _registerUser(BuildContext context) async {
     if (nameController.text.isEmpty ||
@@ -47,6 +103,19 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
+    // Vérifiez que l'URL de l'image est définie
+    debugPrint("🌐 URL de l'image avant l'inscription : $_profileImageUrl");
+    if (_profileImageUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Veuillez ajouter une photo de profil!",
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     // Affichage d'un SnackBar temporaire pendant le traitement
@@ -61,7 +130,9 @@ class _SignUpPageState extends State<SignUpPage> {
       nameController.text,
       emailController.text,
       passwordController.text,
+      latitudeLongitude!,
       Provider.of<UserPreferences>(context, listen: false),
+      _profileImageUrl, // Passez explicitement l'URL de l'image
     );
 
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -159,6 +230,61 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  Future<void> _getLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      String address =
+          await getAddressFromLatLng(position.latitude, position.longitude);
+
+      setState(() {
+        locationController.text = address; // Affiche le nom du lieu
+        latitudeLongitude =
+            "${position.latitude},${position.longitude}"; // Stocke les coordonnées
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Impossible de récupérer la localisation!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openMapToSelectLocation() async {
+    LatLng? selectedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SelectLocationScreen()),
+    );
+
+    if (selectedLocation != null) {
+      String address = await getAddressFromLatLng(
+          selectedLocation.latitude, selectedLocation.longitude);
+
+      setState(() {
+        locationController.text = address; // Affiche l'adresse
+        latitudeLongitude =
+            "${selectedLocation.latitude},${selectedLocation.longitude}"; // Stocke les coordonnées
+      });
+    }
+  }
+
+  Future<String> getAddressFromLatLng(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.locality}, ${place.country}"; // Exemple: Paris, France
+      }
+    } catch (e) {
+      print("Erreur de conversion: $e");
+    }
+    return "Localisation inconnue";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,15 +322,44 @@ class _SignUpPageState extends State<SignUpPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 80),
-                Text(
-                  "Créer\nCompte",
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+
+                SizedBox(height: 20),
+
+                // Cercle pour l'ajout de la photo de profil
+                Center(
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey[300],
+                        backgroundImage: _profileImageUrl != null
+                            ? NetworkImage(_profileImageUrl!)
+                            : null,
+                        child: _profileImageUrl == null
+                            ? Icon(Icons.person, size: 50, color: Colors.white)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color.fromARGB(
+                                255, 232, 235, 252), // Violet clair
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.camera_alt, color: Colors.white),
+                            onPressed: _pickImage,
+                            iconSize: 20,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 40),
+
+                SizedBox(height: 20),
                 TextField(
                   controller: nameController,
                   decoration: _buildInputDecoration("Nom"),
@@ -216,6 +371,34 @@ class _SignUpPageState extends State<SignUpPage> {
                   keyboardType: TextInputType.emailAddress,
                 ),
                 SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Utiliser ma localisation automatique"),
+                    Switch(
+                      value: _useAutoLocation,
+                      onChanged: (value) {
+                        setState(() {
+                          _useAutoLocation = value;
+                          if (value) _getLocation();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                TextField(
+                  controller: locationController,
+                  decoration: _buildInputDecoration("Localisation"),
+                  readOnly: true,
+                ),
+                SizedBox(height: 10),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.map),
+                  label: Text("Sélectionner sur la carte"),
+                  onPressed: _openMapToSelectLocation,
+                ),
+                SizedBox(height: 20),
+
                 TextField(
                   controller: passwordController,
                   obscureText: _isPasswordObscured,
@@ -238,6 +421,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     });
                   }),
                 ),
+
                 SizedBox(height: 40),
                 _isVerificationPending
                     ? Center(

@@ -461,14 +461,20 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                                             Navigator.push(
                                                               context,
                                                               MaterialPageRoute(
-                                                                builder: (context) =>
-                                                                    ChangeNotifierProvider<
-                                                                        ReviewProvider>(
-                                                                  create: (_) =>
-                                                                      ReviewProvider(),
-                                                                  child: PlaceDetailsScreen(
+                                                                builder:
+                                                                    (context) =>
+                                                                        Builder(
+                                                                  builder: (newContext) =>
+                                                                      ChangeNotifierProvider<
+                                                                          ReviewProvider>(
+                                                                    create: (_) =>
+                                                                        ReviewProvider(),
+                                                                    child:
+                                                                        PlaceDetailsScreen(
                                                                       place:
-                                                                          place),
+                                                                          place,
+                                                                    ),
+                                                                  ),
                                                                 ),
                                                               ),
                                                             );
@@ -492,7 +498,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                                     child: Text(isUnlocked
                                                         ? "View Details"
                                                         : "Unlock (5 coins)"),
-                                                  ),
+                                                  )
                                                 ],
                                               ),
                                             ),

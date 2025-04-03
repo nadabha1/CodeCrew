@@ -140,8 +140,9 @@ class UserService {
     String token,
     String name,
     String job,
-    String location,
     String bio,
+    String? profileImageUrl,
+    String? location, // ✅ Add latitudeLongitude parameter
   ) async {
     try {
       print("🔄 Preparing Profile Update Request...");
@@ -155,8 +156,9 @@ class UserService {
         body: jsonEncode({
           'name': name,
           'job': job,
-          'location': location,
           'bio': bio,
+          'profileImage': profileImageUrl,
+          'location': location, // ✅ Include in payload
         }),
       );
 

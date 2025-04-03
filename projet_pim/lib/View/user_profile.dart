@@ -13,12 +13,14 @@ import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
-import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
+import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Assure-toi d'importer le modèle Carnet
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -78,7 +80,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> fetchUser() async {
     try {
-      fetchFollowerData();
       // Appel pour récupérer les données utilisateur
       UserService userService = UserService();
       Map<String, dynamic> user =
@@ -90,16 +91,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
-      //fetchEvents
+
+      // Fetch events
       EventProvider eventProvider =
           Provider.of<EventProvider>(context, listen: false);
       await eventProvider
           .fetchEvents(widget.userId); // Remplacez par fetchEvents
+
+      // Si la localisation de l'utilisateur est disponible
+      if (userData?['location'] != null) {
+        // Assure-toi que 'location' contient un objet avec latitude et longitude
+        LatLng userLocation = LatLng(
+          userData!['location']['latitude'],
+          userData!['location']['longitude'],
+        );
+
+        // Récupère l'adresse via le géocodage inverse
+        String address = await getAddressFromLatLng(userLocation);
+
+        // Met à jour 'userData' avec l'adresse formatée
+        userData?['locationName'] = address;
+      }
+
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
         isLoading = false;
       });
+
       await fetchFollowerData(); // ✅ Fetch follower data after user data
     } catch (e) {
       setState(() {
@@ -142,6 +161,45 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Future<String> getAddressFromLatLng(LatLng location) async {
+    try {
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(location.latitude, location.longitude);
+
+      if (placemarks.isNotEmpty) {
+        return "${placemarks.first.locality}, ${placemarks.first.country}";
+      }
+    } catch (e) {
+      print("❌ Erreur lors du géocodage : $e");
+    }
+    return "Lieu inconnu"; // Valeur par défaut
+  }
+
+  LatLng _parseLocation(dynamic location) {
+    if (location is String) {
+      try {
+        List<String> coordinates = location.split(',');
+        return LatLng(
+          double.parse(coordinates[0].trim()), // Latitude
+          double.parse(coordinates[1].trim()), // Longitude
+        );
+      } catch (e) {
+        print("❌ Erreur parsing location: $e");
+        return LatLng(0, 0); // Valeur par défaut
+      }
+    } else if (location is LatLng) {
+      return location;
+    }
+    return LatLng(0, 0); // Valeur par défaut
+  }
+
+  Future<String> getLocationName() async {
+    if (userData?['location'] != null) {
+      return await getAddressFromLatLng(_parseLocation(userData!['location']));
+    }
+    return "Lieu inconnu";
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -168,8 +226,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     offset: const Offset(0, 20),
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundImage: userData?['profilePicture'] != null
-                          ? NetworkImage(userData!['profilePicture'])
+                      backgroundImage: userData?['profileImage'] != null &&
+                              userData!['profileImage'].isNotEmpty
+                          ? NetworkImage(userData!['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -218,12 +277,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        userData?['location'] ?? 'Lieu inconnu',
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                        ),
+                      FutureBuilder<String>(
+                        future: getLocationName(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Text(
+                              "Chargement...",
+                              style: TextStyle(
+                                  color: Colors.black54, fontSize: 14),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            return const Text(
+                              "Erreur de localisation",
+                              style: TextStyle(color: Colors.red, fontSize: 14),
+                            );
+                          }
+                          return Text(
+                            snapshot.data ?? "Lieu inconnu",
+                            style: const TextStyle(
+                                color: Colors.black54, fontSize: 14),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -354,7 +430,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CarnetDetailsPage(
-                                        carnet: userCarnet[0]),
+                                      carnet: userCarnet[0],
+                                    ),
                                   ),
                                 ).then((_) {
                                   fetchUser(); // Rafraîchir les données après le retour

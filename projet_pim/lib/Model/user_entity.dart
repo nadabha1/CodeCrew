@@ -1,3 +1,5 @@
+import 'package:latlong2/latlong.dart';
+
 class User {
   final String id;
   final String name;
@@ -7,7 +9,7 @@ class User {
   final String? resetPasswordOtp;
   final DateTime? resetPasswordOtpExpires;
   final String job;
-  final String location;
+  final LatLng location;
   final String bio;
   final String? profileImage; // Peut être null
   final int likes;
@@ -34,6 +36,27 @@ class User {
 
   // Factory method to create a User instance from JSON
   factory User.fromJson(Map<String, dynamic> json) {
+    LatLng parsedLocation = LatLng(0, 0); // Valeur par défaut
+
+    if (json['location'] != null) {
+      if (json['location'] is String) {
+        try {
+          List<String> coordinates = json['location'].split(',');
+          parsedLocation = LatLng(
+            double.parse(coordinates[0].trim()), // Latitude
+            double.parse(coordinates[1].trim()), // Longitude
+          );
+        } catch (e) {
+          print("❌ Erreur parsing location: $e");
+        }
+      } else if (json['location'] is Map<String, dynamic>) {
+        parsedLocation = LatLng(
+          (json['location']['latitude'] ?? 0).toDouble(),
+          (json['location']['longitude'] ?? 0).toDouble(),
+        );
+      }
+    }
+
     return User(
       id: json['_id'] as String,
       name: json['name'] ?? '',
@@ -44,15 +67,13 @@ class User {
       resetPasswordOtpExpires: json['resetPasswordOtpExpires'] != null
           ? DateTime.parse(json['resetPasswordOtpExpires'])
           : null,
-      job: json['job'] as String? ?? '', // Évite les erreurs si null
-      location: json['location'] as String? ?? '',
+      job: json['job'] as String? ?? '',
+      location: parsedLocation, // ✅ Gère string ou Map
       bio: json['bio'] as String? ?? '',
-
-      profileImage: json['profileImage'] as String?, // Peut être null
-
-      likes: json['likes'] as int? ?? 0, // Si null, met 0
-      coins: json['coins'] as int? ?? 0, // Si null, met 0
-      favorites: json['favorites'] as int? ?? 0, // Si null, met 0
+      profileImage: json['profileImage'] as String?,
+      likes: json['likes'] as int? ?? 0,
+      coins: json['coins'] as int? ?? 0,
+      favorites: json['favorites'] as int? ?? 0,
     );
   }
 
@@ -67,7 +88,10 @@ class User {
       'resetPasswordOtp': resetPasswordOtp,
       'resetPasswordOtpExpires': resetPasswordOtpExpires?.toIso8601String(),
       'job': job,
-      'location': location,
+      'location': {
+        'latitude': location.latitude,
+        'longitude': location.longitude,
+      },
       'bio': bio,
       'profileImage': profileImage,
       'likes': likes,
