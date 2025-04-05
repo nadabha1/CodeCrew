@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/EditEventScreen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:intl/intl.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -52,6 +54,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     });
   }
 
+  String _formatDate(DateTime date) {
+    return DateFormat('dd MMM yyyy, HH:mm').format(date); // Format personnalisé
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,6 +68,26 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               color: const Color.fromARGB(255, 0, 0, 0),
             )),
         backgroundColor: const Color(0xFFEDE7F6),
+        actions: [
+          if (widget.event.creatorId == widget.userId)
+            IconButton(
+              icon: Icon(Icons.edit, color: Colors.orange),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditEventScreen(
+                      event: widget.event,
+                      onSave: (updatedEvent) {
+                        widget.eventProvider.updateEvent(updatedEvent);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -101,9 +127,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       _buildDetailRow(
                           Icons.location_on, "Lieu", widget.event.location,
                           iconColor: Color(0xFFFF8A65)),
-                      _buildDetailRow(Icons.event, "Date",
-                          "${widget.event.date.toLocal()}".split(' ')[0],
-                          iconColor: Color(0xFF4CAF50)),
+                      _buildDetailRow(
+                        Icons.event,
+                        "Début",
+                        _formatDate(widget.event.startDate),
+                        iconColor: Color(0xFF4CAF50),
+                      ),
+                      SizedBox(height: 6),
+                      _buildDetailRow(
+                        Icons.event_available,
+                        "Fin",
+                        _formatDate(widget.event.endDate),
+                        iconColor: Color(0xFF81C784),
+                      ),
                       _buildDetailRow(Icons.people, "Participants",
                           "${widget.event.participants.length} inscrits",
                           iconColor: Color(0xFF29B6F6)),
@@ -222,6 +258,24 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             child: Text(value,
                 style: TextStyle(fontSize: 16, color: Colors.black))),
       ],
+    );
+  }
+
+  Widget _buildActionButton(
+      {required IconData icon,
+      required String label,
+      required Color color,
+      VoidCallback? onPressed}) {
+    return Center(
+      child: ElevatedButton.icon(
+        icon: Icon(icon),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        ),
+        onPressed: onPressed,
+      ),
     );
   }
 }

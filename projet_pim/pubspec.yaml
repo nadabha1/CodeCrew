@@ -48,6 +48,8 @@ dependencies:
   web_socket_channel: ^2.3.0  # Ajoute cette ligne
   flutter_local_notifications: ^18.0.1  # Pour les notifications locales
   geolocator: ^10.1.0
+  device_calendar: ^4.0.0
+  permission_handler: ^11.0.0
 
 
 

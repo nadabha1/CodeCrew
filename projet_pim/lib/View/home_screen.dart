@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
@@ -38,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     "Art Exhibitions",
     "Other"
   ];
+  final dateFormat = DateFormat('dd MMM yyyy');
+
   List<dynamic> users = [];
   bool isLoadingUsers = true;
   late Animation<double> _cardFadeAnimation;
@@ -126,7 +130,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _showCreateEventDialog() {
     String title = '';
     String description = '';
-    DateTime date = DateTime.now();
+    DateTime? startDate;
+    DateTime? endDate;
     String location = '';
     int joinPrice = 5; // Default join price
     String selectedType = _eventTypes.first; // Default type
@@ -174,17 +179,65 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
 
               SizedBox(height: 10),
+
+              // Pick Start Date and Time
               ElevatedButton(
                 onPressed: () async {
-                  date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      ) ??
-                      date;
+                  final pickedStartDate = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  if (pickedStartDate != null) {
+                    final pickedStartTime = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                    );
+                    if (pickedStartTime != null) {
+                      setState(() {
+                        startDate = DateTime(
+                          pickedStartDate.year,
+                          pickedStartDate.month,
+                          pickedStartDate.day,
+                          pickedStartTime.hour,
+                          pickedStartTime.minute,
+                        );
+                      });
+                    }
+                  }
                 },
-                child: Text('Pick Date'),
+                child: Text('Pick Start Date & Time'),
+              ),
+
+              // Pick End Date and Time
+              ElevatedButton(
+                onPressed: () async {
+                  final pickedEndDate = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  if (pickedEndDate != null) {
+                    final pickedEndTime = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                    );
+                    if (pickedEndTime != null) {
+                      setState(() {
+                        endDate = DateTime(
+                          pickedEndDate.year,
+                          pickedEndDate.month,
+                          pickedEndDate.day,
+                          pickedEndTime.hour,
+                          pickedEndTime.minute,
+                        );
+                      });
+                    }
+                  }
+                },
+                child: Text('Pick End Date & Time'),
               ),
             ],
           ),
@@ -196,10 +249,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           TextButton(
             onPressed: () {
-              if (title.isNotEmpty && location.isNotEmpty) {
-                eventProvider!.createEvent(widget.userId, title, description,
-                    date, location, joinPrice, selectedType); // Include type
+              if (title.isNotEmpty &&
+                  location.isNotEmpty &&
+                  startDate != null &&
+                  endDate != null &&
+                  endDate!.isAfter(startDate!)) {
+                eventProvider!.createEvent(
+                  widget.userId,
+                  title,
+                  description,
+                  startDate!.toIso8601String(), // Include time
+                  endDate!.toIso8601String(), // Include time
+                  location,
+                  joinPrice,
+                  selectedType,
+                );
                 Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content:
+                          Text("Please select valid start and end dates.")),
+                );
               }
             },
             child: Text('Create'),
@@ -376,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
-                  'Date: ${event.date.toLocal().toString().split(' ')[0]}',
+                  'From: ${dateFormat.format(event.startDate)} to ${dateFormat.format(event.endDate)}',
                   style: TextStyle(fontSize: 12, color: Colors.white54),
                 ),
               ),
@@ -586,6 +657,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             "Where's your next trip going to be?",
                             style: TextStyle(fontSize: 16, color: Colors.brown),
                           ),
+                          // Bouton pour accéder à la page RecommendationsScreen
+                          SizedBox(height: 20), // Espacement
+                          ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          CalendarEventsScreen()),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Colors.purple, // Couleur du bouton
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 30, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: Text(
+                                "Voir les recommandations",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              ))
                         ],
                       ),
                     ),

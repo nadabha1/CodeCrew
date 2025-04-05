@@ -3,12 +3,13 @@ class Event {
   final String title;
   final String description;
   final String creatorId;
-  final DateTime date;
+  final DateTime startDate; // Ensure this matches your backend response
+  final DateTime endDate; // Ensure this matches your backend response
   final String location;
   final List<String> participants;
   final bool isParticipating;
   final int joinPrice;
-    final String conversationId;  // ➡️ Nouvelle propriété
+  final String conversationId; // ➡️ Nouvelle propriété
 
   final String type; // Add event type
 
@@ -17,12 +18,13 @@ class Event {
     required this.title,
     required this.description,
     required this.creatorId,
-    required this.date,
+    required this.startDate,
+    required this.endDate,
     required this.location,
     required this.participants,
     required this.isParticipating,
     required this.joinPrice,
-    required this.conversationId,  // ➡️ Assure-toi de l'inclure ici aussi
+    required this.conversationId, // ➡️ Assure-toi de l'inclure ici aussi
 
     required this.type, // Initialize type
   });
@@ -33,12 +35,14 @@ class Event {
       title: json['title'],
       description: json['description'],
       creatorId: json['creatorId'],
-      date: DateTime.parse(json['date']),
+      startDate: DateTime.parse(json['startDate']), // Adjust key if necessary
+      endDate: DateTime.parse(json['endDate']), // Adjust key if necessary
       location: json['location'],
       participants: List<String>.from(json['participants']),
       isParticipating: List<String>.from(json['participants']).contains(userId),
       joinPrice: json['joinPrice'] ?? 5,
-      conversationId: json['conversationId'],  // ➡️ Assure-toi de l'inclure ici aussi
+      conversationId:
+          json['conversationId'], // ➡️ Assure-toi de l'inclure ici aussi
 
       type: json['type'] ?? 'Other', // Handle missing type
     );
