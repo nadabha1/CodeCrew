@@ -551,8 +551,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) => WeatherScreen(
-                                                  userId: 'userId',
-                                                )),
+                                                userId: 'userId',
+                                                weatherData:
+                                                    weatherData ?? {})),
                                       );
                                     },
                                     child: weatherData != null
@@ -658,30 +659,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             style: TextStyle(fontSize: 16, color: Colors.brown),
                           ),
                           // Bouton pour accéder à la page RecommendationsScreen
-                          SizedBox(height: 20), // Espacement
-                          ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          CalendarEventsScreen()),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Colors.purple, // Couleur du bouton
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 30, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                          SizedBox(height: 20),
+                          Center(
+                            child: Column(
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              CalendarEventsScreen()),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Color.fromARGB(255, 246, 171, 229),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.purple.withOpacity(0.4),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    padding: EdgeInsets.all(16),
+                                    child: Icon(
+                                      Icons.calendar_today,
+                                      size: 30,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                "Voir les recommandations",
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ))
+                                SizedBox(height: 8),
+                                Text(
+                                  'Recommandations',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color.fromARGB(
+                                          255, 246, 171, 229)),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),

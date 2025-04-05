@@ -4,6 +4,8 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/ViewModel/calendar_service.dart';
 import 'package:projet_pim/Model/event.dart' as CustomEvent;
+import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class CalendarEventsScreen extends StatefulWidget {
   @override
@@ -19,9 +21,10 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
   String? userId;
   String? token;
   bool isLoading = true;
-  List<dynamic> _eventsDuringFreeTime = [];
   List<CustomEvent.Event> _nonConflictingEvents = [];
-
+  final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm'); // Formatter
+  DateTime _selectedDay = DateTime.now(); // Jour sélectionné
+  DateTime _focusedDay = DateTime.now(); // Jour affiché
   @override
   void initState() {
     super.initState();
@@ -77,26 +80,24 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
 
   Future<void> _getCalendarEvents() async {
     try {
-      if (!_isValidUserId(userId!)) {
-        print('Invalid userId format');
-        return;
-      }
+      if (!_isValidUserId(userId!)) return;
 
       var calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
       if (calendarsResult.isSuccess && calendarsResult.data != null) {
         var calendar = calendarsResult.data!.first;
-
         var startDate = DateTime.now();
         var endDate = startDate.add(Duration(days: 30));
 
-        var params = DeviceCalendar.RetrieveEventsParams(
-            startDate: startDate, endDate: endDate);
-        var eventsResult =
-            await _deviceCalendarPlugin.retrieveEvents(calendar.id, params);
+        var eventsResult = await _deviceCalendarPlugin.retrieveEvents(
+          calendar.id,
+          DeviceCalendar.RetrieveEventsParams(
+              startDate: startDate, endDate: endDate),
+        );
 
         if (eventsResult.isSuccess && eventsResult.data != null) {
           setState(() {
             _events = List.from(eventsResult.data!);
+            _freeSlots = _getFreeSlots(_events);
           });
 
           var formattedEvents = _events.map((event) {
@@ -125,8 +126,8 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
       if (userId != null) {
         await _eventProvider.getNonConflictingEvents(userId!);
         setState(() {
-          _nonConflictingEvents = _eventProvider.events
-              .cast<CustomEvent.Event>(); // Cast to custom Event type
+          _nonConflictingEvents =
+              _eventProvider.events.cast<CustomEvent.Event>();
         });
       }
     } catch (e) {
@@ -143,7 +144,6 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     if (events.isNotEmpty) {
       events.sort((a, b) => a.start!.compareTo(b.start!));
 
-      // Check time before the first event
       if (events.first.start!.isAfter(startOfDay)) {
         freeSlots.add({
           'start': startOfDay.toIso8601String(),
@@ -151,11 +151,9 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         });
       }
 
-      // Check for gaps between events
       for (int i = 0; i < events.length - 1; i++) {
         DateTime eventEnd = events[i].end!;
         DateTime nextEventStart = events[i + 1].start!;
-
         if (eventEnd.isBefore(nextEventStart)) {
           freeSlots.add({
             'start': eventEnd.toIso8601String(),
@@ -164,7 +162,6 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         }
       }
 
-      // Check time after the last event
       if (events.last.end!.isBefore(endOfDay)) {
         freeSlots.add({
           'start': events.last.end!.toIso8601String(),
@@ -179,12 +176,10 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
   String generateFreeSlotMessage(
       List<Map<String, String>> slots, int eventCount) {
     if (slots.isEmpty || eventCount == 0) return '';
-
     final slot = slots.first;
     final start = DateTime.parse(slot['start']!).toLocal();
     final dayName = _getDayName(start.weekday);
     final partOfDay = _getPartOfDay(start);
-
     return 'Vous êtes libre le $dayName $partOfDay ? Voici $eventCount événements intéressants à proximité.';
   }
 
@@ -208,10 +203,304 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     return 'soir';
   }
 
+  Widget _buildDeviceEventsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('     📅 Votre calendrier de la semaine ',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Container(
+          height: 150, // Ajustez la hauteur en fonction de votre besoin
+          width: double.infinity,
+          padding:
+              EdgeInsets.all(10), // Ajoutez un padding autour du calendrier
+          child: TableCalendar(
+            firstDay: DateTime.utc(2020, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            focusedDay: _focusedDay,
+            calendarFormat:
+                CalendarFormat.week, // Affiche uniquement la semaine
+
+            eventLoader: (day) {
+              // Charger les événements pour une journée donnée
+              return _events
+                  .where((event) =>
+                      event.start!.day == day.day &&
+                      event.start!.month == day.month &&
+                      event.start!.year == day.year)
+                  .map((e) => e.title ?? 'No title')
+                  .toList();
+            },
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay =
+                    focusedDay; // Mise à jour de _focusedDay ici aussi
+              });
+              _showEventDetailsForDay(
+                  selectedDay); // Affiche les détails pour le jour sélectionné
+            },
+            calendarBuilders: CalendarBuilders(
+              // Personnaliser l'apparence des jours
+              markerBuilder: (context, day, events) {
+                // Si des événements existent pour ce jour, afficher un point rouge
+                if (events.isNotEmpty) {
+                  return Positioned(
+                    bottom: 1,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.red, // Point rouge
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  );
+                }
+                return SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEventDetailsForDay(DateTime selectedDay) {
+    // Filtrer les événements pour le jour sélectionné
+    var eventsForDay = _events
+        .where((event) =>
+            event.start!.day == selectedDay.day &&
+            event.start!.month == selectedDay.month &&
+            event.start!.year == selectedDay.year)
+        .toList();
+
+    if (eventsForDay.isNotEmpty) {
+      // Si des événements existent pour ce jour, afficher le BottomSheet
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled:
+            true, // Permet de contrôler la hauteur du BottomSheet
+        builder: (BuildContext context) {
+          return Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Container(
+              height:
+                  120, // Hauteur personnalisée du BottomSheet, ajustez selon vos besoins
+              child: ListView.builder(
+                itemCount: eventsForDay.length,
+                itemBuilder: (context, index) {
+                  var event = eventsForDay[index];
+                  return GestureDetector(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Titre de l'événement avec un style plus attractif
+                          Text(
+                            event.title ?? 'Sans titre',
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF4A90E2)),
+                          ),
+                          SizedBox(height: 10),
+
+                          // Affichage de la date et heure de l'événement avec un formatage amélioré
+                          Text(
+                            'start: ${DateFormat('EEEE, d MMMM yyyy, HH:mm').format(event.start?.toLocal() ?? DateTime.now())}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          Text(
+                            'end: ${DateFormat('EEEE, d MMMM yyyy, HH:mm').format(event.end?.toLocal() ?? DateTime.now())}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          SizedBox(height: 15),
+
+                          // Affichage de la localisation si elle est disponible
+                          event.location != null
+                              ? Row(
+                                  children: [
+                                    Icon(Icons.location_on, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        event.location!,
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : SizedBox.shrink(),
+
+                          SizedBox(height: 15),
+
+                          // Affichage de la description de l'événement si elle est disponible
+                          event.description != null
+                              ? Text(
+                                  event.description!,
+                                  style: TextStyle(fontSize: 16, height: 1.5),
+                                )
+                              : SizedBox.shrink(),
+
+                          SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // Si aucun événement n'est trouvé pour ce jour, afficher un message
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled:
+            true, // Permet de contrôler la hauteur du BottomSheet
+        builder: (BuildContext context) {
+          return Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Container(
+              height: 150, // Hauteur personnalisée pour ce BottomSheet
+              child: Center(
+                child: Text(
+                  'Aucun événement pour cette journée.',
+                  textAlign: TextAlign.center, // Centrer le texte
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  Widget _buildFreeSlotsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('🕒 Créneaux libres',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        if (_freeSlots.isEmpty)
+          Text("Aucun créneau disponible")
+        else
+          ..._freeSlots.map((slot) => ListTile(
+                leading: Icon(Icons.schedule),
+                title: Text(
+                    formatter.format(DateTime.parse(slot['start']!).toLocal())),
+                subtitle: Text(
+                    '→ ${formatter.format(DateTime.parse(slot['end']!).toLocal())}'),
+              )),
+      ],
+    );
+  }
+
+  Widget _buildNonConflictingEventList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_nonConflictingEvents.isNotEmpty)
+          Text(
+              generateFreeSlotMessage(_freeSlots, _nonConflictingEvents.length),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        SizedBox(height: 10),
+        if (_nonConflictingEvents.isEmpty)
+          Text("Aucun événement proposé pendant vos créneaux disponibles.")
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children:
+                  _nonConflictingEvents.map((e) => _buildEventCard(e)).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEventCard(CustomEvent.Event event) {
+    return Padding(
+      padding: EdgeInsets.only(right: 10),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Container(
+          width: 280,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(event.title ?? 'Sans titre',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+                SizedBox(height: 8),
+                Text(event.description ?? 'Aucune description disponible',
+                    style: TextStyle(fontSize: 14, color: Colors.white70)),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                    SizedBox(width: 5),
+                    Text(
+                      formatter
+                          .format(event.startDate?.toLocal() ?? DateTime.now()),
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshData() async {
+    setState(() => isLoading = true);
+    await _getCalendarEvents();
+    await _fetchNonConflictingEvents();
+    setState(() => isLoading = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Calendar Events')),
+      appBar: AppBar(
+        title: Text('Calendar Events'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshData,
+          ),
+        ],
+      ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -219,120 +508,11 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('📅 Upcoming Events',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: _events.length,
-                    itemBuilder: (context, index) {
-                      final event = _events[index];
-                      return ListTile(
-                        leading: Icon(Icons.event),
-                        title: Text(event.title ?? 'No title'),
-                        subtitle: Text(
-                            '${event.start?.toLocal()} - ${event.end?.toLocal()}'),
-                      );
-                    },
-                  ),
+                  _buildDeviceEventsList(),
                   SizedBox(height: 20),
-                  Text('🕒 Available Time Slots',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  _freeSlots.isEmpty
-                      ? Text("No available time slots detected")
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _freeSlots.length,
-                          itemBuilder: (context, index) {
-                            final slot = _freeSlots[index];
-                            return ListTile(
-                              leading: Icon(Icons.schedule),
-                              title: Text(
-                                  '${DateTime.parse(slot['start']!).toLocal()}'),
-                              subtitle: Text(
-                                  '→ ${DateTime.parse(slot['end']!).toLocal()}'),
-                            );
-                          },
-                        ),
+                  // _buildFreeSlotsList(),
                   SizedBox(height: 20),
-                  if (_eventsDuringFreeTime.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          generateFreeSlotMessage(
-                              _freeSlots, _eventsDuringFreeTime.length),
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 10),
-                      ],
-                    ),
-                  _eventsDuringFreeTime.isEmpty
-                      ? Text("No events during your free time yet")
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _eventsDuringFreeTime.length,
-                          itemBuilder: (context, index) {
-                            final event = _eventsDuringFreeTime[index];
-                            return ListTile(
-                              leading: Icon(Icons.event),
-                              title: Text(event['title']),
-                              subtitle: Text(event['description']),
-                            );
-                          },
-                        ),
-                  SizedBox(height: 20),
-                  if (_nonConflictingEvents.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '🎉 Non-conflicting Events',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Ces événements ne sont pas en conflit avec vos événements existants.',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        SizedBox(height: 10),
-                      ],
-                    ),
-                  _nonConflictingEvents.isEmpty
-                      ? Text("No non-conflicting events found")
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _nonConflictingEvents.length,
-                          itemBuilder: (context, index) {
-                            final event = _nonConflictingEvents[index];
-                            final eventStart = event
-                                .startDate; // Assuming `event` has start and end properties
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Vous êtes libre le ${eventStart?.toLocal()}  '
-                                  'On vous propose de participer à cet événement :',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                ListTile(
-                                  leading: Icon(Icons.event),
-                                  title: Text(event.title ?? 'No title'),
-                                  subtitle: Text(
-                                      event.description ?? 'No description'),
-                                ),
-                                SizedBox(height: 10),
-                              ],
-                            );
-                          },
-                        ),
+                  _buildNonConflictingEventList(),
                 ],
               ),
             ),
