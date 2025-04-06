@@ -26,7 +26,7 @@ class ReviewService {
   }
 
   // Add a new review for a place
-  Future<void> addReview(String placeId, Review review) async {
+  Future<bool> addReview(String placeId, Review review) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/reviews/$placeId'),
@@ -35,21 +35,17 @@ class ReviewService {
       );
 
       if (response.statusCode == 201) {
-        // Print success message only if no error occurs
         print("Review added successfully.");
+        // Call to refresh the reviews after a successful submission
+        await getAllReviews(placeId);
+        return true; // Return true if successful
       } else {
-        // Handle API error
-        try {
-          final error = jsonDecode(response.body);
-          throw Exception(error['message'] ?? 'Erreur inconnue');
-        } catch (_) {
-          throw Exception(
-              'Erreur lors de l’ajout de l’avis. Code erreur: ${response.statusCode}');
-        }
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Unknown error');
       }
     } catch (e) {
       print("Error in addReview: $e");
-      throw e; // Rethrow the error to be caught in the form
+      throw e; // Rethrow to show an error in the UI
     }
   }
 }

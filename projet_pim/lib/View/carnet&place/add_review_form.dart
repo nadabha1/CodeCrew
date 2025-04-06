@@ -53,14 +53,8 @@ class _AddReviewFormState extends State<AddReviewForm> {
       });
 
       // Afficher un message de confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Avis ajouté avec succès !')),
-      );
     } else {
       // Gérer le cas où le formulaire est incomplet
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veuillez remplir tous les champs.')),
-      );
     }
   }
 

@@ -349,7 +349,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
                     // Tentative d'ajout de l'avis (appelle l'API)
                     await Provider.of<ReviewProvider>(context, listen: false)
-                        .addReview(widget.place.id, review);
+                        .addReview(widget.place.id,
+                            review); // Ensure this line works without returning a value
 
                     // Fermer le pop-up de chargement
                     Navigator.of(context).pop();
@@ -396,7 +397,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     );
                   }
                 },
-              ),
+              )
             ],
           ),
         ),
