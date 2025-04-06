@@ -8,7 +8,7 @@ class Event {
   final DateTime startDate; // Ensure this matches your backend response
   final DateTime endDate; // Ensure this matches your backend response
   final LatLng location;
-  final List<String> participants;
+  final List<dynamic> participants;
   final bool isParticipating;
   final int joinPrice;
   final String conversationId; // ➡️ Nouvelle propriété
