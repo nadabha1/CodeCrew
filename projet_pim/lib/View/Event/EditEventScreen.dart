@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:intl/intl.dart';
+import 'package:projet_pim/View/select_location_screen.dart';
 
 class EditEventScreen extends StatefulWidget {
   final Event event;
@@ -19,6 +23,8 @@ class _EditEventScreenState extends State<EditEventScreen> {
   late TextEditingController locationController;
   late DateTime startDate;
   late DateTime endDate;
+  String location = ''; // Initialize as an empty string
+  bool _useAutoLocation = false;
 
   @override
   void initState() {
@@ -26,9 +32,25 @@ class _EditEventScreenState extends State<EditEventScreen> {
     titleController = TextEditingController(text: widget.event.title);
     descriptionController =
         TextEditingController(text: widget.event.description);
-    locationController = TextEditingController(text: widget.event.location);
+    locationController = TextEditingController(
+        text:
+            "${widget.event.location.latitude},${widget.event.location.longitude}");
     startDate = widget.event.startDate;
     endDate = widget.event.endDate;
+    location =
+        "${widget.event.location.latitude},${widget.event.location.longitude}"; // Initialize with event's coordinates
+    _setInitialLocationAddress();
+  }
+
+  Future<void> _setInitialLocationAddress() async {
+    String address = await getAddressFromLatLng(
+      widget.event.location.latitude,
+      widget.event.location.longitude,
+    );
+
+    setState(() {
+      locationController.text = address;
+    });
   }
 
   @override
@@ -99,27 +121,121 @@ class _EditEventScreenState extends State<EditEventScreen> {
   }
 
   void _saveChanges() {
-    Event updatedEvent = Event(
-      id: widget.event.id,
-      title: titleController.text,
-      description: descriptionController.text,
-      creatorId: widget.event.creatorId,
-      startDate: startDate,
-      endDate: endDate,
-      location: locationController.text,
-      participants: widget.event.participants,
-      isParticipating: widget.event.isParticipating,
-      joinPrice: widget.event.joinPrice,
-      conversationId: widget.event.conversationId,
-      type: widget.event.type,
-    );
+    if (titleController.text.isNotEmpty &&
+        location.isNotEmpty &&
+        startDate != null &&
+        endDate != null &&
+        endDate.isAfter(startDate)) {
+      // Convert the location string back to a LatLng object
+      List<String> coords = location.split(',');
+      LatLng latLngLocation = LatLng(
+        double.parse(coords[0]),
+        double.parse(coords[1]),
+      );
 
-    widget.onSave(updatedEvent);
-    Navigator.pop(context);
+      // Create an updated Event object
+      Event updatedEvent = Event(
+        id: widget.event.id,
+        title: titleController.text,
+        description: descriptionController.text,
+        creatorId: widget.event.creatorId,
+        startDate: startDate,
+        endDate: endDate,
+        location: latLngLocation, // Pass the LatLng object
+        participants: widget.event.participants,
+        isParticipating: widget.event.isParticipating,
+        joinPrice: widget.event.joinPrice,
+        conversationId: widget.event.conversationId,
+        type: widget.event.type,
+      );
+
+      // Pass the updated Event object to the onSave callback
+      widget.onSave(updatedEvent);
+
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Veuillez remplir tous les champs correctement."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, HH:mm').format(date);
+  }
+
+  Future<String> getAddressFromStringCoords(String coords) async {
+    try {
+      final parts = coords.split(',');
+      if (parts.length != 2) return "Coordonnées invalides";
+
+      final lat = double.parse(parts[0]);
+      final lng = double.parse(parts[1]);
+      return await getAddressFromLatLng(lat, lng);
+    } catch (e) {
+      print("Erreur lors de la conversion des coordonnées : $e");
+      return "Adresse inconnue";
+    }
+  }
+
+  Future<String> getAddressFromLatLng(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.locality}, ${place.country}"; // Example: Paris, France
+      }
+    } catch (e) {
+      print("Erreur de conversion: $e");
+    }
+    return "Localisation inconnue";
+  }
+
+  // Fonction pour obtenir la localisation automatique et l'afficher dans le TextField
+  Future<void> _getLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      String address =
+          await getAddressFromLatLng(position.latitude, position.longitude);
+
+      setState(() {
+        location =
+            "${position.latitude},${position.longitude}"; // Store only the coordinates
+        locationController.text = address; // Display the address
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Impossible de récupérer la localisation!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Fonction pour ouvrir la carte et sélectionner une localisation
+  void _openMapToSelectLocation() async {
+    LatLng? selectedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SelectLocationScreen()),
+    );
+
+    if (selectedLocation != null) {
+      String address = await getAddressFromLatLng(
+          selectedLocation.latitude, selectedLocation.longitude);
+
+      setState(() {
+        location =
+            "${selectedLocation.latitude},${selectedLocation.longitude}"; // Store only the coordinates
+        locationController.text = address; // Display the address
+      });
+    }
   }
 
   @override
@@ -147,7 +263,38 @@ class _EditEventScreenState extends State<EditEventScreen> {
               _buildTextField(descriptionController, "Description",
                   maxLines: 3),
               SizedBox(height: 16),
-              _buildTextField(locationController, "Lieu"),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Utiliser ma localisation automatique"),
+                  Switch(
+                    value: _useAutoLocation,
+                    onChanged: (value) {
+                      setState(() {
+                        _useAutoLocation = value;
+                        if (value) _getLocation();
+                      });
+                    },
+                  ),
+                ],
+              ),
+              TextField(
+                controller: locationController,
+                decoration:
+                    InputDecoration(labelText: "Localisation (adresse)"),
+                readOnly: true,
+              ),
+              SizedBox(height: 10),
+              ElevatedButton.icon(
+                icon: Icon(Icons.map),
+                label: Text("Sélectionner sur la carte"),
+                onPressed: _openMapToSelectLocation,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 166, 125),
+                  foregroundColor: Colors.white,
+                ),
+              ),
               SizedBox(height: 16),
               _buildDateRow("Début", startDate, _selectStartDate),
               SizedBox(height: 16),

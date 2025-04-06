@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EditEventScreen.dart';
@@ -56,6 +57,33 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, HH:mm').format(date); // Format personnalisé
+  }
+
+  Future<String> getAddressFromStringCoords(String coords) async {
+    try {
+      final parts = coords.split(',');
+      if (parts.length != 2) return "Coordonnées invalides";
+
+      final lat = double.parse(parts[0]);
+      final lng = double.parse(parts[1]);
+      return await getAddressFromLatLng(lat, lng);
+    } catch (e) {
+      print("Erreur lors de la conversion des coordonnées : $e");
+      return "Adresse inconnue";
+    }
+  }
+
+  Future<String> getAddressFromLatLng(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.locality}, ${place.country}"; // Example: Paris, France
+      }
+    } catch (e) {
+      print("Erreur de conversion: $e");
+    }
+    return "Localisation inconnue";
   }
 
   @override
@@ -124,9 +152,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[800])),
                       SizedBox(height: 15),
-                      _buildDetailRow(
-                          Icons.location_on, "Lieu", widget.event.location,
-                          iconColor: Color(0xFFFF8A65)),
+                      _buildLocationDetailRow(
+                          "${widget.event.location.latitude},${widget.event.location.longitude}"),
+                      SizedBox(height: 15),
                       _buildDetailRow(
                         Icons.event,
                         "Début",
@@ -258,6 +286,25 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             child: Text(value,
                 style: TextStyle(fontSize: 16, color: Colors.black))),
       ],
+    );
+  }
+
+  Widget _buildLocationDetailRow(String coords) {
+    return FutureBuilder<String>(
+      future: getAddressFromStringCoords(coords),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return _buildDetailRow(
+            Icons.location_on,
+            "Lieu",
+            snapshot.data!,
+            iconColor: Color(0xFFFF8A65),
+          );
+        } else {
+          // Si l'adresse n'est pas encore disponible, on ne montre rien.
+          return SizedBox.shrink();
+        }
+      },
     );
   }
 

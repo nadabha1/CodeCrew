@@ -1,7 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
@@ -11,6 +14,7 @@ import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/View/select_location_screen.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
@@ -127,14 +131,93 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<String> getAddressFromStringCoords(String coords) async {
+    try {
+      final parts = coords.split(',');
+      if (parts.length != 2) return "Coordonnées invalides";
+
+      final lat = double.parse(parts[0]);
+      final lng = double.parse(parts[1]);
+      return await getAddressFromLatLng(lat, lng);
+    } catch (e) {
+      print("Erreur lors de la conversion des coordonnées : $e");
+      return "Adresse inconnue";
+    }
+  }
+
+  Future<String> getAddressFromLatLng(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.locality}, ${place.country}"; // Example: Paris, France
+      }
+    } catch (e) {
+      print("Erreur de conversion: $e");
+    }
+    return "Localisation inconnue";
+  }
+
   void _showCreateEventDialog() {
     String title = '';
     String description = '';
     DateTime? startDate;
     DateTime? endDate;
-    String location = '';
+    String location =
+        ''; // La variable location stockera uniquement les coordonnées
     int joinPrice = 5; // Default join price
     String selectedType = _eventTypes.first; // Default type
+    bool _useAutoLocation = false; // Default location usage
+
+    TextEditingController locationController = TextEditingController();
+
+    // Fonction pour obtenir la localisation automatique et l'afficher dans le TextField
+    Future<void> _getLocation() async {
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        // Utilisation de getAddressFromLatLng pour récupérer l'adresse à partir des coordonnées
+        String address =
+            await getAddressFromLatLng(position.latitude, position.longitude);
+
+        setState(() {
+          location =
+              "${position.latitude},${position.longitude}"; // Stocke les coordonnées
+          locationController.text =
+              address; // Affiche l'adresse dans le TextField
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Impossible de récupérer la localisation!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    // Fonction pour ouvrir la carte et sélectionner une localisation
+    void _openMapToSelectLocation() async {
+      LatLng? selectedLocation = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => SelectLocationScreen()),
+      );
+
+      if (selectedLocation != null) {
+        // Utilisation de getAddressFromLatLng pour récupérer l'adresse sélectionnée
+        String address = await getAddressFromLatLng(
+            selectedLocation.latitude, selectedLocation.longitude);
+
+        setState(() {
+          location =
+              "${selectedLocation.latitude},${selectedLocation.longitude}"; // Stocke les coordonnées
+          locationController.text =
+              address; // Affiche l'adresse dans le TextField
+        });
+      }
+    }
 
     showDialog(
       context: context,
@@ -152,18 +235,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 decoration: InputDecoration(labelText: 'Description'),
                 onChanged: (value) => description = value,
               ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Location'),
-                onChanged: (value) => location = value,
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Utiliser ma localisation automatique"),
+                  Switch(
+                    value: _useAutoLocation,
+                    onChanged: (value) {
+                      setState(() {
+                        _useAutoLocation = value;
+                        if (value) _getLocation();
+                      });
+                    },
+                  ),
+                ],
               ),
+              TextField(
+                controller: locationController,
+                decoration:
+                    InputDecoration(labelText: "Localisation (adresse)"),
+                readOnly: true,
+              ),
+              SizedBox(height: 10),
+              ElevatedButton.icon(
+                icon: Icon(Icons.map),
+                label: Text("Sélectionner sur la carte"),
+                onPressed: _openMapToSelectLocation,
+              ),
+              SizedBox(height: 10),
               TextField(
                 decoration: InputDecoration(labelText: 'Join Price (coins)'),
                 keyboardType: TextInputType.number,
                 onChanged: (value) => joinPrice = int.tryParse(value) ?? 5,
               ),
               SizedBox(height: 10),
-
-              // Dropdown for event type
+              // Dropdown pour le type d'événement
               DropdownButtonFormField<String>(
                 value: selectedType,
                 items: _eventTypes.map((type) {
@@ -177,10 +284,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 },
                 decoration: InputDecoration(labelText: "Event Type"),
               ),
-
               SizedBox(height: 10),
-
-              // Pick Start Date and Time
+              // Choisir la date et l'heure de début
               ElevatedButton(
                 onPressed: () async {
                   final pickedStartDate = await showDatePicker(
@@ -209,8 +314,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 },
                 child: Text('Pick Start Date & Time'),
               ),
-
-              // Pick End Date and Time
+              // Choisir la date et l'heure de fin
               ElevatedButton(
                 onPressed: () async {
                   final pickedEndDate = await showDatePicker(
@@ -260,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   description,
                   startDate!.toIso8601String(), // Include time
                   endDate!.toIso8601String(), // Include time
-                  location,
+                  location, // Envoie uniquement les coordonnées
                   joinPrice,
                   selectedType,
                 );
@@ -276,6 +380,132 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Text('Create'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEventCard(Event event) {
+    return Padding(
+      padding: EdgeInsets.only(right: 10),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Container(
+          width: 300,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  event.title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  event.description,
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'From: ${dateFormat.format(event.startDate)} to ${dateFormat.format(event.endDate)}',
+                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: FutureBuilder<String>(
+                  future: getAddressFromStringCoords(
+                      '${event.location.latitude},${event.location.longitude}'),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Text(
+                        "Chargement de l'adresse...",
+                        style: TextStyle(fontSize: 12, color: Colors.white54),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return Text(
+                        "Erreur de localisation",
+                        style: TextStyle(fontSize: 12, color: Colors.redAccent),
+                      );
+                    }
+                    return Text(
+                      "Lieu : ${snapshot.data}",
+                      style: TextStyle(fontSize: 12, color: Colors.white54),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'Participants: ${event.participants.length}',
+                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ),
+              Spacer(),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (event.isParticipating) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GroupChatScreen(
+                              conversationId: event
+                                  .conversationId!, // Assure-toi que 'event' contient 'conversationId'
+                              groupName: event.title),
+                        ),
+                      );
+                    } else {
+                      _showJoinConfirmationDialog(event);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: event.isParticipating
+                        ? Color(0xFF50E3C2)
+                        : Color(0xFFF4A261),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(15),
+                        bottomRight: Radius.circular(15),
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  child: Text(
+                    event.isParticipating ? 'Chat' : 'Join',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -399,114 +629,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     } else {
       throw 'Could not launch $url';
     }
-  }
-
-  Widget _buildEventCard(Event event) {
-    return Padding(
-      padding: EdgeInsets.only(right: 10),
-      child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Container(
-          width: 300,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.all(12),
-                child: Text(
-                  event.title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  event.description,
-                  style: TextStyle(fontSize: 14, color: Colors.white70),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'From: ${dateFormat.format(event.startDate)} to ${dateFormat.format(event.endDate)}',
-                  style: TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'Location: ${event.location}',
-                  style: TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'Participants: ${event.participants.length}',
-                  style: TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-              ),
-              Spacer(),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (event.isParticipating) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GroupChatScreen(
-                              conversationId: event
-                                  .conversationId!, // Assure-toi que 'event' contient 'conversationId'
-                              groupName: event.title),
-                        ),
-                      );
-                    } else {
-                      _showJoinConfirmationDialog(event);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: event.isParticipating
-                        ? Color(0xFF50E3C2)
-                        : Color(0xFFF4A261),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(15),
-                        bottomRight: Radius.circular(15),
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  child: Text(
-                    event.isParticipating ? 'Chat' : 'Join',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override

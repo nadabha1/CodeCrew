@@ -191,6 +191,10 @@ class EventProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      // Convert LatLng to String in the format "latitude,longitude"
+      String locationString =
+          "${updatedEvent.location.latitude},${updatedEvent.location.longitude}";
+
       final response = await http.patch(
         Uri.parse('${ApiConstants.baseUrl}/events/${updatedEvent.id}'),
         headers: {'Content-Type': 'application/json'},
@@ -199,7 +203,7 @@ class EventProvider with ChangeNotifier {
           'description': updatedEvent.description,
           'startDate': updatedEvent.startDate.toIso8601String(),
           'endDate': updatedEvent.endDate.toIso8601String(),
-          'location': updatedEvent.location,
+          'location': locationString, // Send location as a String
           'joinPrice': updatedEvent.joinPrice,
         }),
       );
