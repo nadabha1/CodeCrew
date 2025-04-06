@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
+import 'package:projet_pim/ViewModel/calendar_service.dart';
 
 class EventProvider with ChangeNotifier {
   List<Event> _events = [];
@@ -16,36 +17,36 @@ class EventProvider with ChangeNotifier {
   List<Event> get events => _events;
   bool get isLoading => _isLoading;
 
+  final CalendarService calendarService = CalendarService();
+
   EventProvider({required this.userId});
 
-  Future<void> fetchEvents(String userId) async {
-      _isLoading = true;
-  notifyListeners();
-  try {
-    final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}/events?userId=$userId'),
-    );
-
-    print("Response body: ${response.body}");
-
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-
-      if (decoded is List) {
-        _events =
-            decoded.map((e) => Event.fromJson(e as Map<String, dynamic>, userId)).toList();
-      } else {
-        print('❌ Response is not a List');
-      }
-    } else {
-      throw Exception(
-          'Failed to load specific events: Status ${response.statusCode}');
-    }
-  } catch (e) {
-    print('❌ Error fetching specific events: $e');
+  bool _isValidUserId(String userId) {
+    final regex = RegExp(r'^[a-fA-F0-9]{24}$');
+    return regex.hasMatch(userId);
   }
-  _isLoading = false;
-  notifyListeners();
+
+  Future<void> fetchEvents(String userId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/events?userId=$userId'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        _events = data.map((json) => Event.fromJson(json, userId)).toList();
+      } else {
+        throw Exception('Failed to load events: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching events: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> fetchAllEvents() async {
@@ -55,7 +56,8 @@ class EventProvider with ChangeNotifier {
       final response = await http.get(Uri.parse(
           '${ApiConstants.baseUrl}/events/all')); // Match backend findAllEvents
       if (response.statusCode == 200) {
-       
+        final List<dynamic> data = json.decode(response.body);
+        _events = data.map((json) => Event.fromJson(json, userId)).toList();
       } else {
         throw Exception(
             'Failed to load all events: Status ${response.statusCode}');
@@ -67,66 +69,80 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-Future<void> fetchSpecificEvents(String userId) async {
-  _isLoading = true;
-  notifyListeners();
-  try {
-    final response = await http.get(Uri.parse(
-        '${ApiConstants.baseUrl}/events?userId=$userId')); // Fetch specific events
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-        _events = data.map((json) => Event.fromJson(json, userId)).toList();
-    } else {
-      throw Exception(
-          'Failed to load specific events: Status ${response.statusCode}');
+  Future<void> fetchSpecificEvents(String userId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
     }
-  } catch (e) {
-    print('Error fetching specific events: $e');
-  }
-  _isLoading = false;
-  notifyListeners();
-}
-
-Future<void> createEvent(
-  String userId,
-  String title,
-  String description,
-  DateTime date,
-  String location,
-  int joinPrice,
-  String type, // Include type
-) async {
-  _isLoading = true;
-  notifyListeners();
-  try {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/events'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'creatorId': userId,
-        'title': title,
-        'description': description,
-        'date': date.toIso8601String(),
-        'location': location,
-        'joinPrice': joinPrice,
-        'type': type, // Include event type
-        'participants': [userId], // Creator is the only default participant
-      }),
-    );
-    if (response.statusCode == 201) {
-      await fetchEvents(userId); // Refresh events
-    } else {
-      throw Exception('Failed to create event: Status ${response.statusCode}');
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.get(Uri.parse(
+          '${ApiConstants.baseUrl}/events/specific/$userId')); // Fetch specific events
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        _userEvents = data.map((json) => Event.fromJson(json, userId)).toList();
+      } else {
+        throw Exception(
+            'Failed to load specific events: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching specific events: $e');
     }
-  } catch (e) {
-    print('Error creating event: $e');
+    _isLoading = false;
+    notifyListeners();
   }
-  _isLoading = false;
-  notifyListeners();
-}
 
+  Future<void> createEvent(
+    String userId,
+    String title,
+    String description,
+    String startDate, // ISO string with time
+    String endDate, // ISO string with time
+    String location,
+    int joinPrice,
+    String type,
+  ) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/events'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'creatorId': userId,
+          'title': title,
+          'description': description,
+          'startDate': startDate, // Already in ISO format with time
+          'endDate': endDate, // Already in ISO format with time
+          'location': location,
+          'joinPrice': joinPrice,
+          'type': type,
+          'participants': [userId],
+        }),
+      );
+      if (response.statusCode == 201) {
+        await fetchEvents(userId); // Refresh events
+      } else {
+        throw Exception(
+            'Failed to create event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
 
   Future<void> joinEvent(String userId, String eventId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
+    }
     _isLoading = true;
     notifyListeners();
     try {
@@ -148,6 +164,10 @@ Future<void> createEvent(
   }
 
   Future<List<Event>> fetchUserEvents(String userId, String token) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return [];
+    }
     final response = await http.get(
       Uri.parse('${ApiConstants.baseUrl}/events/user/$userId'),
       headers: {'Authorization': 'Bearer $token'},
@@ -164,17 +184,26 @@ Future<void> createEvent(
   }
 
   Future<void> updateEvent(Event updatedEvent) async {
+    if (!_isValidUserId(updatedEvent.creatorId)) {
+      print('Invalid userId format');
+      return;
+    }
     _isLoading = true;
     notifyListeners();
     try {
+      // Convert LatLng to String in the format "latitude,longitude"
+      String locationString =
+          "${updatedEvent.location.latitude},${updatedEvent.location.longitude}";
+
       final response = await http.patch(
         Uri.parse('${ApiConstants.baseUrl}/events/${updatedEvent.id}'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'title': updatedEvent.title,
           'description': updatedEvent.description,
-          'date': updatedEvent.date.toIso8601String(),
-          'location': updatedEvent.location,
+          'startDate': updatedEvent.startDate.toIso8601String(),
+          'endDate': updatedEvent.endDate.toIso8601String(),
+          'location': locationString, // Send location as a String
           'joinPrice': updatedEvent.joinPrice,
         }),
       );
@@ -193,6 +222,10 @@ Future<void> createEvent(
   }
 
   Future<void> deleteEvent(String eventId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
+    }
     _isLoading = true;
     notifyListeners();
     try {
@@ -208,6 +241,68 @@ Future<void> createEvent(
       }
     } catch (e) {
       print('Error deleting event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<List<Event>> fetchEventsDuringFreeTime(String userId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return [];
+    }
+    try {
+      final response = await http.get(
+          Uri.parse('${ApiConstants.baseUrl}/events/during-free-time/$userId'));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Event.fromJson(json, userId)).toList();
+      } else {
+        throw Exception('Erreur ${response.statusCode}');
+      }
+    } catch (e) {
+      print(
+          'Erreur lors du chargement des événements pendant les créneaux libres: $e');
+      return [];
+    }
+  }
+
+  /* Future<void> saveFreeSlotsToBackend(String freeSlotsJson) async {
+    final url = Uri.parse('https://your-backend-url.com/free-time');
+    final headers = {'Content-Type': 'application/json'};
+    final body = jsonEncode({'userId': userId, 'freeSlots': freeSlotsJson});
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode != 200) {
+        throw Exception('Failed to save free slots to backend: ${response.body}');
+      }
+    } catch (e) {
+      print('Error saving free slots to backend: $e');
+    }
+  }*/
+  Future<void> getNonConflictingEvents(String userId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/events/non-conflicting/$userId'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        _events = data.map((json) => Event.fromJson(json, userId)).toList();
+      } else {
+        throw Exception(
+            'Failed to load non-conflicting events: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching non-conflicting events: $e');
     }
     _isLoading = false;
     notifyListeners();

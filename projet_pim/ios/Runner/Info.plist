@@ -65,6 +65,12 @@
 </dict>
 <key>FirebaseAppDelegateProxyEnabled</key>
 <false/>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Your message here explaining why you need location</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Your message here explaining why you need location</string>
+<key>NSCalendarsUsageDescription</key>
+<string>Cette application utilise votre agenda pour vous suggérer des événements.</string>
 
 </dict>
 </plist>

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
@@ -58,7 +59,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _fetchInitialNotifications() async {
     try {
-      final notifications = await _notificationService.fetchNotifications(widget.userId);
+      final notifications =
+          await _notificationService.fetchNotifications(widget.userId);
       setState(() {
         _notifications = notifications;
         _isLoading = false;
@@ -78,7 +80,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
   }
 
-  Future<void> _handleNotificationTap(String notificationId, Map<String, dynamic> notification) async {
+  Future<void> _handleNotificationTap(
+      String notificationId, Map<String, dynamic> notification) async {
     try {
       print("🟢 Notification ID: $notificationId");
       print("🟢 Notification Type: ${notification['type']}");
@@ -97,7 +100,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               title: Text("Nouvel événement: ${event.title}"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -105,7 +109,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   Text(event.description),
                   SizedBox(height: 10),
                   Text("Lieu: ${event.location}"),
-                  Text("Date: ${event.date.toLocal()}".split(' ')[0]),
+                  Text(
+                      "Start Date: ${DateFormat('yyyy-MM-dd').format(event.startDate.toLocal())}")
                 ],
               ),
               actions: [
@@ -132,14 +137,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       );
                     }
                   },
-                  child: Text(isJoined ? "Voir plus" : "Rejoindre - ${event.joinPrice} Coins"),
+                  child: Text(isJoined
+                      ? "Voir plus"
+                      : "Rejoindre - ${event.joinPrice} Coins"),
                 ),
               ],
             ),
           );
         }
-      }
-      else if (notification['type'] == 'FOLLOW') {
+      } else if (notification['type'] == 'FOLLOW') {
         // 🟢 Navigation spécifique pour le type FOLLOW
         final followerId = notification['data']?['followerId'] ?? '';
         print("🟢 Follower ID: $followerId");
@@ -155,7 +161,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           );
         }
-      } 
+      }
       if (notification['type'] == 'MESSAGE') {
         Navigator.push(
           context,
@@ -181,9 +187,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       body: Center(child: CircularProgressIndicator()),
                     );
                   } else if (snapshot.hasError) {
-                    print("🔴 Erreur lors de la récupération de l'événement: ${snapshot.error}");
+                    print(
+                        "🔴 Erreur lors de la récupération de l'événement: ${snapshot.error}");
                     return Scaffold(
-                      body: Center(child: Text("Erreur lors du chargement de l'événement")),
+                      body: Center(
+                          child:
+                              Text("Erreur lors du chargement de l'événement")),
                     );
                   } else if (snapshot.hasData) {
                     print("🟢 Événement récupéré avec succès !");
@@ -205,14 +214,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
         } else {
           print("🔴 Aucune ID d'événement trouvée.");
         }
-      } 
+      }
     } catch (e) {
       print('🔴 Erreur lors du traitement de la notification: $e');
     }
   }
+
   Future<bool> _isUserJoined(String eventId) async {
     print("🟢 Checking if user joined event: $eventId");
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId/joined/${widget.userId}'));
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/events/$eventId/joined/${widget.userId}'));
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       return jsonResponse['joined'] == true;
@@ -227,7 +238,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text('Rejoindre l\'événement'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -236,7 +248,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
               SizedBox(height: 10),
               Text(
                 'Coût d\'inscription : ${event.joinPrice} coins',
-                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.orange, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -269,16 +282,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
       },
     );
   }
+
   Future<Event> _fetchEventDetails(String eventId) async {
     print("🟢 Fetching event details for ID: $eventId");
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
+    final response =
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final eventData = data['data'] ?? data;
       return Event.fromJson(eventData, _userId!);
     } else {
       print("🔴 Failed to fetch event details: ${response.body}");
-      throw Exception('Erreur lors de la récupération des détails de l\'événement');
+      throw Exception(
+          'Erreur lors de la récupération des détails de l\'événement');
     }
   }
 
@@ -294,16 +310,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   itemCount: _notifications.length,
                   itemBuilder: (context, index) {
                     final notification = _notifications[index];
-                    final iconType = notificationIcons[notification['type']] ?? Icons.notifications;
+                    final iconType = notificationIcons[notification['type']] ??
+                        Icons.notifications;
 
                     return Card(
                       margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
                       child: ListTile(
-                        onTap: () => _handleNotificationTap(notification['_id'], notification),
+                        onTap: () => _handleNotificationTap(
+                            notification['_id'], notification),
                         leading: Icon(iconType, color: Colors.blue),
-                        title: Text(notification['message'], style: TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(notification['message'],
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           notification['createdAt'],
                           style: TextStyle(color: Colors.grey),

@@ -153,8 +153,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: userData['profilePicture'] != null
-                          ? NetworkImage(userData['profilePicture'])
+                      backgroundImage: userData['profileImage'] != null
+                          ? NetworkImage(userData['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
