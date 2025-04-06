@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EditEventScreen.dart';
@@ -9,6 +11,7 @@ import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -84,6 +87,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       print("Erreur de conversion: $e");
     }
     return "Localisation inconnue";
+  }
+
+  void _openInGoogleMaps(double latitude, double longitude) async {
+    final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   @override
@@ -174,6 +187,58 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     ],
                   ),
                 ),
+              ),
+              Container(
+                height: 250,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: FlutterMap(
+                  options: MapOptions(
+                    center: LatLng(widget.event.location.latitude ?? 0.0,
+                        widget.event.location.longitude ?? 0.0),
+                    zoom: 15.0,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      subdomains: ['a', 'b', 'c'],
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: LatLng(widget.event.location.latitude ?? 0.0,
+                              widget.event.location.longitude ?? 0.0),
+                          width: 40.0,
+                          height: 40.0,
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  {
+                    _openInGoogleMaps(widget.event.location.latitude!,
+                        widget.event.location.longitude!);
+                  }
+                },
+                child: const Text("Ouvrir dans Google Maps"),
               ),
               SizedBox(height: 20),
               Text("Participants",
