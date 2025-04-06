@@ -18,6 +18,7 @@ import 'package:projet_pim/View/select_location_screen.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
@@ -25,13 +26,20 @@ import 'package:projet_pim/providers/review_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
-  const HomeScreen({required this.userId});
+  final String token;
+
+  const HomeScreen({
+    required this.userId,
+    required this.token,
+  });
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  String? userId;
+  String? token;
   CarnetProvider? provider;
   EventProvider? eventProvider;
   List<String> _eventTypes = [
@@ -54,6 +62,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   InheritedWidget? _ancestor;
   final WeatherService _weatherService = WeatherService();
   Map<String, dynamic>? weatherData;
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? _userId = prefs.getString("user_id");
+    String? _token = prefs.getString("jwt_token");
+
+    if (_userId != null && _token != null) {
+      setState(() {
+        userId = _userId;
+        token = _token;
+      });
+    } else {
+      print("User ID or Token is not available");
+      setState(() {});
+    }
+  }
 
   void _reloadData() async {
     if (provider != null && eventProvider != null) {
@@ -1154,6 +1177,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                               TravelerProfileScreen(
                                             travelerId: user['_id'],
                                             loggedInUserId: widget.userId,
+                                            token: widget.token,
+
+                                            // Pass the token here
                                           ),
                                         ),
                                       );

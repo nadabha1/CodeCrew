@@ -279,6 +279,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                           TravelerProfileScreen(
                                         travelerId: userId,
                                         loggedInUserId: widget.userId,
+                                        token: widget.token,
                                       ),
                                     ),
                                   );

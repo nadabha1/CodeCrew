@@ -1,10 +1,14 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/View/follow/FollowersScreen.dart';
+import 'package:projet_pim/View/follow/FollowingScreen.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:provider/provider.dart';
@@ -14,9 +18,13 @@ import 'package:url_launcher/url_launcher.dart';
 class TravelerProfileScreen extends StatefulWidget {
   final String travelerId;
   final String loggedInUserId;
+  final String token;
 
   const TravelerProfileScreen(
-      {required this.travelerId, required this.loggedInUserId, Key? key})
+      {required this.travelerId,
+      required this.loggedInUserId,
+      required this.token,
+      Key? key})
       : super(key: key);
 
   @override
@@ -231,6 +239,86 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
     );
   }
 
+  Future<String> getAddressFromLatLng(LatLng location) async {
+    try {
+      print(
+          "🌍 Fetching address for coordinates: ${location.latitude}, ${location.longitude}");
+
+      if (location.latitude == 0.0 && location.longitude == 0.0) {
+        print(
+            "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
+        return "Lieu inconnu";
+      }
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(location.latitude, location.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+
+        // Extraire les informations utiles
+        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
+        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
+        String region = place.administrativeArea ?? "Région inconnue";
+        String country = place.country ?? "Pays inconnu";
+
+        // Construire une adresse détaillée
+        String formattedAddress = "$street, $city, $region, $country";
+        print("✅ Geocoding successful: $formattedAddress");
+
+        return formattedAddress;
+      } else {
+        print("⚠️ No placemarks found for the given coordinates.");
+      }
+    } catch (e) {
+      print("❌ Erreur lors du géocodage : $e");
+    }
+
+    return "Lieu inconnu";
+  }
+
+  LatLng _parseLocation(dynamic location) {
+    try {
+      if (location is Map<String, dynamic>) {
+        print("📍 Parsing location as Map: $location");
+        return LatLng(
+          location['latitude'] ?? 0.0,
+          location['longitude'] ?? 0.0,
+        );
+      } else if (location is String) {
+        print("📍 Parsing location as String: $location");
+        // Split the string into latitude and longitude
+        List<String> coordinates = location.split(',');
+        if (coordinates.length == 2) {
+          return LatLng(
+            double.parse(coordinates[0].trim()), // Latitude
+            double.parse(coordinates[1].trim()), // Longitude
+          );
+        } else {
+          print("⚠️ Invalid string format for location: $location");
+        }
+      }
+    } catch (e) {
+      print("❌ Error parsing location: $e");
+    }
+    print("⚠️ Invalid location format. Returning default coordinates.");
+    return LatLng(0, 0); // Default value
+  }
+
+  Future<String> getLocationName() async {
+    try {
+      if (travelerData?['location'] != null) {
+        LatLng parsedLocation = _parseLocation(travelerData!['location']);
+        return await getAddressFromLatLng(parsedLocation);
+      } else {
+        print("⚠️ No location data found in userData.");
+      }
+    } catch (e) {
+      print("❌ Error fetching location name: $e");
+    }
+    return "Lieu inconnu"; // Default value
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -254,21 +342,95 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                     ),
                     child: Column(
                       children: [
+                        SizedBox(height: 50),
                         CircleAvatar(
                           radius: 50,
-                          backgroundImage: travelerData?['profilePicture'] !=
-                                  null
-                              ? NetworkImage(travelerData!['profilePicture'])
-                              : AssetImage('assets/default_profile.png')
+                          backgroundImage: travelerData?['profileImage'] !=
+                                      null &&
+                                  travelerData!['profileImage'].isNotEmpty
+                              ? NetworkImage(travelerData!['profileImage'])
+                              : const AssetImage('assets/default_profile.png')
                                   as ImageProvider,
                         ),
+                        travelerData?['name'] != null
+                            ? Text(
+                                travelerData!['name'],
+                                style: TextStyle(
+                                    fontSize: 24, fontWeight: FontWeight.bold),
+                              )
+                            : Text("Nom inconnu"),
+                        travelerData?['job'] != null
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.work_outline,
+                                      color: Colors.black54, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    travelerData!['job'],
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.work_outline,
+                                      color: Colors.black54, size: 18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    "Métier inconnu",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
                         SizedBox(height: 10),
-                        Text(
-                          travelerData?['name'] ?? 'Unknown Traveler',
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.black54,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            FutureBuilder<String>(
+                              future: getLocationName(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Text(
+                                    "Chargement...",
+                                    style: TextStyle(
+                                        color: Colors.black54, fontSize: 14),
+                                  );
+                                }
+                                if (snapshot.hasError) {
+                                  print(
+                                      "❌ Error in FutureBuilder: ${snapshot.error}");
+                                  return const Text(
+                                    "Erreur de localisation",
+                                    style: TextStyle(
+                                        color: Colors.red, fontSize: 14),
+                                  );
+                                }
+                                print(
+                                    "📍 Location displayed: ${snapshot.data}");
+                                return Text(
+                                  snapshot.data ?? "Lieu inconnu",
+                                  style: const TextStyle(
+                                      color: Colors.black54, fontSize: 14),
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                        Text(travelerData?['location'] ?? 'Unknown Location'),
                         SizedBox(height: 10),
                         ElevatedButton(
                           onPressed: toggleFollow,
@@ -290,13 +452,40 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                   travelerData?['followersCount']?.toString() ??
                                       '0',
                               label: 'Followers',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FollowersScreen(
+                                      userIds: List<String>.from(
+                                          travelerData?['followers'] ?? []),
+                                      token: widget
+                                          .token, // Pass the required token
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                             SizedBox(width: 20),
                             _StatItem(
                               count:
                                   travelerData?['followingCount']?.toString() ??
                                       '0',
-                              label: 'Following',
+                              label: 'following',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FollowingScreen(
+                                      userIds: List<String>.from(
+                                          travelerData?['following'] ?? []),
+
+                                      token: widget
+                                          .token, // Pass the required token),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                             SizedBox(width: 20),
                             _StatItem(
@@ -607,15 +796,19 @@ class LockedPlaceCard extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final String count;
   final String label;
-  const _StatItem({required this.count, required this.label});
+  final VoidCallback? onTap; // Added onTap parameter
+  const _StatItem({required this.count, required this.label, this.onTap});
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(count,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-        Text(label, style: TextStyle(color: Colors.black54)),
-      ],
+    return GestureDetector(
+      onTap: onTap, // Handle onTap
+      child: Column(
+        children: [
+          Text(count,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          Text(label, style: TextStyle(color: Colors.black54)),
+        ],
+      ),
     );
   }
 }

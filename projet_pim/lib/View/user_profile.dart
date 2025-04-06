@@ -12,6 +12,8 @@ import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/follow/FollowersScreen.dart';
+import 'package:projet_pim/View/follow/FollowingScreen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/Model/carnet.dart';
@@ -432,15 +434,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _StatItem(
-                          count: userData?['followersCount']?.toString() ??
-                              '0', // ✅ Use userData
+                          count: userData?['followersCount']?.toString() ?? '0',
                           label: 'Followers',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FollowersScreen(
+                                  userIds: List<String>.from(
+                                      userData?['followers'] ?? []),
+                                  token:
+                                      widget.token, // Pass the required token
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(width: 20),
                         _StatItem(
-                          count: userData?['followingCount']?.toString() ??
-                              '0', // ✅ Use userData
-                          label: 'Following',
+                          count: userData?['followingCount']?.toString() ?? '0',
+                          label: 'following',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FollowingScreen(
+                                  userIds: List<String>.from(
+                                      userData?['following'] ?? []),
+
+                                  token:
+                                      widget.token, // Pass the required token),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(width: 20),
                         _StatItem(
@@ -807,27 +834,29 @@ class AddressCard extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final String count;
   final String label;
+  final VoidCallback? onTap;
 
-  const _StatItem({required this.count, required this.label});
+  const _StatItem({
+    required this.count,
+    required this.label,
+    this.onTap,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.black54,
-          ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(label),
+        ],
+      ),
     );
   }
 }

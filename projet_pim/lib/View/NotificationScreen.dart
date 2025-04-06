@@ -157,6 +157,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               builder: (context) => TravelerProfileScreen(
                 travelerId: followerId,
                 loggedInUserId: widget.userId,
+                token: _token!,
               ),
             ),
           );
