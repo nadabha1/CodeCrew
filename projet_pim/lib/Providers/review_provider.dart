@@ -35,11 +35,11 @@ class ReviewProvider with ChangeNotifier {
   Future<void> addReview(String placeId, Review review) async {
     try {
       await _reviewService.addReview(placeId, review);
-      // Refetch the reviews to ensure the state is updated
       await fetchReviews(placeId);
     } catch (e) {
-      print("Error adding review: $e");
-      // Handle error here (e.g., show message to user)
+      print("Error in addReview: $e");
+      // Relance l’erreur pour qu’elle soit captée dans le `onSubmit`
+      throw e;
     }
   }
 }

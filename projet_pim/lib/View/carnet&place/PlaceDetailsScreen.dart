@@ -335,9 +335,66 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 ),
               AddReviewForm(
                 placeId: widget.place.id,
-                onSubmit: (Review review) {
-                  Provider.of<ReviewProvider>(context, listen: false)
-                      .addReview(widget.place.id, review);
+                onSubmit: (Review review) async {
+                  try {
+                    // Afficher un pop-up de chargement (optionnel)
+                    showDialog(
+                      context: context,
+                      barrierDismissible:
+                          false, // Empêche de fermer le dialogue
+                      builder: (context) => const AlertDialog(
+                        content: Text('Ajout de l’avis en cours...'),
+                      ),
+                    );
+
+                    // Tentative d'ajout de l'avis (appelle l'API)
+                    await Provider.of<ReviewProvider>(context, listen: false)
+                        .addReview(widget.place.id, review);
+
+                    // Fermer le pop-up de chargement
+                    Navigator.of(context).pop();
+
+                    // Afficher un pop-up de succès uniquement après un succès
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Succès'),
+                        content: const Text('Avis ajouté avec succès !'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Fermer le pop-up
+                            },
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  } catch (e) {
+                    // Fermer le pop-up de chargement en cas d'erreur
+                    Navigator.of(context).pop();
+
+                    // Vérifier l'exception et afficher un pop-up d'erreur
+                    final errorMessage =
+                        e.toString().replaceFirst('Exception: ', '');
+
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Avis déjà ajouté'),
+                        content: Text(
+                            'Vous avez déjà ajouté un avis pour ce lieu. Vous ne pouvez pas en ajouter un autre.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Fermer le pop-up
+                            },
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                 },
               ),
             ],

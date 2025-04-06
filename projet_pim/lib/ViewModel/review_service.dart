@@ -35,14 +35,21 @@ class ReviewService {
       );
 
       if (response.statusCode == 201) {
+        // Print success message only if no error occurs
         print("Review added successfully.");
       } else {
-        throw Exception(
-            'Failed to add review: ${response.statusCode} - ${response.body}');
+        // Handle API error
+        try {
+          final error = jsonDecode(response.body);
+          throw Exception(error['message'] ?? 'Erreur inconnue');
+        } catch (_) {
+          throw Exception(
+              'Erreur lors de l’ajout de l’avis. Code erreur: ${response.statusCode}');
+        }
       }
     } catch (e) {
       print("Error in addReview: $e");
-      throw Exception('Network error: Unable to add review.');
+      throw e; // Rethrow the error to be caught in the form
     }
   }
 }
