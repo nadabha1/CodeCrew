@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/Model/user_entity.dart';
+import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
+import 'package:projet_pim/View/carnet&place/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
+import 'package:projet_pim/View/FavoritesScreen.dart';
+import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
+import 'package:projet_pim/View/carnet&place/Details.dart';
+import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/follow/FollowersFollowingListScreen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
 import 'package:projet_pim/Model/carnet.dart';
@@ -41,8 +55,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (_userId == null) return;
 
       // Fetch followers and following lists
-      List<String> followers = await userService.getFollowers(_userId);
-      List<String> following = await userService.getFollowing(_userId);
+      List<User> followers = await userService.getFollowers(_userId);
+      List<User> following = await userService.getFollowing(_userId);
 
       // Fetch follower and following counts
       int followersCount = await userService.getFollowersCount(_userId);
@@ -78,6 +92,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
+      //fetchEvents
+      EventProvider eventProvider =
+          Provider.of<EventProvider>(context, listen: false);
+      await eventProvider.fetchSpecificEvents(widget.userId);
+
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
@@ -92,12 +111,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  void _confirmerSuppression(
+      BuildContext context, String carnetId, String userId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Supprimer le carnet'),
+          content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await CarnetService().deleteCarnet(
+                      carnetId, userId); // 🔥 Appel avec 2 paramètres
+                  Navigator.of(context).pop(); // Fermer la boîte de dialogue
+                  print("✅ Carnet supprimé avec succès !");
+                } catch (e) {
+                  print("❌ Erreur lors de la suppression : $e");
+                }
+              },
+              child:
+                  const Text('Supprimer', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+    final eventProvider = Provider.of<EventProvider>(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(220),
+        preferredSize: const Size.fromHeight(180),
         child: ClipRRect(
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(30),
@@ -216,7 +271,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 280),
+                  const SizedBox(width: 270),
+                  // Bouton pour consulter les favoris
+                  IconButton(
+                    icon:
+                        const Icon(Icons.favorite_border), // Icône des favoris
+                    onPressed: () {
+                      // Naviguer vers la page des favoris
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FavoritesScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   // Icone des paramètres
                   IconButton(
                     icon: const Icon(Icons.settings),
@@ -248,15 +317,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _StatItem(
-                          count: userData?['followersCount']?.toString() ??
-                              '0', // ✅ Use userData
+                          count: userData?['followersCount']?.toString() ?? '0',
                           label: 'Followers',
+                          onTap: () {
+                            final List<User> followers =
+                                List<User>.from(userData?['followers'] ?? []);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FollowersFollowingListScreen(
+                                  users: followers,
+                                  title: 'Followers',
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(width: 20),
                         _StatItem(
-                          count: userData?['followingCount']?.toString() ??
-                              '0', // ✅ Use userData
+                          count: userData?['followingCount']?.toString() ?? '0',
                           label: 'Following',
+                          onTap: () {
+                            final List<User> following =
+                                List<User>.from(userData?['following'] ?? []);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FollowersFollowingListScreen(
+                                  users: following,
+                                  title: 'Following',
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(width: 20),
                         _StatItem(
@@ -267,13 +360,54 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    const Text(
-                      'Carnet d’adresses',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Carnet d’adresses',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            String carnetId =
+                                userCarnet.isNotEmpty ? userCarnet[0].id : '';
+                            switch (value) {
+                              case 'details':
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CarnetDetailsPage(
+                                        carnet: userCarnet[0]),
+                                  ),
+                                ).then((_) {
+                                  fetchUser(); // Rafraîchir les données après le retour
+                                });
+
+                                break;
+
+                              case 'supprimer':
+                                _confirmerSuppression(
+                                    context, carnetId, widget.userId);
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'details',
+                              child: Text('Voir les détails du carnet'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'supprimer',
+                              child: Text('Supprimer le carnet'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+
                     const SizedBox(height: 16),
 
                     // 📌 Section Carnet d’Adresses avec les données du carnet
@@ -286,20 +420,138 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             : 0,
                         itemBuilder: (context, index) {
                           return AddressCard(
-                            name: userCarnet[0]
-                                .places[index]
-                                .name, // Access 'name' directly from the Place object
-                            location: userCarnet[0].places[index].latitude !=
-                                        null &&
-                                    userCarnet[0].places[index].longitude !=
-                                        null
-                                ? '${userCarnet[0].places[index].latitude}, ${userCarnet[0].places[index].longitude}'
-                                : 'Location not available', // You can adjust how you display the location
+                            place: userCarnet[0].places[index],
+                            fetchUser: fetchUser,
+                            // Passe directement l'objet Place
                           );
                         },
                       ),
                     ),
+                    // ✅ Floating Action Button ici
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0, bottom: 32),
+                      child: FloatingActionButton(
+                        backgroundColor:
+                            const Color.fromARGB(255, 248, 214, 253),
+                        child: const Icon(Icons.add),
+                        onPressed: () async {
+                          await carnetProvider.checkUserCarnet(widget.userId);
+                          if (carnetProvider.userCarnet == null ||
+                              !carnetProvider.userCarnet!['hasCarnet']) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CreateCarnetScreen(userId: widget.userId),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddPlaceScreenStep1(
+                                  carnetId: carnetProvider.userCarnet!['carnet']
+                                      ['_id'],
+                                ),
+                              ),
+                            ).then((_) {
+                              fetchUser(); // Rafraîchit la page après l'ajout de la place
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Événements',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color:
+                            Color.fromARGB(255, 0, 0, 0), // Color for the title
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
+                    eventProvider.userEvents.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "Aucun événement recommandé pour vous.",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          )
+                        : Column(
+                            children: eventProvider.userEvents.map((event) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Card(
+                                  elevation: 10,
+                                  shadowColor:
+                                      Colors.deepPurpleAccent.withOpacity(0.3),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Color.fromARGB(255, 191, 168, 252),
+                                          Color.fromARGB(255, 164, 125, 171)
+                                              .withOpacity(0.7),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor:
+                                            Color.fromARGB(255, 212, 196, 255),
+                                        child: Icon(Icons.event,
+                                            color: Colors.white),
+                                      ),
+                                      title: Text(
+                                        event.title,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        event.description,
+                                        style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14),
+                                      ),
+                                      trailing: Icon(Icons.arrow_forward_ios,
+                                          size: 16, color: Colors.white),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                EventDetailsScreen(
+                                              event: event,
+                                              userId: widget.userId,
+                                              eventProvider: eventProvider,
+                                              token: widget.token,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                     const SizedBox(height: 32),
                     const Text(
                       'Publications',
@@ -320,59 +572,89 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
 // 📌 Widget pour afficher les adresses
 class AddressCard extends StatelessWidget {
-  final String name;
-  final String location;
+  final Place place; // Accepting a Place object
+  final VoidCallback fetchUser; // Callback to fetch user data
 
-  const AddressCard({
-    required this.name,
-    required this.location,
-    Key? key,
-  }) : super(key: key);
+  const AddressCard({required this.place, required this.fetchUser, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      margin: const EdgeInsets.only(right: 12),
-      width: 150,
-      height: 100,
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(197, 248, 196, 255),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
+    return GestureDetector(
+      onTap: () {
+        // Navigate to Place Details screen on tap
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Details(place: place),
+          ),
+        ).then((_) {
+          // This will refresh the data after navigating back from Details screen
+          fetchUser();
+        });
+      },
+      child: SizedBox(
+        width: 300,
+        height: 300,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            image: DecorationImage(
+              image: place.images.isNotEmpty
+                  ? NetworkImage(place.images.first)
+                  : const AssetImage('assets/default_image.jpg')
+                      as ImageProvider,
+              fit: BoxFit.cover,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.location_on, color: Colors.white, size: 14),
-                Text(
-                  location,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(63, 0, 0, 0).withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ],
-            ),
+                child: Column(
+                  children: [
+                    Text(
+                      place.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        Text(
+                          place.latitude != null && place.longitude != null
+                              ? '${place.latitude}, ${place.longitude}'
+                              : 'Lieu inconnu',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -381,27 +663,48 @@ class AddressCard extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final String count;
   final String label;
+  final VoidCallback? onTap;
 
-  const _StatItem({required this.count, required this.label});
+  const _StatItem({
+    required this.count,
+    required this.label,
+    this.onTap,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+    return Material(
+      color: Colors.transparent, // No background by default
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        splashColor: Colors.grey.withOpacity(0.2),
+        highlightColor: Colors.grey.withOpacity(0.1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Column(
+            children: [
+              Text(
+                count,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
         ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.black54,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

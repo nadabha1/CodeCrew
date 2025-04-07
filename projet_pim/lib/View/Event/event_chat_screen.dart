@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:socket_io_client/socket_io_client.dart';
 
@@ -12,7 +13,8 @@ class EventChatScreen extends StatefulWidget {
   _EventChatScreenState createState() => _EventChatScreenState();
 }
 
-class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProviderStateMixin {
+class _EventChatScreenState extends State<EventChatScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _messages = [];
   TextEditingController _messageController = TextEditingController();
   late IO.Socket _socket;
@@ -27,10 +29,11 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
       vsync: this,
       duration: Duration(milliseconds: 300),
     );
-    _fadeAnimation = CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
+    _fadeAnimation =
+        CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
     _animationController.forward();
 
-    _socket = IO.io('http://10.0.2.2:3000', <String, dynamic>{
+    _socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
       'forceNew': true,
@@ -40,9 +43,10 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
     });
 
     _socket.onConnect((_) {
-      print('Connected to socket at http://10.0.2.2:3000');
+      print('Connected to socket at ${ApiConstants.baseUrl}');
       _isConnected = true;
-      _socket.emit('joinEvent', {'eventId': widget.eventId, 'userId': widget.userId});
+      _socket.emit(
+          'joinEvent', {'eventId': widget.eventId, 'userId': widget.userId});
     });
 
     _socket.on('joined', (data) {
@@ -59,7 +63,8 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
           'timestamp': data['timestamp'],
           '_id': data['_id'],
         });
-        _animationController.forward(from: 0.0); // Trigger animation on new message
+        _animationController.forward(
+            from: 0.0); // Trigger animation on new message
       });
     });
 
@@ -67,13 +72,14 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
       print('Initial messages: $data');
       setState(() {
         _messages = List<Map<String, dynamic>>.from(data.map((msg) => {
-          'eventId': msg['eventId'],
-          'userId': msg['userId'],
-          'message': msg['message'],
-          'timestamp': msg['timestamp'],
-          '_id': msg['_id'],
-        }));
-        _animationController.forward(from: 0.0); // Trigger animation on initial load
+              'eventId': msg['eventId'],
+              'userId': msg['userId'],
+              'message': msg['message'],
+              'timestamp': msg['timestamp'],
+              '_id': msg['_id'],
+            }));
+        _animationController.forward(
+            from: 0.0); // Trigger animation on initial load
       });
     });
 
@@ -119,7 +125,8 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
       _messageController.clear();
       print('Message sent (awaiting server confirmation via receiveMessage)');
     } else {
-      print('Cannot send: ${_isConnected ? "Message is empty" : "Not connected"}');
+      print(
+          'Cannot send: ${_isConnected ? "Message is empty" : "Not connected"}');
     }
   }
 
@@ -127,15 +134,10 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Chat for ${widget.eventId.substring(0, 8)}...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Chat for ${widget.eventId.substring(0, 8)}...',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Color(0xFF4A90E2),
         elevation: 4,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -157,18 +159,28 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
                     final message = _messages[index];
                     final isSender = message['userId'] == widget.userId;
                     final timestamp = message['timestamp']?.toString() ?? '';
-                    final timeParts = timestamp.contains(' ') ? timestamp.split(' ') : ['', timestamp];
-                    final time = timeParts.length > 1 ? timeParts[1].split('.')[0] : '';
+                    final timeParts = timestamp.contains(' ')
+                        ? timestamp.split(' ')
+                        : ['', timestamp];
+                    final time =
+                        timeParts.length > 1 ? timeParts[1].split('.')[0] : '';
 
                     return Padding(
                       padding: EdgeInsets.only(bottom: 8.0),
                       child: Align(
-                        alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: isSender
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 8.0),
+                          constraints: BoxConstraints(
+                              maxWidth:
+                                  MediaQuery.of(context).size.width * 0.7),
                           decoration: BoxDecoration(
-                            color: isSender ? Color(0xFF4A90E2) : Color(0xFFEFF2F7),
+                            color: isSender
+                                ? Color(0xFF4A90E2)
+                                : Color(0xFFEFF2F7),
                             borderRadius: BorderRadius.circular(12.0),
                             boxShadow: [
                               BoxShadow(
@@ -179,12 +191,15 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
                             ],
                           ),
                           child: Column(
-                            crossAxisAlignment: isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            crossAxisAlignment: isSender
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
                             children: [
                               Text(
                                 message['message'],
                                 style: TextStyle(
-                                  color: isSender ? Colors.white : Colors.black87,
+                                  color:
+                                      isSender ? Colors.white : Colors.black87,
                                   fontSize: 16.0,
                                 ),
                               ),
@@ -192,7 +207,9 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
                               Text(
                                 time.isNotEmpty ? time : 'N/A',
                                 style: TextStyle(
-                                  color: isSender ? Colors.white70 : Colors.black54,
+                                  color: isSender
+                                      ? Colors.white70
+                                      : Colors.black54,
                                   fontSize: 12.0,
                                 ),
                               ),
@@ -230,18 +247,24 @@ class _EventChatScreenState extends State<EventChatScreen> with SingleTickerProv
                         ),
                         filled: true,
                         fillColor: Color(0xFFF0F2F5),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
                       ),
-                      onChanged: (text) => setState(() {}), // Force rebuild on text change
+                      onChanged: (text) =>
+                          setState(() {}), // Force rebuild on text change
                     ),
                   ),
                   SizedBox(width: 8.0),
                   FloatingActionButton(
                     mini: true,
-                    backgroundColor: _isConnected && _messageController.text.isNotEmpty ? Color(0xFF4A90E2) : Colors.grey,
-                    onPressed: _isConnected && _messageController.text.isNotEmpty
-                        ? () => sendMessage(_messageController.text)
-                        : null,
+                    backgroundColor:
+                        _isConnected && _messageController.text.isNotEmpty
+                            ? Color(0xFF4A90E2)
+                            : Colors.grey,
+                    onPressed:
+                        _isConnected && _messageController.text.isNotEmpty
+                            ? () => sendMessage(_messageController.text)
+                            : null,
                     child: Icon(Icons.send, color: Colors.white),
                   ),
                 ],

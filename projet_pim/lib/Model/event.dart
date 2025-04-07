@@ -5,9 +5,11 @@ class Event {
   final String creatorId;
   final DateTime date;
   final String location;
-  final List<String> participants;
+  final List<dynamic> participants;
   final bool isParticipating;
   final int joinPrice;
+  final String conversationId;
+  final String type;
 
   Event({
     required this.id,
@@ -19,6 +21,8 @@ class Event {
     required this.participants,
     required this.isParticipating,
     required this.joinPrice,
+    required this.conversationId,
+    required this.type,
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {
@@ -29,9 +33,12 @@ class Event {
       creatorId: json['creatorId'],
       date: DateTime.parse(json['date']),
       location: json['location'],
-      participants: List<String>.from(json['participants']),
-      isParticipating: List<String>.from(json['participants']).contains(userId),
+participants: List<Map<String, dynamic>>.from(json['participants'] ?? []),
+      isParticipating: (json['participants'] as List)
+          .any((p) => p is Map && p['_id'] == userId),
       joinPrice: json['joinPrice'] ?? 5,
+      conversationId: json['conversationId'],
+      type: json['type'] ?? 'Other',
     );
   }
 }

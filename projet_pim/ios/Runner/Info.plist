@@ -58,6 +58,13 @@
 <string>Your message about location usage</string>
 <key>NSLocationAlwaysUsageDescription</key>
 <string>Your message about location usage</string>
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+</dict>
+<key>FirebaseAppDelegateProxyEnabled</key>
+<false/>
 
 </dict>
 </plist>

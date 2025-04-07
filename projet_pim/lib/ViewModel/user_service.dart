@@ -1,15 +1,18 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Model/conversation.dart';
+import 'package:projet_pim/Model/user_entity.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class UserService {
-  final String baseUrl = 'http://10.0.2.2:3000'; // Pour l'émulateur Android
   final http.Client client = http.Client();
 
   // Récupérer les informations de l'utilisateur avec un token
   Future<Map<String, dynamic>> getUserById(String userId, String token) async {
     try {
       final response = await client.get(
-        Uri.parse('$baseUrl/users/$userId'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -25,13 +28,23 @@ class UserService {
       return {'error': 'Erreur lors de la récupération de l’utilisateur: $e'};
     }
   }
+  Future<List<dynamic>> getMatchingUsers(String userId) async {
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Erreur lors du chargement des utilisateurs similaires");
+  }
+}
+
 
   // Récupérer la liste de tous les utilisateurs
   Future<List<Map<String, dynamic>>> getAllUsers(String token) async {
     try {
       final response = await http.get(
         Uri.parse(
-            '$baseUrl/users/all'), // Assure-toi que cette route correspond à celle de ton backend
+            '${ApiConstants.baseUrl}/users/all'), // Assure-toi que cette route correspond à celle de ton backend
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -51,7 +64,7 @@ class UserService {
 
   Future<void> followUser(String loggedInUserId, String travelerId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/follow'),
+      Uri.parse('${ApiConstants.baseUrl}/follow'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({"follower": loggedInUserId, "following": travelerId}),
     );
@@ -68,7 +81,7 @@ class UserService {
 
   Future<void> unfollowUser(String loggedInUserId, String travelerId) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/follow'),
+      Uri.parse('${ApiConstants.baseUrl}/follow'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({"follower": loggedInUserId, "following": travelerId}),
     );
@@ -82,26 +95,28 @@ class UserService {
   }
 
   // ✅ Get Followers List
-  Future<List<String>> getFollowers(String userId) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/follow/followers/$userId'));
+  Future<List<User>> getFollowers(String userId) async {
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/$userId'));
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return List<String>.from(data['followers']);
+       final data = json.decode(response.body);
+        final List<dynamic> followersList = data['followers'];
+       return followersList.map((item) => User.fromJson(item)).toList();
     } else {
       throw Exception("Failed to fetch followers");
     }
   }
 
   // ✅ Get Following List
-  Future<List<String>> getFollowing(String userId) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/follow/following/$userId'));
+  Future<List<User>> getFollowing(String userId) async {
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/follow/following/$userId'));
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return List<String>.from(data['following']);
+       final data = json.decode(response.body);
+        final List<dynamic> followersList = data['following'];
+       return followersList.map((item) => User.fromJson(item)).toList();
     } else {
       throw Exception("Failed to fetch following");
     }
@@ -109,8 +124,8 @@ class UserService {
 
   // ✅ Get Followers Count
   Future<int> getFollowersCount(String userId) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/follow/followers/count/$userId'));
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/follow/followers/count/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -122,8 +137,8 @@ class UserService {
 
   // ✅ Get Following Count
   Future<int> getFollowingCount(String userId) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/follow/following/count/$userId'));
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/follow/following/count/$userId'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -145,13 +160,13 @@ class UserService {
       print("🔄 Preparing Profile Update Request...");
 
       var response = await http.put(
-        Uri.parse('$baseUrl/users/$userId/update'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/update'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'name': name, 
+          'name': name,
           'job': job,
           'location': location,
           'bio': bio,
@@ -179,7 +194,7 @@ class UserService {
       print("🗑 Deleting User Profile: $userId");
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/users/$userId'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -205,6 +220,135 @@ class UserService {
     } catch (e) {
       print("❌ Exception: $e");
       return {'error': '⚠️ Error deleting profile: $e'};
+    }
+  }
+
+  Future<List<String>> getUserFavorites(String userId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/favorites'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print("API Response: $data"); // Debugging the response
+
+        // Directly return the 'favorites' list as a List<String>
+        return List<String>.from(data);
+      } else {
+        throw Exception("Failed to fetch favorites: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Error fetching favorites: $e");
+      throw Exception("Error fetching favorites: $e");
+    }
+  }
+
+  // ✅ Add a Place to Favorites
+  Future<void> addPlaceToFavorites(
+      String userId, String placeId, String token) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse(
+                '${ApiConstants.baseUrl}/users/$userId/favorites/$placeId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'placeId': placeId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Place added to favorites successfully!");
+      } else {
+        throw Exception("Failed to add place to favorites");
+      }
+    } catch (e) {
+      throw Exception("Error adding place to favorites: $e");
+    }
+  }
+
+  Future<void> removePlaceFromFavorites(
+      String userId, String placeId, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/favorites/$placeId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        print("✅ Place removed from favorites successfully!");
+      } else {
+        throw Exception("Failed to remove place from favorites");
+      }
+    } catch (e) {
+      throw Exception("Error removing place from favorites: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> getPlaceById(
+      String placeId, String token) async {
+    try {
+      final response = await client.get(
+        Uri.parse(
+            '${ApiConstants.baseUrl}/carnets/place/$placeId'), // Updated endpoint
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        print('❌ Place not found: ${response.body}');
+        throw Exception('Place not found: ${response.body}');
+      } else {
+        print('❌ Failed to fetch place details: ${response.body}');
+        throw Exception('Failed to fetch place details: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error fetching place details: $e');
+      throw Exception('Error fetching place details: $e');
+    }
+  }
+
+  static Future<List<Conversation>> getUserConversations(String userId) async {
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Conversation.fromJson(json)).toList();
+    } else {
+      throw Exception('Erreur lors du chargement des conversations');
+    }
+  }
+
+  void startConversation(BuildContext context, String userId) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/conversations'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"participantId": userId}),
+    );
+
+    if (response.statusCode == 201) {
+      // Fermer l'écran et retourner la conversation créée
+      Navigator.pop(context, json.decode(response.body));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text("Erreur lors de la création de la conversation")),
+      );
     }
   }
 }

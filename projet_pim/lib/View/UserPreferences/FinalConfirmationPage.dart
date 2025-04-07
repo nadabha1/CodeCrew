@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
+import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class FinalConfirmationPage extends StatelessWidget {
-  void _finishOnboarding(BuildContext context) {
-    Navigator.pushReplacementNamed(context, "/login");
-  }
-
   @override
   Widget build(BuildContext context) {
+    // ✅ Retrieve the argument to determine source
+    final Map<String, dynamic>? args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final bool fromSignup = args?["fromSignup"] ?? false; // Default: from Profile
+
     final userPrefs = Provider.of<UserPreferences>(context);
 
     return Scaffold(
@@ -18,57 +19,35 @@ class FinalConfirmationPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Progress Bar
             LinearProgressIndicator(value: 1.0, color: Colors.green),
             SizedBox(height: 20),
-
-            // Title
             Text(
               "🎉 Ready to Connect?",
-              style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange),
             ),
             SizedBox(height: 10),
-
-            // User Preferences Section
             Expanded(
               child: ListView(
                 children: [
-                  _buildPreferenceCard(Icons.person, "Gender",
-                      userPrefs.gender ?? "Not provided"),
-                  _buildPreferenceCard(
-                      Icons.sports_soccer,
-                      "Favorite Activities",
-                      userPrefs.favoriteActivities?.join(", ") ??
-                          "Not provided"),
-                  _buildPreferenceCard(Icons.event, "Event Preferences",
-                      userPrefs.eventPreferences?.join(", ") ?? "Not provided"),
-                  _buildPreferenceCard(Icons.groups, "Social Preference",
-                      userPrefs.socialPreference ?? "Not provided"),
-                  _buildPreferenceCard(
-                      Icons.access_time,
-                      "Preferred Event Timing",
-                      userPrefs.preferredEventTime ?? "Not provided"),
+                  _buildPreferenceCard(Icons.person, "Gender", userPrefs.gender ?? "Not provided"),
+                  _buildPreferenceCard(Icons.sports_soccer, "Favorite Activities", userPrefs.favoriteActivities?.join(", ") ?? "Not provided"),
+                  _buildPreferenceCard(Icons.event, "Event Preferences", userPrefs.eventPreferences?.join(", ") ?? "Not provided"),
+                  _buildPreferenceCard(Icons.groups, "Social Preference", userPrefs.socialPreference ?? "Not provided"),
+                  _buildPreferenceCard(Icons.access_time, "Preferred Event Timing", userPrefs.preferredEventTime ?? "Not provided"),
                 ],
               ),
             ),
-
             SizedBox(height: 30),
-
-            // Navigation Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink[100]),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pink[100]),
                   child: Text("Previous"),
                 ),
                 ElevatedButton(
-                  onPressed: () => _finishOnboarding(context),
+                  onPressed: () => _finishOnboarding(context, fromSignup),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
                   child: Text("Finish"),
                 ),
@@ -80,7 +59,38 @@ class FinalConfirmationPage extends StatelessWidget {
     );
   }
 
-  // Helper Widget for Preference Cards
+  void _finishOnboarding(BuildContext context, bool fromSignup) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userPrefs = Provider.of<UserPreferences>(context, listen: false);
+
+    if (authProvider.userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("User ID not found. Please log in again."), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    bool success = await authProvider.addUserPreferences(userPrefs);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Preferences added successfully!"), backgroundColor: Colors.green),
+      );
+
+      if (fromSignup) {
+        // ✅ Navigate to Login after Signup
+        Navigator.pushReplacementNamed(context, "/login");
+      } else {
+        // ✅ Navigate back to Profile if completing later
+        Navigator.popUntil(context, ModalRoute.withName("/profile"));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error adding preferences"), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   Widget _buildPreferenceCard(IconData icon, String title, String value) {
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8),
@@ -88,12 +98,8 @@ class FinalConfirmationPage extends StatelessWidget {
       elevation: 3,
       child: ListTile(
         leading: Icon(icon, color: Colors.orange, size: 30),
-        title: Text(
-          title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        subtitle:
-            Text(value, style: TextStyle(fontSize: 14, color: Colors.black54)),
+        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        subtitle: Text(value, style: TextStyle(fontSize: 14, color: Colors.black54)),
       ),
     );
   }

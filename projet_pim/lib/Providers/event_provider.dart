@@ -2,46 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class EventProvider with ChangeNotifier {
   List<Event> _events = [];
+  List<Event> _userEvents = []; // or whatever the type of userEvents should be
+  List<Event> get userEvents {
+    return _userEvents;
+  }
+
   bool _isLoading = false;
   final String userId;
   List<Event> get events => _events;
   bool get isLoading => _isLoading;
 
-  final String baseUrl = 'http://10.0.2.2:3000'; // Replace with your backend URL
-
   EventProvider({required this.userId});
 
   Future<void> fetchEvents(String userId) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/events?userId=$userId'));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _events = data.map((json) => Event.fromJson(json, userId)).toList();
+      _isLoading = true;
+  notifyListeners();
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/events?userId=$userId'),
+    );
+
+    print("Response body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+
+      if (decoded is List) {
+        _events =
+            decoded.map((e) => Event.fromJson(e as Map<String, dynamic>, userId)).toList();
       } else {
-        throw Exception('Failed to load events: Status ${response.statusCode}');
+        print('❌ Response is not a List');
       }
-    } catch (e) {
-      print('Error fetching events: $e');
+    } else {
+      throw Exception(
+          'Failed to load specific events: Status ${response.statusCode}');
     }
-    _isLoading = false;
-    notifyListeners();
+  } catch (e) {
+    print('❌ Error fetching specific events: $e');
+  }
+  _isLoading = false;
+  notifyListeners();
   }
 
   Future<void> fetchAllEvents() async {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await http.get(Uri.parse('$baseUrl/events/all')); // Match backend findAllEvents
+      final response = await http.get(Uri.parse(
+          '${ApiConstants.baseUrl}/events/all')); // Match backend findAllEvents
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _events = data.map((json) => Event.fromJson(json, userId)).toList();
+       
       } else {
-        throw Exception('Failed to load all events: Status ${response.statusCode}');
+        throw Exception(
+            'Failed to load all events: Status ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching all events: $e');
@@ -50,41 +67,71 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> createEvent(String userId, String title, String description, DateTime date, String location, int joinPrice) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/events'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'creatorId': userId,
-          'title': title,
-          'description': description,
-          'date': date.toIso8601String(),
-          'location': location,
-          'joinPrice': joinPrice,
-          'participants': [userId], // Creator is the only default participant
-        }),
-      );
-      if (response.statusCode == 201) {
-        await fetchEvents(userId); // Refresh events for the current user
-      } else {
-        throw Exception('Failed to create event: Status ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error creating event: $e');
+Future<void> fetchSpecificEvents(String userId) async {
+  _isLoading = true;
+  notifyListeners();
+  try {
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/events?userId=$userId')); // Fetch specific events
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+        _events = data.map((json) => Event.fromJson(json, userId)).toList();
+    } else {
+      throw Exception(
+          'Failed to load specific events: Status ${response.statusCode}');
     }
-    _isLoading = false;
-    notifyListeners();
+  } catch (e) {
+    print('Error fetching specific events: $e');
   }
+  _isLoading = false;
+  notifyListeners();
+}
+
+Future<void> createEvent(
+  String userId,
+  String title,
+  String description,
+  DateTime date,
+  String location,
+  int joinPrice,
+  String type, // Include type
+) async {
+  _isLoading = true;
+  notifyListeners();
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/events'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'creatorId': userId,
+        'title': title,
+        'description': description,
+        'date': date.toIso8601String(),
+        'location': location,
+        'joinPrice': joinPrice,
+        'type': type, // Include event type
+        'participants': [userId], // Creator is the only default participant
+      }),
+    );
+    if (response.statusCode == 201) {
+      await fetchEvents(userId); // Refresh events
+    } else {
+      throw Exception('Failed to create event: Status ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error creating event: $e');
+  }
+  _isLoading = false;
+  notifyListeners();
+}
+
 
   Future<void> joinEvent(String userId, String eventId) async {
     _isLoading = true;
     notifyListeners();
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/events/$eventId/join'),
+        Uri.parse('${ApiConstants.baseUrl}/events/$eventId/join'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'userId': userId}),
       );
@@ -95,6 +142,72 @@ class EventProvider with ChangeNotifier {
       }
     } catch (e) {
       print('Error joining event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<List<Event>> fetchUserEvents(String userId, String token) async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/events/user/$userId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data
+          .map((e) => Event.fromJson(e, userId))
+          .toList(); // Ajout de userId
+    } else {
+      throw Exception('Erreur lors du chargement des événements');
+    }
+  }
+
+  Future<void> updateEvent(Event updatedEvent) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConstants.baseUrl}/events/${updatedEvent.id}'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'title': updatedEvent.title,
+          'description': updatedEvent.description,
+          'date': updatedEvent.date.toIso8601String(),
+          'location': updatedEvent.location,
+          'joinPrice': updatedEvent.joinPrice,
+        }),
+      );
+      if (response.statusCode == 200) {
+        await fetchEvents(updatedEvent
+            .creatorId); // Refresh the list of events after the update
+      } else {
+        throw Exception(
+            'Failed to update event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating event: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/events/$eventId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        await fetchEvents(userId); // Refresh events after deletion
+      } else {
+        throw Exception(
+            'Failed to delete event: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting event: $e');
     }
     _isLoading = false;
     notifyListeners();

@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class CarnetService {
-  final String baseUrl = 'http://10.0.2.2:3000/carnets';
-
   Future<List<dynamic>> getAllCarnets() async {
     try {
       final response =
-          await http.get(Uri.parse('http://10.0.2.2:3000/carnets'));
+          await http.get(Uri.parse('${ApiConstants.baseUrl}/carnets'));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -24,7 +23,7 @@ class CarnetService {
   Future<void> createCarnet(
       String title, String description, List places) async {
     final response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse('${ApiConstants.baseUrl}/carnets'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'title': title,
@@ -57,7 +56,8 @@ class CarnetService {
 
   Future<List<Carnet>> getUserCarnet(String userId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'));
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
@@ -85,7 +85,7 @@ class CarnetService {
   Future<void> unlockPlace(String userId, String placeId) async {
     try {
       final url =
-          Uri.parse('http://10.0.2.2:3000/users/$userId/unlock/$placeId');
+          Uri.parse('${ApiConstants.baseUrl}/users/$userId/unlock/$placeId');
 
       final response = await http.put(
         url,
@@ -104,7 +104,7 @@ class CarnetService {
   Future<List<String>> getUnlockedPlaces(String userId) async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:3000/users/$userId/unlocked-places'),
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/unlocked-places'),
         headers: {'Content-Type': 'application/json'},
       );
       print("Réponse brute : ${response.body}");
@@ -137,6 +137,117 @@ class CarnetService {
     } catch (e) {
       print("Error in getAllPlacesFromCarnets: $e");
       throw Exception('Network error: Unable to fetch all places.');
+    }
+  }
+
+  Future<void> updatePlace(Place place) async {
+    // Simulation d'une mise à jour (ajoute ici l'appel à l'API ou la base de données)
+    print("Lieu mis à jour : ${place.name}");
+  }
+
+  // Implémentation de la méthode pour récupérer l'ID du carnet basé sur l'ID du lieu (placeId)
+  Future<String> getCarnetIdByPlaceId(String placeId) async {
+    final url =
+        '${ApiConstants.baseUrl}/carnets/place/$placeId/carnetid'; // Update this with your actual URL
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      // Directly use the response body as a string (it's the carnetId)
+      String carnetId = response.body;
+      return carnetId;
+    } else {
+      throw Exception('Failed to load carnetId');
+    }
+  }
+
+  Future<Place> getPlaceById(String placeId) async {
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/carnets/place/$placeId'));
+
+    if (response.statusCode == 200) {
+      // Si la réponse est réussie, décodez les données JSON
+      return Place.fromJson(json.decode(response.body));
+    } else {
+      // Si la réponse échoue, lancez une exception
+      throw Exception('Failed to load place');
+    }
+  }
+
+  Future<void> deleteCarnet(String carnetId, String userId) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId');
+
+    final response = await http.delete(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'userId': userId, // 🛠 Envoi du userId dans le corps de la requête
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Échec de la suppression du carnet: ${response.body}');
+    } else {
+      print("✅ Carnet supprimé avec succès !");
+    }
+  }
+
+  Future<void> updateCarnet(String carnetId, String title) async {
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': title,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Échec de la mise à jour du carnet: ${response.body}');
+      }
+    } catch (e) {
+      print("Erreur dans updateCarnet: $e");
+      throw Exception('Erreur lors de la mise à jour du carnet.');
+    }
+  }
+
+  // Delete a place from a carnet
+  Future<void> deletePlace(
+      String carnetId, String placeId, String jwtToken) async {
+    final url =
+        Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places/$placeId');
+
+    // Sending the DELETE request with the JWT token for authorization
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $jwtToken', // Adding the JWT token here
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // The place was successfully deleted
+    } else {
+      // Error if the place is not found or another issue occurs
+    }
+  }
+
+  Future<List<Place>> getPlacesByCategory(String category) async {
+    try {
+      print("Fetching places for category: $category");
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/category/$category'));
+
+      if (response.statusCode == 200) {
+        final placesData = jsonDecode(response.body) as List;
+        return placesData.map((place) => Place.fromJson(place)).toList();
+      } else {
+        throw Exception('Failed to load places: ${response.body}');
+      }
+    } catch (e) {
+      print("Error fetching places for category $category: $e");
+      return [];
     }
   }
 }

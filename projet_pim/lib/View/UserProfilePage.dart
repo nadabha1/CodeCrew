@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/Model/user_entity.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
@@ -43,8 +44,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> fetchFollowerData() async {
     try {
-      List<String> followers = await userService.getFollowers(widget.userId);
-      List<String> following = await userService.getFollowing(widget.userId);
+      List<User> followers = await userService.getFollowers(widget.userId);
+      List<User> following = await userService.getFollowing(widget.userId);
       int followersCount = await userService.getFollowersCount(widget.userId);
       int followingCount = await userService.getFollowingCount(widget.userId);
 

@@ -18,5 +18,4 @@ class UserProvider with ChangeNotifier {
       print('Error fetching users: $e');
     }
   }
-  
 }
