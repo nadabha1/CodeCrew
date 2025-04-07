@@ -8,7 +8,7 @@ class Event {
   final DateTime startDate; // Ensure this matches your backend response
   final DateTime endDate; // Ensure this matches your backend response
   final LatLng location;
-  final List<String> participants;
+  final List<dynamic> participants;
   final bool isParticipating;
   final int joinPrice;
   final String conversationId; // ➡️ Nouvelle propriété
@@ -26,9 +26,8 @@ class Event {
     required this.participants,
     required this.isParticipating,
     required this.joinPrice,
-    required this.conversationId, // ➡️ Assure-toi de l'inclure ici aussi
-
-    required this.type, // Initialize type
+    required this.conversationId,
+    required this.type,
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {

@@ -9,6 +9,7 @@ import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
+import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -43,20 +44,22 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _fetchParticipants() async {
-    Map<String, dynamic> details = {};
-    for (String userId in widget.event.participants) {
-      try {
-        var user = await userService.getUserById(userId, widget.token);
-        details[userId] = user;
-      } catch (e) {
-        print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
-      }
+  Map<String, dynamic> details = {};
+  for (var participant in widget.event.participants) {
+    final userId = participant['_id'];
+    try {
+      var user = await userService.getUserById(userId, widget.token);
+      details[userId] = user;
+    } catch (e) {
+      print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
     }
-    setState(() {
-      participantDetails = details;
-      isLoading = false;
-    });
   }
+  setState(() {
+    participantDetails = details;
+    isLoading = false;
+  });
+}
+
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, HH:mm').format(date); // Format personnalisé
@@ -257,7 +260,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           physics: NeverScrollableScrollPhysics(),
                           itemCount: widget.event.participants.length,
                           itemBuilder: (context, index) {
-                            String userId = widget.event.participants[index];
+final participant = widget.event.participants[index];
+final userId = participant['_id'];
                             var user = participantDetails[userId];
                             bool isCurrentUser = userId == widget.userId;
 
