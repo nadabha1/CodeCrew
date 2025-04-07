@@ -119,6 +119,20 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     }
   }
 
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -183,6 +197,29 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 style:
                     const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
+              Row(
+                children: [
+                  buildStarRating(widget.place.averageRating),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.place.averageRating.toStringAsFixed(1),
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                ],
+              ),
+              if (widget.place.categories != null &&
+                  widget.place.categories.isNotEmpty)
+                Wrap(
+                  spacing: 8.0,
+                  children: widget.place.categories.map((category) {
+                    return Chip(
+                      label: Text(category),
+                      backgroundColor: Colors.deepPurple[100],
+                    );
+                  }).toList(),
+                ),
+              const SizedBox(height: 8),
+
               const SizedBox(height: 8),
               Text(
                 widget.place.description,

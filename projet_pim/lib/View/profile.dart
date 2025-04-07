@@ -319,6 +319,20 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
     return "Lieu inconnu"; // Default value
   }
 
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -554,7 +568,9 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                             margin: EdgeInsets.symmetric(
                                                 horizontal: 10),
                                             child: Container(
-                                              width: 190, // Largeur de la carte
+                                              width: 200,
+                                              height:
+                                                  260, // Largeur de la carte
                                               padding: EdgeInsets.all(10),
                                               child: Column(
                                                 children: [
@@ -644,6 +660,57 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                                         fontWeight:
                                                             FontWeight.bold),
                                                   ),
+                                                  SizedBox(height: 10),
+                                                  if (place.categories !=
+                                                          null &&
+                                                      place.categories
+                                                          .isNotEmpty)
+                                                    Wrap(
+                                                      spacing: 6.0,
+                                                      runSpacing: 4.0,
+                                                      children: place.categories
+                                                          .map((category) {
+                                                        return Chip(
+                                                          label: Text(
+                                                            category,
+                                                            style: const TextStyle(
+                                                                fontSize:
+                                                                    10), // texte plus petit
+                                                          ),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 9,
+                                                                  vertical: 0),
+                                                          visualDensity:
+                                                              VisualDensity
+                                                                  .compact, // réduit la densité
+                                                          materialTapTargetSize:
+                                                              MaterialTapTargetSize
+                                                                  .shrinkWrap,
+                                                          backgroundColor:
+                                                              Colors.deepPurple[
+                                                                  100],
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  const SizedBox(height: 30),
+                                                  Row(
+                                                    children: [
+                                                      buildStarRating(
+                                                          place.averageRating),
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        place.averageRating
+                                                            .toStringAsFixed(1),
+                                                        style: const TextStyle(
+                                                            fontSize: 14,
+                                                            color:
+                                                                Colors.black54),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  SizedBox(height: 20),
                                                   ElevatedButton(
                                                     onPressed: isUnlocked
                                                         ? () {
@@ -695,8 +762,6 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                         }).toList(),
                                       ),
                                     ),
-
-                                    SizedBox(height: 20),
                                   ],
                                 );
                               }).toList(),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/EditPlace.dart';
+import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,6 +20,7 @@ class Details extends StatefulWidget {
 
 class _DetailsState extends State<Details> {
   late Place place;
+  bool _isReviewVisible = false;
 
   @override
   void initState() {
@@ -31,6 +36,32 @@ class _DetailsState extends State<Details> {
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  Future<String> _getUserName(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("jwt_token");
+
+    if (userId == null || token == null) {
+      throw 'No userId or token found';
+    }
+
+    final user = await UserService().getUserById(userId, token);
+    return user['name'];
+  }
+
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
   }
 
   @override
@@ -77,6 +108,28 @@ class _DetailsState extends State<Details> {
                     fallbackHeight: 200,
                     fallbackWidth: double.infinity,
                   ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                buildStarRating(widget.place.averageRating),
+                const SizedBox(width: 6),
+                Text(
+                  widget.place.averageRating.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
+            if (widget.place.categories != null &&
+                widget.place.categories.isNotEmpty)
+              Wrap(
+                spacing: 8.0,
+                children: widget.place.categories.map((category) {
+                  return Chip(
+                    label: Text(category),
+                    backgroundColor: Colors.deepPurple[100],
+                  );
+                }).toList(),
+              ),
             const SizedBox(height: 16),
 
             // Description du lieu
@@ -140,6 +193,95 @@ class _DetailsState extends State<Details> {
               },
               child: const Text("Ouvrir dans Google Maps"),
             ),
+            const SizedBox(height: 20),
+            // Toggle reviews section with a smoother transition
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _isReviewVisible
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
+                    size: 30,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isReviewVisible = !_isReviewVisible;
+                    });
+                  },
+                ),
+                Text(
+                  _isReviewVisible
+                      ? "Masquer les commentaires"
+                      : "Afficher les commentaires",
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_isReviewVisible)
+              Consumer<ReviewProvider>(
+                builder: (context, reviewProvider, child) {
+                  if (reviewProvider.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (reviewProvider.reviews.isEmpty) {
+                    return const Center(child: Text('Aucun avis disponible.'));
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: reviewProvider.reviews.length,
+                    itemBuilder: (context, index) {
+                      final review = reviewProvider.reviews[index];
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                        child: ListTile(
+                          title: FutureBuilder<String>(
+                            future: _getUserName(review.userId),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              }
+                              if (snapshot.hasError) {
+                                return Text('Erreur: ${snapshot.error}');
+                              }
+                              return Text(
+                                  snapshot.data ?? 'Utilisateur inconnu');
+                            },
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (i) => Icon(
+                                    i < review.rating
+                                        ? Icons.star
+                                        : Icons.star_border,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(review.comment),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
           ],
         ),
       ),

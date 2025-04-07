@@ -240,6 +240,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return "Lieu inconnu"; // Default value
   }
 
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -531,6 +545,38 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                     // 📌 Section Carnet d’Adresses avec les données du carnet
                     SizedBox(
+                      height: 30,
+                      child: userCarnet.isNotEmpty
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  userCarnet[0].title ?? "Titre non spécifié",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    buildStarRating(
+                                        userCarnet[0].globalAverageRating),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      userCarnet[0]
+                                          .globalAverageRating
+                                          .toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : const SizedBox(),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
                       height: 180,
                       child: userCarnet.isNotEmpty &&
                               userCarnet[0].places.isNotEmpty
@@ -586,6 +632,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         },
                       ),
                     ),
+                    // 📌 Section Événements
                     const SizedBox(height: 32),
                     const Text(
                       'Événements',
