@@ -6,15 +6,17 @@ import 'package:projet_pim/ViewModel/api_constants.dart';
 class ReviewService {
   // Get all reviews for a place
   Future<List<Review>> getAllReviews(String placeId) async {
+    final url = '${ApiConstants.baseUrl}/reviews/$placeId';
+    print("Fetching reviews from $url");
+
     try {
-      final response =
-          await http.get(Uri.parse('${ApiConstants.baseUrl}/reviews/$placeId'));
+      final response = await http.get(Uri.parse(url));
+
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}");
 
       if (response.statusCode == 200) {
-        // Decode the response body as a List of dynamic objects
         List<dynamic> data = jsonDecode(response.body);
-
-        // Convert the List<dynamic> to a List<Review> using map
         return data.map((item) => Review.fromJson(item)).toList();
       } else {
         throw Exception('Failed to load reviews: ${response.body}');
