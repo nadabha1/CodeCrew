@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
+import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/settings/account_settings_screen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
+  // Import the Gender Selection page
 
 class SettingsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -34,42 +36,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     };
   }
 
-  /// ✅ **Navigate to Edit Profile & Update UI on Return**
-  Future<void> _navigateToEditProfile() async {
+  /// ✅ **Navigate to Complete Profile Screen**
+  // Navigate to Complete Profile Flow
+  Future<void> _navigateToCompleteProfile() async {
     final session = await _loadUserSession();
 
     if (session['userId'] == null || session['token'] == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("User session expired. Please log in again.")),
+        const SnackBar(content: Text("Session expired. Please log in again.")),
       );
       return;
     }
 
-    final updatedProfileData = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProfileScreen(
-          userId: session['userId']!,
-          token: session['token']!,
-          userData: userData,
-          name: userData['name'] ?? 'Unknown Name',
-          job: userData['job'] ?? 'No Job Specified',
-          location: userData['location'] ?? 'No Location Specified',
-          currentProfilePicture: userData['profilePicture'],
+    if (userData['preferences'] == null) {
+      // Navigate to the first step of the profile completion process (Gender Selection Page)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GenderSelectionPage(), // Navigate to GenderSelectionPage
         ),
-      ),
-    );
-
-    // ✅ Update UI if user changed profile details
-    if (updatedProfileData != null) {
-      setState(() {
-        userData['name'] = updatedProfileData['name'];
-        userData['job'] = updatedProfileData['job'];
-        userData['location'] = updatedProfileData['location'];
-        userData['bio'] = updatedProfileData['bio'];
-        userData['profilePicture'] = updatedProfileData['profileImage'];
-      });
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You already indicated your preferences.")),
+      );
     }
   }
 
@@ -148,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // ✅ **Profile Section with Edit Option**
               GestureDetector(
-                onTap: _navigateToEditProfile,
+                onTap: _navigateToCompleteProfile,
                 child: Row(
                   children: [
                     CircleAvatar(
@@ -189,6 +179,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 30),
+
+              // ✅ **Complete Your Profile Button**
+              if (userData['preferences'] == null) // Only show if preferences are not filled
+                _buildSettingsTile(
+                  context,
+                  icon: Icons.person,
+                  title: "Complete Your Profile",
+                  subtitle: "Fill out your preferences",
+                  iconColor: Colors.blue,
+                  onTap: _navigateToCompleteProfile, // Navigate to GenderSelectionPage
+                ),
 
               const SizedBox(height: 30),
 

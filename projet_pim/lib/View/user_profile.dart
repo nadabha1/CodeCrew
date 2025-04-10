@@ -93,8 +93,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       //fetchEvents
       EventProvider eventProvider =
           Provider.of<EventProvider>(context, listen: false);
-      await eventProvider
-          .fetchEvents(widget.userId); // Remplacez par fetchEvents
+await eventProvider.fetchSpecificEvents(widget.userId);
+
       setState(() {
         userData = user;
         userCarnet = carnet; // Met à jour le carnet de l'utilisateur
@@ -447,96 +447,77 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    eventProvider.events.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "Aucun événement disponible",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                          )
-                        : Column(
-                            children: eventProvider.events.map((event) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                child: Card(
-                                  elevation: 10,
-                                  shadowColor: Colors.deepPurpleAccent
-                                      .withOpacity(0.3), // More subtle shadow
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        16), // More rounded corners
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(
-                                        16), // Padding around the content
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          const Color.fromARGB(
-                                              255, 191, 168, 252),
-                                          const Color.fromARGB(
-                                                  255, 164, 125, 171)
-                                              .withOpacity(0.7)
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor: const Color.fromARGB(
-                                            255, 212, 196, 255),
-                                        child: Icon(Icons.event,
-                                            color: Colors.white),
-                                      ),
-                                      title: Text(
-                                        event.title,
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: Colors.white),
-                                      ),
-                                      subtitle: Text(
-                                        event.description,
-                                        style: TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 14),
-                                      ),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.arrow_forward_ios,
-                                              size: 16, color: Colors.white),
-                                        ],
-                                      ),
-                                      onTap: () {
-                                        // Navigate to event details
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                EventDetailsScreen(
-                                              event: event,
-                                              userId: widget.userId,
-                                              eventProvider: eventProvider,
-                                              token: widget.token,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
+eventProvider.userEvents.isEmpty
+  ? const Center(
+      child: Text(
+        "Aucun événement recommandé pour vous.",
+        style: TextStyle(fontSize: 16, color: Colors.grey),
+      ),
+    )
+  : Column(
+      children: eventProvider.userEvents.map((event) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Card(
+            elevation: 10,
+            shadowColor: Colors.deepPurpleAccent.withOpacity(0.3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 191, 168, 252),
+                    Color.fromARGB(255, 164, 125, 171).withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Color.fromARGB(255, 212, 196, 255),
+                  child: Icon(Icons.event, color: Colors.white),
+                ),
+                title: Text(
+                  event.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+                subtitle: Text(
+                  event.description,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EventDetailsScreen(
+                        event: event,
+                        userId: widget.userId,
+                        eventProvider: eventProvider,
+                        token: widget.token,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    )
 
-                    const SizedBox(height: 32),
+                    ,const SizedBox(height: 32),
                     const Text(
                       'Publications',
                       style: TextStyle(

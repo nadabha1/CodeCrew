@@ -7,14 +7,15 @@ import 'package:provider/provider.dart';
 class PlaceDetailsProviderScreen extends StatelessWidget {
   final Place place;
 
-  const PlaceDetailsProviderScreen({required this.place, Key? key})
-      : super(key: key);
+  const PlaceDetailsProviderScreen({required this.place, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ReviewProvider>(
       create: (_) => ReviewProvider(),
-      child: PlaceDetailsScreen(place: place),
+      builder: (context, child) {
+        return PlaceDetailsScreen(place: place);
+      },
     );
   }
 }

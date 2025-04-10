@@ -228,11 +228,26 @@ class CarnetService {
 
     if (response.statusCode == 200) {
       // The place was successfully deleted
-      print('Place deleted successfully');
     } else {
       // Error if the place is not found or another issue occurs
-      print('Failed to delete place: ${response.statusCode}');
-      print('Error message: ${response.body}');
+    }
+  }
+
+  Future<List<Place>> getPlacesByCategory(String category) async {
+    try {
+      print("Fetching places for category: $category");
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/carnets/category/$category'));
+
+      if (response.statusCode == 200) {
+        final placesData = jsonDecode(response.body) as List;
+        return placesData.map((place) => Place.fromJson(place)).toList();
+      } else {
+        throw Exception('Failed to load places: ${response.body}');
+      }
+    } catch (e) {
+      print("Error fetching places for category $category: $e");
+      return [];
     }
   }
 }

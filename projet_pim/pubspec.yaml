@@ -44,7 +44,12 @@ dependencies:
   fluttertoast: ^8.0.9  
   flutter_rating_bar: ^4.0.0
   socket_io_client: ^2.0.3+1
-  intl: ^0.18.0 
+  intl: ^0.17.0 
+  web_socket_channel: ^2.3.0  # Ajoute cette ligne
+  flutter_local_notifications: ^18.0.1  # Pour les notifications locales
+  table_calendar: ^3.0.8
+
+
 
 
   # The following adds the Cupertino Icons font to your application.

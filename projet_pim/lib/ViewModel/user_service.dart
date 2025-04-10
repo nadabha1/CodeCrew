@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/conversation.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
+import 'package:provider/provider.dart';
+
+import '../Providers/conversation_provider.dart';
 
 class UserService {
   final http.Client client = http.Client();
@@ -27,6 +30,16 @@ class UserService {
       return {'error': 'Erreur lors de la récupération de l’utilisateur: $e'};
     }
   }
+  Future<List<dynamic>> getMatchingUsers(String userId) async {
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Erreur lors du chargement des utilisateurs similaires");
+  }
+}
+
 
   // Récupérer la liste de tous les utilisateurs
   Future<List<Map<String, dynamic>>> getAllUsers(String token) async {
@@ -309,21 +322,30 @@ class UserService {
     }
   }
 
-  static Future<List<Conversation>> getUserConversations(String userId) async {
-    final response = await http
-        .get(Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'));
+static Future<List<Conversation>> getUserConversations(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((json) => Conversation.fromJson(json)).toList();
-    } else {
-      throw Exception('Erreur lors du chargement des conversations');
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        List<Conversation> conversations = data.map((json) => Conversation.fromJson(json)).toList();
+        return conversations; // Return the fetched conversations
+      } else {
+        throw Exception('Failed to load conversations');
+      }
+    } catch (e) {
+      throw Exception('Error fetching conversations: $e');
     }
   }
 
   void startConversation(BuildContext context, String userId) async {
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/conversations'),
+      Uri.parse('${ApiConstants.baseUrl}/conversations/$userId'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"participantId": userId}),
     );

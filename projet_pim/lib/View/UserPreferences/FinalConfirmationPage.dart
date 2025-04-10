@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 class FinalConfirmationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // ✅ Retrieve the argument to determine source
+    // Retrieve the argument to determine source
     final Map<String, dynamic>? args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final bool fromSignup = args?["fromSignup"] ?? false; // Default: from Profile
 
@@ -78,11 +78,11 @@ class FinalConfirmationPage extends StatelessWidget {
       );
 
       if (fromSignup) {
-        // ✅ Navigate to Login after Signup
+        // Navigate to Login after Signup
         Navigator.pushReplacementNamed(context, "/login");
       } else {
-        // ✅ Navigate back to Profile if completing later
-        Navigator.popUntil(context, ModalRoute.withName("/profile"));
+        // Navigate to Settings after completing profile (from inside the app)
+        Navigator.pushReplacementNamed(context, "/settings");
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/conversation.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:projet_pim/Providers/conversation_provider.dart';
+import 'package:provider/provider.dart';
 
 class ChatListPage extends StatefulWidget {
   final String userId;
@@ -11,42 +13,57 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  late Future<List<Conversation>> _conversations;
+  late Future<void> _loadConversations;
 
   @override
   void initState() {
     super.initState();
-    _conversations = UserService.getUserConversations(widget.userId);
+    _loadConversations = _loadUserConversations();
+  }
+
+  Future<void> _loadUserConversations() async {
+    // Now calling loadConversations and passing context from widget
+    await Provider.of<ConversationProvider>(context, listen: false)
+        .loadConversations(widget.userId); 
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Conversations')),
-      body: FutureBuilder<List<Conversation>>(
-        future: _conversations,
+      body: FutureBuilder<void>(
+        future: _loadConversations,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Erreur: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Aucune conversation.'));
-          }
+          } else {
+            return Consumer<ConversationProvider>(
+              builder: (context, conversationProvider, child) {
+                final conversations = conversationProvider.conversations;
+                if (conversations.isEmpty) {
+                  return const Center(child: Text('Aucune conversation.'));
+                }
 
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              var convo = snapshot.data![index];
-              return ListTile(
-                title: Text(convo.participants.join(', ')),
-                subtitle: Text(convo.lastMessage ?? 'Aucun message'),
-                onTap: () {
-                  // Rediriger vers la page de discussion
-                },
-              );
-            },
-          );
+                return ListView.builder(
+                  itemCount: conversations.length,
+                  itemBuilder: (context, index) {
+                    var convo = conversations[index];
+                    return ListTile(
+                      title: Text(convo.participants.join(', ')),
+                      subtitle: convo.lastMessage != null
+                          ? Text(convo.lastMessage!)
+                          : Text('Aucun message'),
+                      onTap: () {
+                        // Redirect to conversation screen
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          }
         },
       ),
     );
