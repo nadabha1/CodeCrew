@@ -33,6 +33,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         .get(Uri.parse('${ApiConstants.baseUrl}/conversations/$_userId'));
 
     if (response.statusCode == 200) {
+      print(response.body); // ✅ Inspectez les données reçues
       setState(() {
         conversations = json.decode(response.body);
         isLoading = false;
@@ -63,22 +64,6 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     return 'Utilisateur inconnu';
   }
 
-  String getParticipantProfileImage(List<dynamic> participants) {
-    try {
-      // Trouver le participant autre que l'utilisateur actuel
-      final participant = participants.firstWhere((p) => p['_id'] != _userId,
-          orElse: () => {'avatarUrl': null});
-
-      // Vérifier si l'URL de l'avatar existe et retourner l'URL de l'image ou l'image par défaut
-      if (participant['avatarUrl'] != null) {
-        return participant['avatarUrl'];
-      }
-    } catch (e) {
-      print("🚨 Erreur lors de la récupération de l'image du profil : $e");
-    }
-    return ''; // Retourne une chaîne vide si aucune image n'est trouvée
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,12 +91,13 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
 
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundImage:
-                            getParticipantProfileImage(participants).isNotEmpty
-                                ? NetworkImage(
-                                    getParticipantProfileImage(participants))
-                                : AssetImage('assets/default_profile.png')
-                                    as ImageProvider,
+                        backgroundImage: NetworkImage(
+                          participants.firstWhere(
+                                (p) => p['_id'] != _userId,
+                                orElse: () => {'avatarUrl': null},
+                              )['avatarUrl'] ??
+                              'https://example.com/default-avatar.png',
+                        ),
                         child: isGroupChat
                             ? Icon(Icons.group, color: Colors.white)
                             : Icon(Icons.person, color: Colors.white),
@@ -122,7 +108,9 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        lastMessage,
+                        lastMessage != null && lastMessage.isNotEmpty
+                            ? lastMessage
+                            : 'Aucun message', // ✅ Affiche un message par défaut
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

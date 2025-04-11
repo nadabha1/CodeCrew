@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
+import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
@@ -125,6 +126,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// ✅ **Navigate to Complete Profile Screen**
+  // Navigate to Complete Profile Flow
+  Future<void> _navigateToCompleteProfile() async {
+    final session = await _loadUserSession();
+
+    if (session['userId'] == null || session['token'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please log in again.")),
+      );
+      return;
+    }
+
+    if (userData['preferences'] == null) {
+      // Navigate to the first step of the profile completion process (Gender Selection Page)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              GenderSelectionPage(), // Navigate to GenderSelectionPage
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("You already indicated your preferences.")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -190,6 +220,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
+              const SizedBox(height: 30),
+              if (userData['preferences'] ==
+                  null) // Only show if preferences are not filled
+                _buildSettingsTile(
+                  context,
+                  icon: Icons.person,
+                  title: "Complete Your Profile",
+                  subtitle: "Fill out your preferences",
+                  iconColor: Colors.blue,
+                  onTap:
+                      _navigateToCompleteProfile, // Navigate to GenderSelectionPage
+                ),
               const SizedBox(height: 30),
 
               // ✅ **Dark Mode Toggle**
