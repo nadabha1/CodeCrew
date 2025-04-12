@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:io' show Platform;
 
 class Details extends StatefulWidget {
   final Place place;
@@ -28,11 +29,35 @@ class _DetailsState extends State<Details> {
     place = widget.place;
   }
 
-  void _openInGoogleMaps(double latitude, double longitude) async {
+  /*void _openInGoogleMaps(double latitude, double longitude) async {
+    final Uri url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+
+    if (await canLaunch(url.toString())) {
+      await launch(url.toString());
+    } else {
+      throw 'Could not launch $url';
+    }
+  }*/
+
+  /*void _openInGoogleMaps(double latitude, double longitude) async {
     final url = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
     if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+      await launchUrl(url, mode: LaunchMode.externalApplication); // important !
+    } else {
+      throw 'Could not launch $url';
+    }
+  }*/
+
+  void _openInGoogleMaps(double latitude, double longitude) async {
+    final url = Platform.isAndroid
+        ? Uri.parse('geo:$latitude,$longitude?q=$latitude,$longitude')
+        : Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       throw 'Could not launch $url';
     }
