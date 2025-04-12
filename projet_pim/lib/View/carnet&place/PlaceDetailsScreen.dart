@@ -27,12 +27,14 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
   final ReviewService _reviewService = ReviewService();
   List<Review> _reviews = [];
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _fetchReviews();
     _checkIfFavorite();
+    _getCurrentUserId();
   }
 
   Future<void> _fetchReviews() async {
@@ -43,6 +45,13 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     } catch (e) {
       print("Erreur lors du chargement des avis: $e");
     } finally {}
+  }
+
+  Future<void> _getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserId = prefs.getString("user_id");
+    });
   }
 
   Future<String> _getUserName(String userId) async {
@@ -144,6 +153,89 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         ),
       );
     }
+  }
+
+  void _showEditReviewDialog(Review review) {
+    final TextEditingController commentController =
+        TextEditingController(text: review.comment);
+    int updatedRating = review.rating;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Modifier votre avis"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (i) => IconButton(
+                    icon: Icon(
+                      i < updatedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        updatedRating = i + 1;
+                      });
+                      // force rebuild
+                      Navigator.pop(context);
+                      _showEditReviewDialog(
+                          review.copyWith(rating: updatedRating));
+                    },
+                  ),
+                ),
+              ),
+              TextField(
+                controller: commentController,
+                decoration:
+                    const InputDecoration(labelText: "Votre commentaire"),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Annuler"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              child: const Text("Enregistrer"),
+              onPressed: () async {
+                final updatedReview = review.copyWith(
+                  rating: updatedRating,
+                  comment: commentController.text,
+                );
+
+                try {
+                  await Provider.of<ReviewProvider>(context, listen: false)
+                      .editReview(widget.place.id, updatedReview);
+                  Navigator.pop(context);
+                } catch (e) {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: Text("Erreur"),
+                      content: Text("Impossible de modifier l'avis."),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text("OK"),
+                        )
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -324,6 +416,16 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                               ),
                               const SizedBox(height: 5),
                               Text(review.comment),
+                              if (_currentUserId == review.userId)
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () {
+                                      _showEditReviewDialog(review);
+                                    },
+                                    child: const Text("Modifier"),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -332,6 +434,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   );
                 },
               ),
+            const SizedBox(height: 20),
             AddReviewForm(
               placeId: widget.place.id,
               onSubmit: (Review review) async {

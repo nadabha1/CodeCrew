@@ -50,4 +50,31 @@ class ReviewService {
       throw e; // Rethrow to show an error in the UI
     }
   }
+
+  // Update a review
+  Future<bool> editReview(String placeId, Review review) async {
+    final url = '${ApiConstants.baseUrl}/reviews/$placeId';
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(review.toJson()),
+      );
+
+      print("PUT $url → ${response.statusCode}");
+      print("Response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        await getAllReviews(placeId);
+        return true;
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Failed to update review');
+      }
+    } catch (e) {
+      print("Error in editReview: $e");
+      throw Exception("Error editing review: $e");
+    }
+  }
 }
