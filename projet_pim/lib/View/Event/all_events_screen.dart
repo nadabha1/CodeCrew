@@ -208,6 +208,8 @@ Text(
                         context,
                         MaterialPageRoute(
                           builder: (_) => GroupChatScreen(
+                                                              eventProvider: EventProvider(userId: widget.userId),
+
                             conversationId: event.conversationId ?? "",
                             groupName: event.title,
                           ),

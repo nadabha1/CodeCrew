@@ -233,6 +233,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
             if (event.isParticipating) {
               Navigator.push(context, MaterialPageRoute(
                 builder: (_) => GroupChatScreen(
+                                                    eventProvider: EventProvider(userId: widget.userId),
                   conversationId: event.conversationId,
                   groupName: event.title,
                 ),

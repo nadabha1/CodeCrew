@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/chat/NewGroupConversationScreen.dart';
 import 'package:projet_pim/View/chat/chat_screen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
@@ -120,11 +121,16 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                           MaterialPageRoute(
                             builder: (context) => isGroupChat
                                 ? GroupChatScreen(
+                                                                    eventProvider: EventProvider(userId: _userId!),
+
                                     conversationId: conversation['_id'],
                                     groupName: conversation[
                                         'title'], // ✅ Passe le titre du groupe
                                   )
                                 : ChatScreen(
+                                  eventProvider: EventProvider(userId: _userId!),
+                                  token: "",
+                                  userId: _userId!,
                                     conversationId: conversation['_id'],
                                   ),
                           ),

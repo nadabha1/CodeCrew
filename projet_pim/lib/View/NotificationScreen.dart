@@ -165,6 +165,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
+              eventProvider: EventProvider(userId: _userId!),
+              token: _token!,
+              userId: widget.userId,
               conversationId: notification['data']?['conversationId'] ?? '',
             ),
           ),

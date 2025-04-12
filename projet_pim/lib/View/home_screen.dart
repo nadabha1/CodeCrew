@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
+import 'package:projet_pim/View/Event/my_events_screen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
@@ -92,14 +93,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ListTile(
             leading: Icon(Icons.person),
             title: Text('Mes evenements'),
-            /* onTap: () {
+             onTap: () {
               Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) =>
                         MyEventsScreen(userId: widget.userId, token: _token!),
                   ));
-            },*/
+            },
           ),
           ListTile(
             leading: Icon(Icons.chat),
@@ -187,38 +188,61 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       UserService userService = UserService();
       List<dynamic> fetchedUsers =
-          await userService.getMatchingUsers(widget.userId);
+          await userService.getAllUsers(widget.userId);
       final prefs = await SharedPreferences.getInstance();
       _userId = prefs.getString("userId");
-      allUsers = fetchedUsers.where((user) => user['_id'] != _userId).toList();
+      allUsers = fetchedUsers.where((user) => user['_id'] != widget.userId).toList();
       _applySmartFilter();
     } catch (_) {
       setState(() => isLoadingUsers = false);
     }
   }
 
-  void _applySmartFilter() {
-    final query = _searchController.text.toLowerCase();
+ void _applySmartFilter() {
+  final query = _searchController.text.toLowerCase();
 
-    List<dynamic> filtered = allUsers.where((user) {
-      final nameMatch = user['name'].toLowerCase().contains(query);
-      final List<String> userTags = List<String>.from(user['tags'] ?? []);
+  List<dynamic> filtered = allUsers.where((user) {
+    final nameMatch = user['name'].toLowerCase().contains(query);
+    final List<String> userTags = List<String>.from(user['tags'] ?? [])
+        .map((e) => e.toLowerCase())
+        .toList();
 
-      final tagMatch = _selectedCategories.isEmpty ||
-          _selectedCategories.every((selected) => userTags.any((tag) =>
-              tag.toLowerCase().contains(selected.toLowerCase()) ||
-              selected.toLowerCase().contains(tag.toLowerCase())));
+    bool tagMatch = true;
 
-      return nameMatch && tagMatch;
-    }).toList();
+    if (_selectedCategories.isNotEmpty) {
+      String normalize(String input) {
+  return input
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), '') // remove spaces
+      .replaceAll(RegExp(r'[éèêë]'), 'e')
+      .replaceAll(RegExp(r'[àâä]'), 'a')
+      .replaceAll(RegExp(r'[îï]'), 'i')
+      .replaceAll(RegExp(r'[ôö]'), 'o')
+      .replaceAll(RegExp(r'[ùûü]'), 'u')
+      .replaceAll(RegExp(r's$'), ''); // remove trailing "s" for plurals
+      }
+      final selectedTags = _selectedCategories.map((e) => normalize(e)).toList();
+      final userTags = List<String>.from(user['tags'] ?? [])
+    .map((e) => normalize(e))
+    .toList();
+      print(" ❤❤❤ $selectedTags");
+      print(" ❤❤❤ $userTags");
 
-    setState(() {
-      isShowingFallbackUsers =
-          filtered.isEmpty && _selectedCategories.isNotEmpty;
-      users = isShowingFallbackUsers ? allUsers : filtered;
-      isLoadingUsers = false;
-    });
-  }
+      // ✅ logique AND stricte
+tagMatch = selectedTags.every((selected) => userTags.contains(selected));
+    }
+
+    return nameMatch && tagMatch;
+  }).toList();
+print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategories");
+
+  setState(() {
+  users = filtered;
+  isShowingFallbackUsers = false; // (ou inutile à ce stade)
+  isLoadingUsers = false;
+});
+
+}
 
   Future<String> getAddressFromLatLng(LatLng location) async {
     try {
@@ -511,13 +535,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                               fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: users.length,
-                      itemBuilder: (context, index) =>
-                          _buildUserCard(users[index]),
-                    ),
+                    users.isEmpty && !isLoadingUsers
+    ? Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Center(
+          child: Text(
+            "Aucun utilisateur trouvé.",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      )
+    : ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: users.length,
+        itemBuilder: (context, index) => _buildUserCard(users[index]),
+      ),
+
                   ],
                 ),
               ),

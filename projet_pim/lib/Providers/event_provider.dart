@@ -25,6 +25,16 @@ class EventProvider with ChangeNotifier {
     final regex = RegExp(r'^[a-fA-F0-9]{24}$');
     return regex.hasMatch(userId);
   }
+  Future<Event> getEventById(String eventId) async {
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return Event.fromJson(data, userId);
+  } else {
+    throw Exception('Erreur lors du chargement de l’événement');
+  }
+}
+
 
   Future<void> fetchEvents(String userId) async {
     if (!_isValidUserId(userId)) {
