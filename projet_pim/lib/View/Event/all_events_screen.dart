@@ -192,7 +192,10 @@ void onSearch(String keyword) {
             Row(children: [
               Icon(Icons.location_on, size: 14),
               SizedBox(width: 6),
-              Text(event.location as String, style: TextStyle(fontSize: 12)),
+Text(
+  '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
+  style: TextStyle(fontSize: 12),
+),
             ]),
             SizedBox(height: 10),
             Row(

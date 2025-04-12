@@ -97,8 +97,8 @@ class EventProvider with ChangeNotifier {
     String userId,
     String title,
     String description,
-    String startDate, // ISO string with time
-    String endDate, // ISO string with time
+    String startDate, 
+    String endDate, 
     String location,
     int joinPrice,
     String type,

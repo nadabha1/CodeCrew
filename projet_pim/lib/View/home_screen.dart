@@ -1,20 +1,15 @@
 // ✅ Version complète HomeScreen avec UI/UX + User Cards + Navigation vers leurs lieux + filtre et recherche
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
-import 'package:projet_pim/View/Widgets/userPlacesScreen.dart';
-import 'package:projet_pim/View/chat/group_chat_screen.dart';
+import 'package:projet_pim/View/Event/my_events_screen.dart';
 import 'package:projet_pim/View/profile.dart';
-import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../Model/carnet.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 
@@ -56,12 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     _loadData();
     _loadWeather();
-  }
+  });
+}
+
 Widget _buildDrawer() {
   return Drawer(
     child: ListView(
@@ -85,11 +82,11 @@ Widget _buildDrawer() {
         ),
         ListTile(
           leading: Icon(Icons.person),
-          title: Text('Mon profil'),
+          title: Text('Mes evenements'),
           onTap: () {
             Navigator.push(context,
               MaterialPageRoute(builder: (_) =>
-          UserProfileScreen(userId:widget.userId, token: _token!))
+          MyEventsScreen(userId: widget.userId, token: _token!),)
             );
           },
         ),
@@ -99,7 +96,7 @@ Widget _buildDrawer() {
           onTap: () {
             Navigator.push(context,
               MaterialPageRoute(builder: (_) =>
-          AllEventsScreen(userId: widget.userId!, token: _token!))
+          AllEventsScreen(userId: widget.userId, token: _token!))
             );
           },
         ),
@@ -154,36 +151,63 @@ Widget _buildDrawer() {
   Future<void> fetchUsers() async {
     try {
       UserService userService = UserService();
-      List<dynamic> fetchedUsers = await userService.getMatchingUsers(widget.userId);
+      List<dynamic> fetchedUsers = await userService.getAllUsers(widget.userId);
       final prefs = await SharedPreferences.getInstance();
       _userId = prefs.getString("userId");
       allUsers = fetchedUsers.where((user) => user['_id'] != _userId).toList();
-      _applySmartFilter();
+      _applySmartFilter(); // ← 🔥 manquait ici !
+
     } catch (_) {
       setState(() => isLoadingUsers = false);
     }
   }
+
 void _applySmartFilter() {
   final query = _searchController.text.toLowerCase();
 
   List<dynamic> filtered = allUsers.where((user) {
     final nameMatch = user['name'].toLowerCase().contains(query);
-    final List<String> userTags = List<String>.from(user['tags'] ?? []);
+    final List<String> userTags = List<String>.from(user['tags'] ?? [])
+        .map((e) => e.toLowerCase())
+        .toList();
 
-    final tagMatch = _selectedCategories.isEmpty ||
-        _selectedCategories.every((selected) =>
-            userTags.any((tag) => tag.toLowerCase().contains(selected.toLowerCase()) ||
-                                  selected.toLowerCase().contains(tag.toLowerCase())));
+    bool tagMatch = true;
+
+    if (_selectedCategories.isNotEmpty) {
+      String normalize(String input) {
+  return input
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), '') // remove spaces
+      .replaceAll(RegExp(r'[éèêë]'), 'e')
+      .replaceAll(RegExp(r'[àâä]'), 'a')
+      .replaceAll(RegExp(r'[îï]'), 'i')
+      .replaceAll(RegExp(r'[ôö]'), 'o')
+      .replaceAll(RegExp(r'[ùûü]'), 'u')
+      .replaceAll(RegExp(r's$'), ''); // remove trailing "s" for plurals
+      }
+      final selectedTags = _selectedCategories.map((e) => normalize(e)).toList();
+      final userTags = List<String>.from(user['tags'] ?? [])
+    .map((e) => normalize(e))
+    .toList();
+      print(" ❤❤❤ $selectedTags");
+      print(" ❤❤❤ $userTags");
+
+      // ✅ logique AND stricte
+tagMatch = selectedTags.every((selected) => userTags.contains(selected));
+    }
 
     return nameMatch && tagMatch;
   }).toList();
+print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategories");
 
   setState(() {
-    isShowingFallbackUsers = filtered.isEmpty && _selectedCategories.isNotEmpty;
-    users = isShowingFallbackUsers ? allUsers : filtered;
-    isLoadingUsers = false;
-  });
+  users = filtered;
+  isShowingFallbackUsers = false; // (ou inutile à ce stade)
+  isLoadingUsers = false;
+});
+
 }
+
 
 
   Widget _buildUserCard(dynamic user) {
@@ -366,12 +390,23 @@ void onPlaceClick(String name, String type) {
                       child: Text("People You May Like",
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: users.length,
-                      itemBuilder: (context, index) => _buildUserCard(users[index]),
-                    ),
+users.isEmpty && !isLoadingUsers
+    ? Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Center(
+          child: Text(
+            "Aucun utilisateur trouvé.",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      )
+    : ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: users.length,
+        itemBuilder: (context, index) => _buildUserCard(users[index]),
+      ),
+
                   ],
                 ),
               ),

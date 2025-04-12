@@ -283,20 +283,31 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+
   Future<Event> _fetchEventDetails(String eventId) async {
-    print("🟢 Fetching event details for ID: $eventId");
-    final response =
-        await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final eventData = data['data'] ?? data;
-      return Event.fromJson(eventData, _userId!);
-    } else {
-      print("🔴 Failed to fetch event details: ${response.body}");
-      throw Exception(
-          'Erreur lors de la récupération des détails de l\'événement');
+  print("🟢 Fetching event details for ID: $eventId");
+  final response =
+      await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
+
+  if (response.statusCode == 200) {
+    print("🔍 Response body: ${response.body}");
+
+    if (response.body.trim().isEmpty) {
+      throw Exception('La réponse est vide');
     }
+
+    final decoded = jsonDecode(response.body);
+    final eventData = decoded is Map<String, dynamic> && decoded.containsKey('data')
+        ? decoded['data']
+        : decoded;
+
+    return Event.fromJson(eventData, _userId!);
+  } else {
+    print("🔴 Failed to fetch event details: ${response.body}");
+    throw Exception('Erreur lors de la récupération des détails de l\'événement');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
