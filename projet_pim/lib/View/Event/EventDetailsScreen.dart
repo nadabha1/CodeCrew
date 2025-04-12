@@ -283,6 +283,7 @@ final userId = participant['_id'];
                                           TravelerProfileScreen(
                                         travelerId: userId,
                                         loggedInUserId: widget.userId,
+                                        token: widget.token,
                                       ),
                                     ),
                                   );

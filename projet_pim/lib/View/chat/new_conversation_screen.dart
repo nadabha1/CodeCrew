@@ -21,24 +21,26 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     fetchUsers();
   }
 
-Future<void> fetchUsers() async {
-  final prefs = await SharedPreferences.getInstance();
-  _userId = prefs.getString("user_id");
+  Future<void> fetchUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString("user_id");
 
-  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/users/all'));
-  if (response.statusCode == 200) {
-    final allUsers = json.decode(response.body);
-    setState(() {
-      users = allUsers.where((user) => user['_id'] != _userId).toList();  // ✅ Exclure le user connecté
-      isLoading = false;
-    });
-  } else {
-    setState(() {
-      isLoading = false;
-    });
+    final response =
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/users/all'));
+    if (response.statusCode == 200) {
+      final allUsers = json.decode(response.body);
+      setState(() {
+        users = allUsers
+            .where((user) => user['_id'] != _userId)
+            .toList(); // ✅ Exclure le user connecté
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
-}
-
 
   void startConversation(String otherUserId) async {
     final prefs = await SharedPreferences.getInstance();

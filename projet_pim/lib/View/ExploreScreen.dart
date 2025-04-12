@@ -253,6 +253,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             builder: (context) => TravelerProfileScreen(
                               travelerId: user['_id'],
                               loggedInUserId: widget.userId,
+                              token: _token ?? '',
                             ),
                           ),
                         );

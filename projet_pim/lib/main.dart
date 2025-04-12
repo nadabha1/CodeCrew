@@ -148,7 +148,8 @@ class MyApp extends StatelessWidget {
         themeMode: ThemeProvider.themeMode,
         home: userId != null && token != null ? MainScreen() : LoginView(),
         routes: {
-          '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
+          '/home': (context) =>
+              HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),
           '/signup': (context) => SignUpPage(),
           '/gender-selection': (context) => GenderSelectionPage(),
           '/activity-selection': (context) => ActivitySelectionPage(),

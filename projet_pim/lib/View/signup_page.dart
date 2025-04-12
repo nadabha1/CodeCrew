@@ -71,10 +71,43 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      await _uploadImage(pickedFile);
-    }
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt),
+              title: Text('Prendre une photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile =
+                    await _picker.pickImage(source: ImageSource.camera);
+                if (pickedFile != null) {
+                  await _uploadImage(pickedFile);
+                }
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Choisir depuis la galerie'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile =
+                    await _picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null) {
+                  await _uploadImage(pickedFile);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _registerUser(BuildContext context) async {
@@ -103,18 +136,11 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
-    // Vérifiez que l'URL de l'image est définie
-    debugPrint("🌐 URL de l'image avant l'inscription : $_profileImageUrl");
-    if (_profileImageUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Veuillez ajouter une photo de profil!",
-              style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+    // Si aucune image n’est sélectionnée, utiliser l’image par défaut
+    final imageUrlToSend =
+        _profileImageUrl ?? '${ApiConstants.baseUrl}/uploads/default_image.png';
+    debugPrint(
+        "🌐 URL de l'image utilisée pour l'inscription : $imageUrlToSend");
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -132,7 +158,7 @@ class _SignUpPageState extends State<SignUpPage> {
       passwordController.text,
       latitudeLongitude!,
       Provider.of<UserPreferences>(context, listen: false),
-      _profileImageUrl, // Passez explicitement l'URL de l'image
+      imageUrlToSend, // <-- ici on envoie soit l'image choisie soit l'image par défaut
     );
 
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -342,16 +368,19 @@ class _SignUpPageState extends State<SignUpPage> {
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color.fromARGB(
-                                255, 232, 235, 252), // Violet clair
-                          ),
-                          child: IconButton(
-                            icon: Icon(Icons.camera_alt, color: Colors.white),
-                            onPressed: _pickImage,
-                            iconSize: 20,
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blueAccent,
+                            ),
+                            padding: EdgeInsets.all(6),
+                            child: Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),

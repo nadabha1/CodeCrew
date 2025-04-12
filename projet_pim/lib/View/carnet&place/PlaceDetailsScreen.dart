@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/review.dart';
+import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/add_review_form.dart';
 import 'package:projet_pim/ViewModel/review_service.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -40,9 +42,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       setState(() => _reviews = reviews);
     } catch (e) {
       print("Erreur lors du chargement des avis: $e");
-    } finally {
-      setState(() => _isLoadingReviews = false);
-    }
+    } finally {}
   }
 
   Future<String> _getUserName(String userId) async {
@@ -67,13 +67,16 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
     try {
       if (_isFavorite) {
-        await UserService().removePlaceFromFavorites(userId, widget.place.id, token);
+        await UserService()
+            .removePlaceFromFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Retiré des favoris")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Retiré des favoris")));
       } else {
         await UserService().addPlaceToFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = true);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ajouté aux favoris !")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Ajouté aux favoris !")));
       }
     } catch (e) {
       print("Erreur favoris: $e");
@@ -95,7 +98,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   }
 
   void _openInGoogleMaps(double latitude, double longitude) async {
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
@@ -120,7 +124,10 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         builder: (context) => AlertDialog(
           title: Text('Succès'),
           content: Text('Avis ajouté avec succès !'),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context), child: Text('OK'))
+          ],
         ),
       );
     } catch (e) {
@@ -130,7 +137,10 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         builder: (context) => AlertDialog(
           title: Text('Erreur'),
           content: Text('Vous avez déjà ajouté un avis.'),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context), child: Text('OK'))
+          ],
         ),
       );
     }
@@ -182,30 +192,40 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
               Container(
                 height: 250,
                 color: Colors.grey[200],
-                child: Center(child: Icon(Icons.photo, color: Colors.grey[500])),
+                child:
+                    Center(child: Icon(Icons.photo, color: Colors.grey[500])),
               ),
             SizedBox(height: 15),
-            Text(widget.place.name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(widget.place.name,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
-            Text(widget.place.description, style: TextStyle(fontSize: 16, color: Colors.black54)),
+            Text(widget.place.description,
+                style: TextStyle(fontSize: 16, color: Colors.black54)),
             SizedBox(height: 20),
             Container(
               height: 250,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+              decoration:
+                  BoxDecoration(borderRadius: BorderRadius.circular(12)),
               child: FlutterMap(
                 options: MapOptions(
-                  center: LatLng(widget.place.latitude ?? 0.0, widget.place.longitude ?? 0.0),
+                  center: LatLng(widget.place.latitude ?? 0.0,
+                      widget.place.longitude ?? 0.0),
                   zoom: 15.0,
                 ),
                 children: [
-                  TileLayer(urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", subdomains: ['a', 'b', 'c']),
+                  TileLayer(
+                      urlTemplate:
+                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      subdomains: ['a', 'b', 'c']),
                   MarkerLayer(
                     markers: [
                       Marker(
-                        point: LatLng(widget.place.latitude ?? 0.0, widget.place.longitude ?? 0.0),
+                        point: LatLng(widget.place.latitude ?? 0.0,
+                            widget.place.longitude ?? 0.0),
                         width: 40,
                         height: 40,
-                        child: Icon(Icons.location_on, color: Colors.red, size: 40),
+                        child: Icon(Icons.location_on,
+                            color: Colors.red, size: 40),
                       )
                     ],
                   )
@@ -215,68 +235,167 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                if (widget.place.latitude != null && widget.place.longitude != null) {
-                  _openInGoogleMaps(widget.place.latitude!, widget.place.longitude!);
+                if (widget.place.latitude != null &&
+                    widget.place.longitude != null) {
+                  _openInGoogleMaps(
+                      widget.place.latitude!, widget.place.longitude!);
                 }
               },
               child: Text("Ouvrir dans Google Maps"),
             ),
             SizedBox(height: 20),
+            // Toggle reviews section with a smoother transition
             Row(
               children: [
                 IconButton(
-                  icon: Icon(_isReviewVisible ? Icons.arrow_drop_up : Icons.arrow_drop_down, size: 30),
-                  onPressed: () => setState(() => _isReviewVisible = !_isReviewVisible),
+                  icon: Icon(
+                    _isReviewVisible
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
+                    size: 30,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isReviewVisible = !_isReviewVisible;
+                    });
+                  },
                 ),
-                Text(_isReviewVisible ? "Masquer les commentaires" : "Afficher les commentaires", style: TextStyle(fontSize: 18)),
+                Text(
+                  _isReviewVisible
+                      ? "Masquer les commentaires"
+                      : "Afficher les commentaires",
+                  style: const TextStyle(fontSize: 18),
+                ),
               ],
             ),
+            const SizedBox(height: 10),
             if (_isReviewVisible)
-              _isLoadingReviews
-                  ? Center(child: CircularProgressIndicator())
-                  : _reviews.isEmpty
-                      ? Text("Aucun avis disponible.")
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _reviews.length,
-                          itemBuilder: (context, index) {
-                            final review = _reviews[index];
-                            return Card(
-                              margin: EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              child: ListTile(
-                                title: FutureBuilder<String>(
-                                  future: _getUserName(review.userId),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState == ConnectionState.waiting) {
-                                      return CircularProgressIndicator();
-                                    }
-                                    return Text(snapshot.data ?? 'Utilisateur inconnu');
-                                  },
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: List.generate(
-                                        5,
-                                        (i) => Icon(
-                                          i < review.rating ? Icons.star : Icons.star_border,
-                                          color: Colors.amber,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(review.comment),
-                                  ],
+              Consumer<ReviewProvider>(
+                builder: (context, reviewProvider, child) {
+                  if (reviewProvider.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (reviewProvider.reviews.isEmpty) {
+                    return const Center(child: Text('Aucun avis disponible.'));
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: reviewProvider.reviews.length,
+                    itemBuilder: (context, index) {
+                      final review = reviewProvider.reviews[index];
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                        child: ListTile(
+                          title: FutureBuilder<String>(
+                            future: _getUserName(review.userId),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              }
+                              if (snapshot.hasError) {
+                                return Text('Erreur: ${snapshot.error}');
+                              }
+                              return Text(
+                                  snapshot.data ?? 'Utilisateur inconnu');
+                            },
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (i) => Icon(
+                                    i < review.rating
+                                        ? Icons.star
+                                        : Icons.star_border,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
                                 ),
                               ),
-                            );
-                          },
+                              const SizedBox(height: 5),
+                              Text(review.comment),
+                            ],
+                          ),
                         ),
-            AddReviewForm(placeId: widget.place.id, onSubmit: _handleAddReview),
+                      );
+                    },
+                  );
+                },
+              ),
+            AddReviewForm(
+              placeId: widget.place.id,
+              onSubmit: (Review review) async {
+                try {
+                  // Afficher un pop-up de chargement (optionnel)
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false, // Empêche de fermer le dialogue
+                    builder: (context) => const AlertDialog(
+                      content: Text('Ajout de l’avis en cours...'),
+                    ),
+                  );
+
+                  // Tentative d'ajout de l'avis (appelle l'API)
+                  await Provider.of<ReviewProvider>(context, listen: false)
+                      .addReview(widget.place.id,
+                          review); // Ensure this line works without returning a value
+
+                  // Fermer le pop-up de chargement
+                  Navigator.of(context).pop();
+
+                  // Afficher un pop-up de succès uniquement après un succès
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Succès'),
+                      content: const Text('Avis ajouté avec succès !'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // Fermer le pop-up
+                          },
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                } catch (e) {
+                  // Fermer le pop-up de chargement en cas d'erreur
+                  Navigator.of(context).pop();
+
+                  // Vérifier l'exception et afficher un pop-up d'erreur
+                  final errorMessage =
+                      e.toString().replaceFirst('Exception: ', '');
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Avis déjà ajouté'),
+                      content: Text(
+                          'Vous avez déjà ajouté un avis pour ce lieu. Vous ne pouvez pas en ajouter un autre.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // Fermer le pop-up
+                          },
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            )
           ],
         ),
       ),

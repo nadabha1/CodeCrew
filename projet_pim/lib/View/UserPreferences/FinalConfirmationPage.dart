@@ -6,9 +6,11 @@ import 'package:provider/provider.dart';
 class FinalConfirmationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // ✅ Retrieve the argument to determine source
-    final Map<String, dynamic>? args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final bool fromSignup = args?["fromSignup"] ?? false; // Default: from Profile
+    // Retrieve the argument to determine source
+    final Map<String, dynamic>? args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final bool fromSignup =
+        args?["fromSignup"] ?? false; // Default: from Profile
 
     final userPrefs = Provider.of<UserPreferences>(context);
 
@@ -23,17 +25,30 @@ class FinalConfirmationPage extends StatelessWidget {
             SizedBox(height: 20),
             Text(
               "🎉 Ready to Connect?",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange),
+              style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange),
             ),
             SizedBox(height: 10),
             Expanded(
               child: ListView(
                 children: [
-                  _buildPreferenceCard(Icons.person, "Gender", userPrefs.gender ?? "Not provided"),
-                  _buildPreferenceCard(Icons.sports_soccer, "Favorite Activities", userPrefs.favoriteActivities?.join(", ") ?? "Not provided"),
-                  _buildPreferenceCard(Icons.event, "Event Preferences", userPrefs.eventPreferences?.join(", ") ?? "Not provided"),
-                  _buildPreferenceCard(Icons.groups, "Social Preference", userPrefs.socialPreference ?? "Not provided"),
-                  _buildPreferenceCard(Icons.access_time, "Preferred Event Timing", userPrefs.preferredEventTime ?? "Not provided"),
+                  _buildPreferenceCard(Icons.person, "Gender",
+                      userPrefs.gender ?? "Not provided"),
+                  _buildPreferenceCard(
+                      Icons.sports_soccer,
+                      "Favorite Activities",
+                      userPrefs.favoriteActivities?.join(", ") ??
+                          "Not provided"),
+                  _buildPreferenceCard(Icons.event, "Event Preferences",
+                      userPrefs.eventPreferences?.join(", ") ?? "Not provided"),
+                  _buildPreferenceCard(Icons.groups, "Social Preference",
+                      userPrefs.socialPreference ?? "Not provided"),
+                  _buildPreferenceCard(
+                      Icons.access_time,
+                      "Preferred Event Timing",
+                      userPrefs.preferredEventTime ?? "Not provided"),
                 ],
               ),
             ),
@@ -43,7 +58,8 @@ class FinalConfirmationPage extends StatelessWidget {
               children: [
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pink[100]),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pink[100]),
                   child: Text("Previous"),
                 ),
                 ElevatedButton(
@@ -65,7 +81,9 @@ class FinalConfirmationPage extends StatelessWidget {
 
     if (authProvider.userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User ID not found. Please log in again."), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text("User ID not found. Please log in again."),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -74,19 +92,23 @@ class FinalConfirmationPage extends StatelessWidget {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Preferences added successfully!"), backgroundColor: Colors.green),
+        SnackBar(
+            content: Text("Preferences added successfully!"),
+            backgroundColor: Colors.green),
       );
 
       if (fromSignup) {
-        // ✅ Navigate to Login after Signup
+        // Navigate to Login after Signup
         Navigator.pushReplacementNamed(context, "/login");
       } else {
-        // ✅ Navigate back to Profile if completing later
-        Navigator.popUntil(context, ModalRoute.withName("/profile"));
+        // Navigate to Settings after completing profile (from inside the app)
+        Navigator.pushReplacementNamed(context, "/settings");
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error adding preferences"), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text("Error adding preferences"),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -98,8 +120,10 @@ class FinalConfirmationPage extends StatelessWidget {
       elevation: 3,
       child: ListTile(
         leading: Icon(icon, color: Colors.orange, size: 30),
-        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle: Text(value, style: TextStyle(fontSize: 14, color: Colors.black54)),
+        title: Text(title,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        subtitle:
+            Text(value, style: TextStyle(fontSize: 14, color: Colors.black54)),
       ),
     );
   }

@@ -12,6 +12,8 @@ import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/follow/FollowersScreen.dart';
+import 'package:projet_pim/View/follow/FollowingScreen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/Model/carnet.dart';
@@ -238,6 +240,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return "Lieu inconnu"; // Default value
   }
 
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -432,15 +448,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _StatItem(
-                          count: userData?['followersCount']?.toString() ??
-                              '0', // ✅ Use userData
+                          count: userData?['followersCount']?.toString() ?? '0',
                           label: 'Followers',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FollowersScreen(
+                                  userIds: List<String>.from(
+                                      userData?['followers'] ?? []),
+                                  token:
+                                      widget.token, // Pass the required token
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(width: 20),
                         _StatItem(
-                          count: userData?['followingCount']?.toString() ??
-                              '0', // ✅ Use userData
-                          label: 'Following',
+                          count: userData?['followingCount']?.toString() ?? '0',
+                          label: 'following',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FollowingScreen(
+                                  userIds: List<String>.from(
+                                      userData?['following'] ?? []),
+
+                                  token:
+                                      widget.token, // Pass the required token),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(width: 20),
                         _StatItem(
@@ -504,6 +545,38 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                     // 📌 Section Carnet d’Adresses avec les données du carnet
                     SizedBox(
+                      height: 30,
+                      child: userCarnet.isNotEmpty
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  userCarnet[0].title ?? "Titre non spécifié",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    buildStarRating(
+                                        userCarnet[0].globalAverageRating),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      userCarnet[0]
+                                          .globalAverageRating
+                                          .toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : const SizedBox(),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
                       height: 180,
                       child: userCarnet.isNotEmpty &&
                               userCarnet[0].places.isNotEmpty
@@ -559,6 +632,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         },
                       ),
                     ),
+                    // 📌 Section Événements
                     const SizedBox(height: 32),
                     const Text(
                       'Événements',
@@ -807,27 +881,29 @@ class AddressCard extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final String count;
   final String label;
+  final VoidCallback? onTap;
 
-  const _StatItem({required this.count, required this.label});
+  const _StatItem({
+    required this.count,
+    required this.label,
+    this.onTap,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.black54,
-          ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(label),
+        ],
+      ),
     );
   }
 }

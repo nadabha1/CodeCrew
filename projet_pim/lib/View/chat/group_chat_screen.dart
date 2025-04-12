@@ -63,7 +63,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> fetchMessages() async {
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/messages/c/${widget.conversationId}'));
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/messages/c/${widget.conversationId}'));
     if (response.statusCode == 200) {
       final List<dynamic> jsonData = jsonDecode(response.body);
       setState(() {
@@ -143,20 +144,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final message = messages[index];
-final isMe = (message['sender'] is String)
-    ? message['sender'] == _userId  // Si sender est une chaîne
-    : message['sender']['_id'] == _userId;  // Si sender est un objet
+                  final isMe = (message['sender'] is String)
+                      ? message['sender'] == _userId // Si sender est une chaîne
+                      : message['sender']['_id'] ==
+                          _userId; // Si sender est un objet
 
-final senderName = (message['sender'] is String)
-    ? 'Utilisateur inconnu'  // Si sender est juste un ID, pas de nom
-    : message['sender']['name'] ?? 'Utilisateur inconnu';  // Si sender est un objet
+                  final senderName = (message['sender'] is String)
+                      ? 'Utilisateur inconnu' // Si sender est juste un ID, pas de nom
+                      : message['sender']['name'] ??
+                          'Utilisateur inconnu'; // Si sender est un objet
 
                   return Align(
-                    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment:
+                        isMe ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       padding: EdgeInsets.all(8),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                      constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.7),
                       decoration: BoxDecoration(
                         color: isMe ? Colors.blue[200] : Colors.white,
                         borderRadius: BorderRadius.circular(12),

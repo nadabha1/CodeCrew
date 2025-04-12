@@ -97,10 +97,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      await _uploadImage(pickedFile);
-    }
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt),
+              title: Text('Prendre une photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile =
+                    await _picker.pickImage(source: ImageSource.camera);
+                if (pickedFile != null) {
+                  await _uploadImage(pickedFile);
+                }
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Choisir depuis la galerie'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile =
+                    await _picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null) {
+                  await _uploadImage(pickedFile);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// ✅ **Send Updated Data to API**

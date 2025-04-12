@@ -45,7 +45,7 @@ class _MainScreenState extends State<MainScreen> {
       } else {
         _fetchUnreadNotifications();
         _pages = [
-          HomeScreen(userId: _userId!),
+          HomeScreen(userId: _userId!, token: _token!),
           ExploreScreen(userId: _userId!),
           ConversationListScreen(),
           NotificationScreen(userId: _userId!),
@@ -57,7 +57,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchUnreadNotifications() async {
     if (_userId != null) {
-      final count = await _notificationService.getUnreadNotificationsCount(_userId!);
+      final count =
+          await _notificationService.getUnreadNotificationsCount(_userId!);
       setState(() {
         _unreadNotifications = count;
       });

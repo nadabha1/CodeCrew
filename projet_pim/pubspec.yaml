@@ -51,6 +51,8 @@ dependencies:
   device_calendar: ^4.0.0
   permission_handler: ^11.0.0
   table_calendar: ^3.0.9
+  flutter_speed_dial: ^7.0.0
+
 
 
   flutter_localizations:
