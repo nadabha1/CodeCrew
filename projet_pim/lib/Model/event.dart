@@ -13,6 +13,7 @@ class Event {
   final int joinPrice;
   final String conversationId;
   final String type;
+  String? imagePath; // Add imagePath here
 
   Event({
     required this.id,
@@ -27,6 +28,7 @@ class Event {
     required this.joinPrice,
     required this.conversationId,
     required this.type,
+    this.imagePath, // Add this to the constructor
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {
@@ -36,24 +38,44 @@ class Event {
       if (json['location'] is String) {
         try {
           List<String> coordinates = json['location'].split(',');
-          parsedLocation = LatLng(
-            double.parse(coordinates[0].trim()),
-            double.parse(coordinates[1].trim()),
-          );
+          if (coordinates.length == 2) {
+            parsedLocation = LatLng(
+              double.parse(coordinates[0].trim()),
+              double.parse(coordinates[1].trim()),
+            );
+          } else {
+            throw FormatException("Invalid location format");
+          }
         } catch (e) {
-          print("❌ Erreur parsing location: $e");
+          print("❌ Error parsing location string: $e");
         }
       } else if (json['location'] is Map<String, dynamic>) {
-        parsedLocation = LatLng(
-          (json['location']['latitude'] ?? 0).toDouble(),
-          (json['location']['longitude'] ?? 0).toDouble(),
-        );
+        try {
+          parsedLocation = LatLng(
+            (json['location']['latitude'] ?? 0).toDouble(),
+            (json['location']['longitude'] ?? 0).toDouble(),
+          );
+        } catch (e) {
+          print("❌ Error parsing location map: $e");
+        }
       }
     }
 
     final participantsList = (json['participants'] as List)
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
+        .map((e) {
+          if (e is String) {
+            return {'_id': e}; // Wrap the string in a map with `_id` as the key
+          } else if (e is Map) {
+            return Map<String, dynamic>.from(
+                e as Map); // Explicitly cast to Map<String, dynamic>
+          } else {
+            return <String, dynamic>{}; // Handle unexpected cases gracefully
+          }
+        })
+        .toList()
+        .cast<
+            Map<String,
+                dynamic>>(); // Ensure the list is of type List<Map<String, dynamic>>
 
     return Event(
       id: json['_id'],
@@ -70,6 +92,7 @@ class Event {
       joinPrice: json['joinPrice'] ?? 5,
       conversationId: json['conversationId'] ?? '',
       type: json['type'] ?? 'Other',
+      imagePath: json['imagePath'], // Parse the imagePath here
     );
   }
 
@@ -86,6 +109,7 @@ class Event {
     int? joinPrice,
     String? conversationId,
     String? type,
+    String? imagePath, // Add imagePath as an optional parameter
   }) {
     return Event(
       id: id ?? this.id,
@@ -100,6 +124,7 @@ class Event {
       joinPrice: joinPrice ?? this.joinPrice,
       conversationId: conversationId ?? this.conversationId,
       type: type ?? this.type,
+      imagePath: imagePath ?? this.imagePath, // Update copyWith for imagePath
     );
   }
 }

@@ -121,16 +121,18 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                           MaterialPageRoute(
                             builder: (context) => isGroupChat
                                 ? GroupChatScreen(
-                                                                    eventProvider: EventProvider(userId: _userId!),
+                                    eventProvider:
+                                        EventProvider(userId: _userId!),
 
                                     conversationId: conversation['_id'],
                                     groupName: conversation[
                                         'title'], // ✅ Passe le titre du groupe
                                   )
                                 : ChatScreen(
-                                  eventProvider: EventProvider(userId: _userId!),
-                                  token: "",
-                                  userId: _userId!,
+                                    eventProvider:
+                                        EventProvider(userId: _userId!),
+                                    token: "",
+                                    userId: _userId!,
                                     conversationId: conversation['_id'],
                                   ),
                           ),
