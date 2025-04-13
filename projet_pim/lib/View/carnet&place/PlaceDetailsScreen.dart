@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
 
 class PlaceDetailsScreen extends StatefulWidget {
   final Place place;
@@ -107,12 +108,15 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   }
 
   void _openInGoogleMaps(double latitude, double longitude) async {
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    final url = Platform.isAndroid
+        ? Uri.parse('geo:$latitude,$longitude?q=$latitude,$longitude')
+        : Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+
     if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      throw 'Impossible d’ouvrir Google Maps';
+      throw 'Could not launch $url';
     }
   }
 
@@ -153,6 +157,20 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         ),
       );
     }
+  }
+
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
   }
 
   void _showEditReviewDialog(Review review) {
@@ -259,6 +277,10 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(widget.place.name,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+
             if (widget.place.images.isNotEmpty)
               SizedBox(
                 height: 250,
@@ -287,12 +309,35 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 child:
                     Center(child: Icon(Icons.photo, color: Colors.grey[500])),
               ),
-            SizedBox(height: 15),
-            Text(widget.place.name,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+
+            Row(
+              children: [
+                buildStarRating(widget.place.averageRating),
+                const SizedBox(width: 6),
+                Text(
+                  widget.place.averageRating.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
+            if (widget.place.categories != null &&
+                widget.place.categories.isNotEmpty)
+              Wrap(
+                spacing: 8.0,
+                children: widget.place.categories.map((category) {
+                  return Chip(
+                    label: Text(category),
+                    backgroundColor: Colors.deepPurple[100],
+                  );
+                }).toList(),
+              ),
+
             SizedBox(height: 8),
-            Text(widget.place.description,
-                style: TextStyle(fontSize: 16, color: Colors.black54)),
+            Text(
+              widget.place.description,
+              style: const TextStyle(fontSize: 20),
+            ),
             SizedBox(height: 20),
             Container(
               height: 250,

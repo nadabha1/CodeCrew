@@ -570,7 +570,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                             child: Container(
                                               width: 200,
                                               height:
-                                                  260, // Largeur de la carte
+                                                  360, // Largeur de la carte
                                               padding: EdgeInsets.all(10),
                                               child: Column(
                                                 children: [

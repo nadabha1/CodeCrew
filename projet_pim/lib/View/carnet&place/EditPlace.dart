@@ -9,7 +9,6 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart'; // Import FlutterMap package
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart'; // Import LatLng
 
 class EditPlace extends StatefulWidget {
   final Place place;
@@ -241,6 +240,7 @@ class _EditPlaceState extends State<EditPlace> {
               const SizedBox(height: 8),
 
               // Ajout de FlutterMap pour afficher la localisation
+
               Container(
                 height: 250,
                 decoration: BoxDecoration(
