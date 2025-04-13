@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Widgets/eventCardMessageWidget.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -8,10 +10,14 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class GroupChatScreen extends StatefulWidget {
   final String conversationId;
   final String groupName;
+  final EventProvider eventProvider;
+
 
   const GroupChatScreen({
     required this.conversationId,
     required this.groupName,
+      required this.eventProvider,
+
   });
 
   @override
@@ -153,6 +159,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       ? 'Utilisateur inconnu' // Si sender est juste un ID, pas de nom
                       : message['sender']['name'] ??
                           'Utilisateur inconnu'; // Si sender est un objet
+if (message['type'] == 'shared_event') {
+  return FutureBuilder(
+    future: widget.eventProvider.getEventById(message['event']),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());
+      }
+      if (!snapshot.hasData) return Text("Événement introuvable");
+
+      return EventCardMessage(
+        event: snapshot.data!,
+        userId: _userId ?? '',
+        token: '', // ajoute ton token si besoin
+        eventProvider: widget.eventProvider,
+      );
+    },
+  );
+}
 
                   return Align(
                     alignment:
@@ -194,6 +218,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         ],
                       ),
                     ),
+                    
                   );
                 },
               ),

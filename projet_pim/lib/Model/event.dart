@@ -5,15 +5,14 @@ class Event {
   final String title;
   final String description;
   final String creatorId;
-  final DateTime startDate; // Ensure this matches your backend response
-  final DateTime endDate; // Ensure this matches your backend response
+  final DateTime startDate;
+  final DateTime endDate;
   final LatLng location;
-  final List<dynamic> participants;
+  final List<Map<String, dynamic>> participants;
   final bool isParticipating;
   final int joinPrice;
-  final String conversationId; // ➡️ Nouvelle propriété
-
-  final String type; // Add event type
+  final String conversationId;
+  final String type;
 
   Event({
     required this.id,
@@ -31,15 +30,15 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {
-    LatLng parsedLocation = LatLng(0, 0); // Valeur par défaut
+    LatLng parsedLocation = LatLng(0, 0);
 
     if (json['location'] != null) {
       if (json['location'] is String) {
         try {
           List<String> coordinates = json['location'].split(',');
           parsedLocation = LatLng(
-            double.parse(coordinates[0].trim()), // Latitude
-            double.parse(coordinates[1].trim()), // Longitude
+            double.parse(coordinates[0].trim()),
+            double.parse(coordinates[1].trim()),
           );
         } catch (e) {
           print("❌ Erreur parsing location: $e");
@@ -51,22 +50,26 @@ class Event {
         );
       }
     }
+
+    final participantsList = (json['participants'] as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+
     return Event(
       id: json['_id'],
       title: json['title'],
       description: json['description'],
-      creatorId: json['creatorId'],
-      startDate: DateTime.parse(json['startDate']), // Adjust key if necessary
-      endDate: DateTime.parse(json['endDate']), // Adjust key if necessary
-      location: parsedLocation, // ✅ Gère string ou Map
-
-      participants: List<String>.from(json['participants']),
-      isParticipating: List<String>.from(json['participants']).contains(userId),
+      creatorId: json['creatorId'] is Map<String, dynamic>
+          ? json['creatorId']['_id']
+          : json['creatorId'],
+      startDate: DateTime.parse(json['startDate']),
+      endDate: DateTime.parse(json['endDate']),
+      location: parsedLocation,
+      participants: participantsList,
+      isParticipating: participantsList.any((p) => p['_id'] == userId),
       joinPrice: json['joinPrice'] ?? 5,
-      conversationId:
-          json['conversationId'], // ➡️ Assure-toi de l'inclure ici aussi
-
-      type: json['type'] ?? 'Other', // Handle missing type
+      conversationId: json['conversationId'] ?? '',
+      type: json['type'] ?? 'Other',
     );
   }
 
@@ -78,9 +81,9 @@ class Event {
     DateTime? startDate,
     DateTime? endDate,
     LatLng? location,
-    List<String>? participants,
+    List<Map<String, dynamic>>? participants,
     bool? isParticipating,
-    double? joinPrice,
+    int? joinPrice,
     String? conversationId,
     String? type,
   }) {
@@ -94,7 +97,7 @@ class Event {
       location: location ?? this.location,
       participants: participants ?? this.participants,
       isParticipating: isParticipating ?? this.isParticipating,
-      joinPrice: (joinPrice?.toInt() ?? this.joinPrice),
+      joinPrice: joinPrice ?? this.joinPrice,
       conversationId: conversationId ?? this.conversationId,
       type: type ?? this.type,
     );

@@ -14,7 +14,6 @@ import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
 import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
 import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsProviderScreen.dart';
-import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
 import 'package:projet_pim/View/Event/event_chat_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
@@ -28,6 +27,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/login.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/ViewModel/login.dart';
+// ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 

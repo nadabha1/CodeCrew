@@ -2,13 +2,24 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
+  final EventProvider eventProvider;
+  final String token;
+  final String userId;
 
-  ChatScreen({required this.conversationId});
+  ChatScreen({
+    required this.conversationId,
+    required this.eventProvider,
+    required this.token,
+    required this.userId,
+  });
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -17,126 +28,68 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _messageController = TextEditingController();
-  String? _userId;
-  String? otherUserName; // Stocke le nom du correspondant
-  List conversations = [];
+  String? otherUserName;
 
   @override
   void initState() {
     super.initState();
-    getUserId();
-    fetchConversations(); // ✅ Appel pour récupérer les noms des participants
+    fetchConversations();
     fetchMessages();
   }
 
-  Future<void> getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString("user_id");
-  }
-
   Future<void> fetchConversations() async {
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString("user_id");
-    bool isLoading = true;
-
     final response = await http.get(Uri.parse(
         '${ApiConstants.baseUrl}/conversations/name/${widget.conversationId}'));
-
     if (response.statusCode == 200) {
-      // ✅ Correction: utilise Map au lieu de List
-      final Map<String, dynamic> conversationData = json.decode(response.body);
-
-      setState(() {
-        isLoading = false;
-
-        // ✅ Accède aux participants de la conversation
-        final List participants = conversationData['participants'] ?? [];
-
-        // ✅ Récupère le nom du participant
-        String name = getParticipantName(participants);
-        setState(() {
-          otherUserName = name; // ✅ Met à jour le nom du correspondant
-        });
-      });
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-      print('❌ Erreur lors du chargement des conversations');
-    }
-  }
-
-  String getParticipantName(List<dynamic> participants) {
-    try {
-      final otherParticipant = participants.firstWhere(
-        (p) => p['_id'] != _userId,
+      final data = json.decode(response.body);
+      final participants = data['participants'];
+      final other = participants.firstWhere(
+        (p) => p['_id'] != widget.userId,
         orElse: () => null,
       );
-
-      if (otherParticipant != null &&
-          otherParticipant is Map &&
-          otherParticipant.containsKey('name')) {
-        return otherParticipant['name'] ?? 'Utilisateur inconnu';
-      }
-    } catch (e) {
-      print("🚨 Erreur lors de la récupération du nom: $e");
+      setState(() {
+        otherUserName = other?['name'] ?? "Utilisateur";
+      });
     }
-    return 'Utilisateur inconnu';
   }
 
   Future<void> fetchMessages() async {
-    final url =
-        '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}';
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}'));
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonData = jsonDecode(response.body);
+      final List<dynamic> data = jsonDecode(response.body);
       setState(() {
-        messages = jsonData
-            .map((msg) => {
-                  'id': msg['_id'],
-                  'content': msg['content'],
-                  'sender': msg['sender'],
-                  'createdAt': msg['createdAt'],
-                })
-            .toList();
+        messages = data.map((msg) {
+          return {
+            'id': msg['_id'],
+            'sender': msg['sender'],
+            'content': msg['content'],
+            'type': msg['type'] ?? 'text',
+            'eventId': msg['event'],
+            'createdAt': msg['createdAt']
+          };
+        }).toList();
       });
-    } else {
-      print("❌ Erreur de chargement: ${response.body}");
     }
   }
 
-  String formatTimestamp(dynamic timestamp) {
-    if (timestamp == null || timestamp == "") return "⏳";
-    try {
-      DateTime dateTime;
-      if (timestamp is String) {
-        dateTime = DateTime.parse(timestamp).toLocal();
-      } else if (timestamp is int) {
-        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
-      } else {
-        return "⏳";
-      }
-      return DateFormat('HH:mm').format(dateTime);
-    } catch (e) {
-      print("Error parsing timestamp: $timestamp");
-      return "⏳";
-    }
+  String formatTimestamp(dynamic ts) {
+    if (ts == null) return "";
+    DateTime dateTime = DateTime.parse(ts).toLocal();
+    return DateFormat('HH:mm').format(dateTime);
   }
 
-  Future<void> sendMessage() async {
-    final messageText = _messageController.text;
-    if (messageText.isEmpty) return;
-
-    final url = '${ApiConstants.baseUrl}/messages';
+  Future<void> sendMessage({String? text, String? eventId}) async {
     final response = await http.post(
-      Uri.parse(url),
+      Uri.parse('${ApiConstants.baseUrl}/messages'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "conversationId": widget.conversationId,
-        "senderId": _userId,
-        "content": messageText,
-        "createdAt": DateTime.now().toIso8601String(),
+        "senderId": widget.userId,
+        "content": text ?? '',
+        "type": eventId != null ? "shared_event" : "text",
+        "eventId": eventId,
       }),
     );
 
@@ -148,111 +101,122 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Widget _buildSharedEventCard(String eventId) {
+    return FutureBuilder<Event>(
+      future: widget.eventProvider.getEventById(eventId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Text("Chargement...");
+        }
+        if (!snapshot.hasData) {
+          return Text("Événement introuvable");
+        }
+
+        final event = snapshot.data!;
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EventDetailsScreen(
+                  event: event,
+                  userId: widget.userId,
+                  token: widget.token,
+                  eventProvider: widget.eventProvider,
+                ),
+              ),
+            );
+          },
+          child: Card(
+            color: Color(0xFFE6F0FF),
+            margin: EdgeInsets.symmetric(vertical: 6),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("📢 *${event.title}*", style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 4),
+                  Text("📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
+                  Text("📅 Début : ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
+                  Text("🔗 Rejoins : chat/${event.id}"),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(otherUserName ?? "Utilisateur inconnu"),
+        title: Text(otherUserName ?? "Discussion"),
         backgroundColor: const Color(0xFFFFCDB1),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.2,
-              child: Image.asset(
-                "assets/whatsapp.jpeg",
-                fit: BoxFit.cover,
-              ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.all(8),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                final isMe = msg['sender']?['_id'] == widget.userId;
+
+                return Align(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: msg['type'] == 'shared_event'
+                      ? _buildSharedEventCard(msg['eventId'])
+                      : Container(
+                          margin: EdgeInsets.symmetric(vertical: 6),
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isMe ? Colors.deepPurple[100] : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(msg['content'] ?? ""),
+                              SizedBox(height: 4),
+                              Text(formatTimestamp(msg['createdAt']), style: TextStyle(fontSize: 10)),
+                            ],
+                          ),
+                        ),
+                );
+              },
             ),
           ),
-          Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: messages.length,
-                  padding: EdgeInsets.all(10),
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message['sender']?['_id'].toString() ==
-                        _userId.toString();
-
-                    return Align(
-                      alignment:
-                          isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin:
-                            EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                        padding:
-                            EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                        decoration: BoxDecoration(
-                          color:
-                              isMe ? const Color(0xFFF3C7F9) : Colors.grey[300],
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                            bottomLeft:
-                                isMe ? Radius.circular(12) : Radius.circular(0),
-                            bottomRight:
-                                isMe ? Radius.circular(0) : Radius.circular(12),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              message['content'],
-                              style: TextStyle(
-                                  color: isMe ? Colors.white : Colors.black,
-                                  fontSize: 16),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              formatTimestamp(message['createdAt']),
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: "Écrire un message...",
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+          Divider(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: "Écrire un message...",
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFCDB1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.send, color: Colors.white),
-                        onPressed: sendMessage,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+                SizedBox(width: 6),
+                IconButton(
+                  icon: Icon(Icons.send, color: Colors.deepPurple),
+                  onPressed: () => sendMessage(text: _messageController.text),
+                ),
+              ],
+            ),
+          )
         ],
       ),
     );

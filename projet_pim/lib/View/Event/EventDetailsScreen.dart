@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
@@ -10,9 +12,13 @@ import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
+import 'package:projet_pim/ViewModel/shareEventMessage.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -321,6 +327,8 @@ final userId = participant['_id'];
                       context,
                       MaterialPageRoute(
                         builder: (context) => GroupChatScreen(
+                                                            eventProvider: EventProvider(userId: widget.userId),
+
                           conversationId: widget.event.conversationId,
                           groupName: widget.event.title,
                         ),
@@ -337,6 +345,27 @@ final userId = participant['_id'];
                     ),
                   ),
                 ),
+                ElevatedButton.icon(
+  onPressed: () {
+    _showShareInConversationDialog();
+  },
+  icon: Icon(Icons.share, color: Colors.white),
+  label: Text("Partager dans une conversation"),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.deepPurple,
+    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+),
+ElevatedButton.icon(
+  onPressed: shareEventToMessenger,
+  icon: Icon(Icons.send),
+  label: Text("Partager sur Messenger"),
+  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+),
+
             ],
           ),
         ),
@@ -357,7 +386,121 @@ final userId = participant['_id'];
                 style: TextStyle(fontSize: 16, color: Colors.black))),
       ],
     );
+  }void _showShareInConversationDialog() async {
+  final response = await http.get(
+    Uri.parse('${ApiConstants.baseUrl}/conversations/${widget.userId}'),
+    headers: {'Authorization': 'Bearer ${widget.token}'},
+  );
+
+  if (response.statusCode == 200) {
+    final conversations = jsonDecode(response.body);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Partager l'événement"),
+        content: Container(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: conversations.length,
+            itemBuilder: (context, index) {
+              final conv = conversations[index];
+              final List participants = conv['participants'];
+              String nameToDisplay;
+
+              if (conv['title'] != null && conv['title'].toString().isNotEmpty) {
+                nameToDisplay = conv['title']; // Groupe
+              } else {
+                final other = participants.firstWhere(
+                  (p) => p['_id'] != widget.userId,
+                  orElse: () => {'name': 'Utilisateur inconnu'},
+                );
+                nameToDisplay = other['name'] ?? 'Utilisateur inconnu'; // Privée
+              }
+
+              return ListTile(
+                title: Text(nameToDisplay),
+                onTap: () async {
+                  final event = widget.event;
+
+                  final message = """
+📢 *${event.title}*
+📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
+📅 Début : ${_formatDate(event.startDate)}
+🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
+""";
+
+                  await shareEventMessage(
+                    conversationId: conv['_id'],
+                    userId: widget.userId,
+                    eventId: event.id,
+                    context: context,
+                    msg: message,
+                  );
+
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  } else {
+    print('❌ Erreur lors de la récupération des conversations');
   }
+}
+
+void shareEventToMessenger() {
+  final event = widget.event;
+  final message = """
+📢 ${event.title}
+📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
+📅 Début : ${_formatDate(event.startDate)}
+🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
+""";
+
+  Share.share(message);
+}
+void _shareEventToConversation(String conversationId) async {
+  final event = widget.event;
+
+  final message = """
+📢 *${event.title}*
+📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
+📅 Début : ${_formatDate(event.startDate)}
+🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
+
+""";
+
+  final response = await http.post(
+    Uri.parse('${ApiConstants.baseUrl}/messages'),
+    headers: {
+      'Authorization': 'Bearer ${widget.token}',
+      'Content-Type': 'application/json'
+    },
+    body: jsonEncode({
+      "conversationId": conversationId,
+      "senderId": widget.userId,
+      "content": message,
+    }),
+  );
+  print("🔁 Envoi : $conversationId | sender=${widget.userId}");
+  print("🔁 Contenu : $message");
+
+
+  if (response.statusCode == 201) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('✅ Événement partagé avec succès !')),
+    );
+  } else {
+    print("Erreur d'envoi : ${response.body}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('❌ Échec du partage de l’événement')),
+    );
+  }
+}
 
   Widget _buildLocationDetailRow(String coords) {
     return FutureBuilder<String>(
