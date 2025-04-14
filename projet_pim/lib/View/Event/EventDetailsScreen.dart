@@ -50,22 +50,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _fetchParticipants() async {
-  Map<String, dynamic> details = {};
-  for (var participant in widget.event.participants) {
-    final userId = participant['_id'];
-    try {
-      var user = await userService.getUserById(userId, widget.token);
-      details[userId] = user;
-    } catch (e) {
-      print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
+    Map<String, dynamic> details = {};
+    for (var participant in widget.event.participants) {
+      final userId = participant['_id'];
+      try {
+        var user = await userService.getUserById(userId, widget.token);
+        details[userId] = user;
+      } catch (e) {
+        print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
+      }
     }
+    setState(() {
+      participantDetails = details;
+      isLoading = false;
+    });
   }
-  setState(() {
-    participantDetails = details;
-    isLoading = false;
-  });
-}
-
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, HH:mm').format(date); // Format personnalisé
@@ -111,13 +110,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true, // ← AJOUT ICI
+
       appBar: AppBar(
         title: Text(widget.event.title,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: const Color.fromARGB(255, 0, 0, 0),
             )),
-        backgroundColor: const Color(0xFFEDE7F6),
+        backgroundColor: Colors.transparent, // rendre l'AppBar transparente
+        elevation: 0, // supprimer l'ombre
         actions: [
           if (widget.event.creatorId == widget.userId)
             IconButton(
@@ -139,236 +141,258 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFEDE7F6),
-              Color(0xFFD1C4E9),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(
-            children: [
-              Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
-                elevation: 5,
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.event.title,
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black)),
-                      SizedBox(height: 10),
-                      Text(widget.event.description,
-                          style:
-                              TextStyle(fontSize: 16, color: Colors.grey[800])),
-                      SizedBox(height: 15),
-                      _buildLocationDetailRow(
-                          "${widget.event.location.latitude},${widget.event.location.longitude}"),
-                      SizedBox(height: 15),
-                      _buildDetailRow(
-                        Icons.event,
-                        "Début",
-                        _formatDate(widget.event.startDate),
-                        iconColor: Color(0xFF4CAF50),
-                      ),
-                      SizedBox(height: 6),
-                      _buildDetailRow(
-                        Icons.event_available,
-                        "Fin",
-                        _formatDate(widget.event.endDate),
-                        iconColor: Color(0xFF81C784),
-                      ),
-                      _buildDetailRow(Icons.people, "Participants",
-                          "${widget.event.participants.length} inscrits",
-                          iconColor: Color(0xFF29B6F6)),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                height: 250,
+      body: Stack(
+        children: [
+          // Image en haut de la page
+          if (widget.event.imagePath != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 400, // ajustez la taille de l'image ici
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: FlutterMap(
-                  options: MapOptions(
-                    center: LatLng(widget.event.location.latitude ?? 0.0,
-                        widget.event.location.longitude ?? 0.0),
-                    zoom: 15.0,
+                  borderRadius:
+                      BorderRadius.vertical(bottom: Radius.circular(20)),
+                  image: DecorationImage(
+                    image: NetworkImage(widget.event.imagePath!),
+                    fit: BoxFit.cover,
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: ['a', 'b', 'c'],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: LatLng(widget.event.location.latitude ?? 0.0,
-                              widget.event.location.longitude ?? 0.0),
-                          width: 40.0,
-                          height: 40.0,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  {
-                    _openInGoogleMaps(widget.event.location.latitude!,
-                        widget.event.location.longitude!);
-                  }
-                },
-                child: const Text("Ouvrir dans Google Maps"),
-              ),
-              SizedBox(height: 20),
-              Text("Participants",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4E4E4E))),
-              SizedBox(height: 10),
-              isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : widget.event.participants.isEmpty
-                      ? Text("Aucun participant pour l’instant.",
-                          style: TextStyle(color: Colors.grey[700]))
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: widget.event.participants.length,
-                          itemBuilder: (context, index) {
-final participant = widget.event.participants[index];
-final userId = participant['_id'];
-                            var user = participantDetails[userId];
-                            bool isCurrentUser = userId == widget.userId;
+            ),
+          // Contenu de la page
+          Padding(
+            padding: const EdgeInsets.only(
+                top: 220.0), // Ajustez en fonction de la taille de l'image
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                      elevation: 5,
+                      color: Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(widget.event.title,
+                                style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black)),
+                            SizedBox(height: 10),
+                            Text(widget.event.description,
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.grey[800])),
+                            SizedBox(height: 15),
+                            _buildLocationDetailRow(
+                                "${widget.event.location.latitude},${widget.event.location.longitude}"),
+                            SizedBox(height: 15),
+                            _buildDetailRow(
+                              Icons.event,
+                              "Début",
+                              _formatDate(widget.event.startDate),
+                              iconColor: Color(0xFF4CAF50),
+                            ),
+                            SizedBox(height: 6),
+                            _buildDetailRow(
+                              Icons.event_available,
+                              "Fin",
+                              _formatDate(widget.event.endDate),
+                              iconColor: Color(0xFF81C784),
+                            ),
+                            _buildDetailRow(Icons.people, "Participants",
+                                "${widget.event.participants.length} inscrits",
+                                iconColor: Color(0xFF29B6F6)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      height: 250,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: FlutterMap(
+                        options: MapOptions(
+                          center: LatLng(widget.event.location.latitude ?? 0.0,
+                              widget.event.location.longitude ?? 0.0),
+                          zoom: 15.0,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            subdomains: ['a', 'b', 'c'],
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: LatLng(
+                                    widget.event.location.latitude ?? 0.0,
+                                    widget.event.location.longitude ?? 0.0),
+                                width: 40.0,
+                                height: 40.0,
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: Colors.red,
+                                  size: 40,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        _openInGoogleMaps(widget.event.location.latitude!,
+                            widget.event.location.longitude!);
+                      },
+                      child: const Text("Ouvrir dans Google Maps"),
+                    ),
+                    SizedBox(height: 20),
+                    Text("Participants",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4E4E4E))),
+                    // SizedBox(height: 10),
+                    isLoading
+                        ? Center(child: CircularProgressIndicator())
+                        : widget.event.participants.isEmpty
+                            ? Text("Aucun participant pour l’instant.",
+                                style: TextStyle(color: Colors.grey[700]))
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: widget.event.participants.length,
+                                itemBuilder: (context, index) {
+                                  final participant =
+                                      widget.event.participants[index];
+                                  final userId = participant['_id'];
+                                  var user = participantDetails[userId];
+                                  bool isCurrentUser = userId == widget.userId;
 
-                            return GestureDetector(
-                              onTap: () {
-                                if (isCurrentUser) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          MainScreen(initialIndex: 4),
-                                    ),
-                                  );
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TravelerProfileScreen(
-                                        travelerId: userId,
-                                        loggedInUserId: widget.userId,
-                                        token: widget.token,
+                                  return GestureDetector(
+                                    onTap: () {
+                                      if (isCurrentUser) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                MainScreen(initialIndex: 4),
+                                          ),
+                                        );
+                                      } else {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                TravelerProfileScreen(
+                                              travelerId: userId,
+                                              loggedInUserId: widget.userId,
+                                              token: widget.token,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: Card(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      child: ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundImage: user?[
+                                                      "profileImage"] !=
+                                                  null
+                                              ? NetworkImage(
+                                                  user["profileImage"])
+                                              : const AssetImage(
+                                                  "assets/default_avatar.png"),
+                                        ),
+                                        title: Text(
+                                          "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        subtitle: Text(
+                                            user?["email"] ?? "Email inconnu"),
                                       ),
                                     ),
                                   );
-                                }
-                              },
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundImage:
-                                        user?["profileImage"] != null
-                                            ? NetworkImage(user["profileImage"])
-                                            : AssetImage(
-                                                    "assets/default_avatar.png")
-                                                as ImageProvider,
-                                  ),
-                                  title: Text(
-                                    "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  subtitle:
-                                      Text(user?["email"] ?? "Email inconnu"),
-                                ),
+                                },
                               ),
-                            );
-                          },
-                        ),
-              SizedBox(height: 20),
-              if (widget.event.participants.contains(widget.userId))
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupChatScreen(
-                                                            eventProvider: EventProvider(userId: widget.userId),
-
-                          conversationId: widget.event.conversationId,
-                          groupName: widget.event.title,
+                    // SizedBox(height: 20),
+                    if (widget.event.participants.contains(widget.userId))
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GroupChatScreen(
+                                eventProvider:
+                                    EventProvider(userId: widget.userId),
+                                conversationId: widget.event.conversationId,
+                                groupName: widget.event.title,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.chat, color: Colors.white),
+                        label: Text("Rejoindre le Chat"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromARGB(255, 221, 170, 228),
+                          padding: EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                    );
-                  },
-                  icon: Icon(Icons.chat, color: Colors.white),
-                  label: Text("Rejoindre le Chat"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromARGB(255, 221, 170, 228),
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        _showShareInConversationDialog();
+                      },
+                      icon: Icon(Icons.share, color: Colors.white),
+                      label: Text("Partager dans une conversation"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ),
+                    ElevatedButton.icon(
+                      onPressed: shareEventToMessenger,
+                      icon: Icon(Icons.send),
+                      label: Text("Partager sur Messenger"),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent),
+                    ),
+                  ],
                 ),
-                ElevatedButton.icon(
-  onPressed: () {
-    _showShareInConversationDialog();
-  },
-  icon: Icon(Icons.share, color: Colors.white),
-  label: Text("Partager dans une conversation"),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.deepPurple,
-    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-  ),
-),
-ElevatedButton.icon(
-  onPressed: shareEventToMessenger,
-  icon: Icon(Icons.send),
-  label: Text("Partager sur Messenger"),
-  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-),
-
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -386,87 +410,92 @@ ElevatedButton.icon(
                 style: TextStyle(fontSize: 16, color: Colors.black))),
       ],
     );
-  }void _showShareInConversationDialog() async {
-  final response = await http.get(
-    Uri.parse('${ApiConstants.baseUrl}/conversations/${widget.userId}'),
-    headers: {'Authorization': 'Bearer ${widget.token}'},
-  );
+  }
 
-  if (response.statusCode == 200) {
-    final conversations = jsonDecode(response.body);
+  void _showShareInConversationDialog() async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/conversations/${widget.userId}'),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
+    );
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Partager l'événement"),
-        content: Container(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: conversations.length,
-            itemBuilder: (context, index) {
-              final conv = conversations[index];
-              final List participants = conv['participants'];
-              String nameToDisplay;
+    if (response.statusCode == 200) {
+      final conversations = jsonDecode(response.body);
 
-              if (conv['title'] != null && conv['title'].toString().isNotEmpty) {
-                nameToDisplay = conv['title']; // Groupe
-              } else {
-                final other = participants.firstWhere(
-                  (p) => p['_id'] != widget.userId,
-                  orElse: () => {'name': 'Utilisateur inconnu'},
-                );
-                nameToDisplay = other['name'] ?? 'Utilisateur inconnu'; // Privée
-              }
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Partager l'événement"),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: conversations.length,
+              itemBuilder: (context, index) {
+                final conv = conversations[index];
+                final List participants = conv['participants'];
+                String nameToDisplay;
 
-              return ListTile(
-                title: Text(nameToDisplay),
-                onTap: () async {
-                  final event = widget.event;
+                if (conv['title'] != null &&
+                    conv['title'].toString().isNotEmpty) {
+                  nameToDisplay = conv['title']; // Groupe
+                } else {
+                  final other = participants.firstWhere(
+                    (p) => p['_id'] != widget.userId,
+                    orElse: () => {'name': 'Utilisateur inconnu'},
+                  );
+                  nameToDisplay =
+                      other['name'] ?? 'Utilisateur inconnu'; // Privée
+                }
 
-                  final message = """
+                return ListTile(
+                  title: Text(nameToDisplay),
+                  onTap: () async {
+                    final event = widget.event;
+
+                    final message = """
 📢 *${event.title}*
 📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
 📅 Début : ${_formatDate(event.startDate)}
 🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
 """;
 
-                  await shareEventMessage(
-                    conversationId: conv['_id'],
-                    userId: widget.userId,
-                    eventId: event.id,
-                    context: context,
-                    msg: message,
-                  );
+                    await shareEventMessage(
+                      conversationId: conv['_id'],
+                      userId: widget.userId,
+                      eventId: event.id,
+                      context: context,
+                      msg: message,
+                    );
 
-                  Navigator.pop(context);
-                },
-              );
-            },
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
           ),
         ),
-      ),
-    );
-  } else {
-    print('❌ Erreur lors de la récupération des conversations');
+      );
+    } else {
+      print('❌ Erreur lors de la récupération des conversations');
+    }
   }
-}
 
-void shareEventToMessenger() {
-  final event = widget.event;
-  final message = """
+  void shareEventToMessenger() {
+    final event = widget.event;
+    final message = """
 📢 ${event.title}
 📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
 📅 Début : ${_formatDate(event.startDate)}
 🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
 """;
 
-  Share.share(message);
-}
-void _shareEventToConversation(String conversationId) async {
-  final event = widget.event;
+    Share.share(message);
+  }
 
-  final message = """
+  void _shareEventToConversation(String conversationId) async {
+    final event = widget.event;
+
+    final message = """
 📢 *${event.title}*
 📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
 📅 Début : ${_formatDate(event.startDate)}
@@ -474,33 +503,32 @@ void _shareEventToConversation(String conversationId) async {
 
 """;
 
-  final response = await http.post(
-    Uri.parse('${ApiConstants.baseUrl}/messages'),
-    headers: {
-      'Authorization': 'Bearer ${widget.token}',
-      'Content-Type': 'application/json'
-    },
-    body: jsonEncode({
-      "conversationId": conversationId,
-      "senderId": widget.userId,
-      "content": message,
-    }),
-  );
-  print("🔁 Envoi : $conversationId | sender=${widget.userId}");
-  print("🔁 Contenu : $message");
-
-
-  if (response.statusCode == 201) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('✅ Événement partagé avec succès !')),
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/messages'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+        'Content-Type': 'application/json'
+      },
+      body: jsonEncode({
+        "conversationId": conversationId,
+        "senderId": widget.userId,
+        "content": message,
+      }),
     );
-  } else {
-    print("Erreur d'envoi : ${response.body}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('❌ Échec du partage de l’événement')),
-    );
+    print("🔁 Envoi : $conversationId | sender=${widget.userId}");
+    print("🔁 Contenu : $message");
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ Événement partagé avec succès !')),
+      );
+    } else {
+      print("Erreur d'envoi : ${response.body}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Échec du partage de l’événement')),
+      );
+    }
   }
-}
 
   Widget _buildLocationDetailRow(String coords) {
     return FutureBuilder<String>(

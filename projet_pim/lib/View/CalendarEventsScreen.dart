@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/ViewModel/calendar_service.dart';
 import 'package:projet_pim/Model/event.dart' as CustomEvent;
@@ -173,35 +174,42 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     List<Map<String, String>> freeSlots = [];
     DateTime startOfDay = DateTime.now();
     DateTime endOfDay = DateTime.now().add(Duration(days: 30));
-    _freeSlots = _calendarService.getFreeSlots(_events);
 
-    if (events.isNotEmpty) {
-      events.sort((a, b) => a.start!.compareTo(b.start!));
+    // S’il n’y a aucun événement, toute la période est libre
+    if (events.isEmpty) {
+      freeSlots.add({
+        'start': startOfDay.toIso8601String(),
+        'end': endOfDay.toIso8601String(),
+      });
+      return freeSlots;
+    }
 
-      if (events.first.start!.isAfter(startOfDay)) {
+    // Sinon, calcul des créneaux libres entre les événements
+    events.sort((a, b) => a.start!.compareTo(b.start!));
+
+    if (events.first.start!.isAfter(startOfDay)) {
+      freeSlots.add({
+        'start': startOfDay.toIso8601String(),
+        'end': events.first.start!.toIso8601String(),
+      });
+    }
+
+    for (int i = 0; i < events.length - 1; i++) {
+      DateTime eventEnd = events[i].end!;
+      DateTime nextEventStart = events[i + 1].start!;
+      if (eventEnd.isBefore(nextEventStart)) {
         freeSlots.add({
-          'start': startOfDay.toIso8601String(),
-          'end': events.first.start!.toIso8601String(),
+          'start': eventEnd.toIso8601String(),
+          'end': nextEventStart.toIso8601String(),
         });
       }
+    }
 
-      for (int i = 0; i < events.length - 1; i++) {
-        DateTime eventEnd = events[i].end!;
-        DateTime nextEventStart = events[i + 1].start!;
-        if (eventEnd.isBefore(nextEventStart)) {
-          freeSlots.add({
-            'start': eventEnd.toIso8601String(),
-            'end': nextEventStart.toIso8601String(),
-          });
-        }
-      }
-
-      if (events.last.end!.isBefore(endOfDay)) {
-        freeSlots.add({
-          'start': events.last.end!.toIso8601String(),
-          'end': endOfDay.toIso8601String(),
-        });
-      }
+    if (events.last.end!.isBefore(endOfDay)) {
+      freeSlots.add({
+        'start': events.last.end!.toIso8601String(),
+        'end': endOfDay.toIso8601String(),
+      });
     }
 
     return freeSlots;
@@ -461,7 +469,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     );
   }*/
 
-  Widget _buildNonConflictingEventList() {
+  /* Widget _buildNonConflictingEventList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -482,49 +490,87 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
           ),
       ],
     );
-  }
+  }*/
 
   Widget _buildEventCard(CustomEvent.Event event) {
+    final dateText =
+        formatter.format(event.startDate?.toLocal() ?? DateTime.now());
+    final duration = event.endDate.difference(event.startDate).inMinutes;
+
     return Padding(
-      padding: EdgeInsets.only(right: 10),
-      child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Container(
-          width: 280,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      padding: const EdgeInsets.only(right: 12.0),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EventDetailsScreen(
+                event: event,
+                userId: userId!,
+                token: token!,
+                eventProvider: _eventProvider,
+              ),
             ),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(12),
+          );
+        },
+        child: Card(
+          elevation: 6,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            width: 400,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 210, 172, 201),
+                  Color.fromARGB(204, 150, 128, 212),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(event.title ?? 'Sans titre',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
+                Text(
+                  event.title ?? 'Sans titre',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
                 SizedBox(height: 8),
-                Text(event.description ?? 'Aucune description disponible',
-                    style: TextStyle(fontSize: 14, color: Colors.white70)),
-                SizedBox(height: 12),
+                if (event.description != null && event.description!.isNotEmpty)
+                  Text(
+                    event.description!,
+                    style: TextStyle(fontSize: 14, color: Colors.white70),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                SizedBox(height: 14),
                 Row(
                   children: [
                     Icon(Icons.calendar_today, color: Colors.white70, size: 16),
-                    SizedBox(width: 5),
+                    SizedBox(width: 6),
                     Text(
-                      formatter
-                          .format(event.startDate?.toLocal() ?? DateTime.now()),
+                      dateText,
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    Spacer(),
+                    Icon(Icons.access_time, color: Colors.white70, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      "$duration min",
                       style: TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
+                SizedBox(height: 10),
+                // Tu peux rajouter l'affichage du lieu ici plus tard
               ],
             ),
           ),
@@ -596,20 +642,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         );
 
         // Événement associé
-        messagesAndEvents.add(
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 3,
-            child: ListTile(
-              title: Text(event.title),
-              subtitle: Text(
-                  "${DateFormat.yMMMMd().add_Hm().format(event.startDate)} - ${DateFormat.Hm().format(event.endDate)}"),
-              leading: Icon(Icons.event_available),
-            ),
-          ),
-        );
+        messagesAndEvents.add(_buildEventCard(event));
       }
     }
 
@@ -709,7 +742,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     setState(() => isLoading = false);
   }
 
-  List<Event> _getEventsInSameLocation(List<Event> events) {
+  /* List<Event> _getEventsInSameLocation(List<Event> events) {
     if (_currentLocation == null) return [];
 
     return events.where((event) {
@@ -722,7 +755,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
 
       return distance < 200; // 200 mètres de tolérance (modifiable)
     }).toList();
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
