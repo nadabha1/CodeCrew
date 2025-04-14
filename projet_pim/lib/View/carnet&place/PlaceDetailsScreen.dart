@@ -33,9 +33,13 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchReviews();
-    _checkIfFavorite();
-    _getCurrentUserId();
+    _initPage();
+  }
+
+  Future<void> _initPage() async {
+    await _getCurrentUserId(); // On récupère d'abord l'ID
+    await _fetchReviews(); // Puis on peut charger les avis
+    await _checkIfFavorite(); // Ensuite les favoris
   }
 
   Future<void> _fetchReviews() async {
@@ -45,7 +49,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       setState(() => _reviews = reviews);
     } catch (e) {
       print("Erreur lors du chargement des avis: $e");
-    } finally {}
+    } finally {
+      setState(() => _isLoadingReviews = false); // 🔴 manquait ici
+    }
   }
 
   Future<void> _getCurrentUserId() async {
