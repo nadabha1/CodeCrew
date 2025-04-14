@@ -1,12 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EditEventScreen.dart';
+import 'package:projet_pim/View/Event/VideoPlayerScreen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/View/profile.dart';
@@ -19,6 +22,8 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -47,7 +52,31 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   void initState() {
     super.initState();
     _fetchParticipants();
+      checkReelExists(); // ✅ check si reel existe
+
   }
+
+
+Future<String?> pickMusicFile() async {
+  // Demande de permission
+  if (!await Permission.storage.request().isGranted) {
+    print('⛔ Permission refusée');
+    return null;
+  }
+
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['mp3', 'm4a', 'aac'],
+  );
+
+  if (result != null && result.files.single.path != null) {
+    print("🎵 Musique choisie : ${result.files.single.path}");
+    return result.files.single.path;
+  } else {
+    print("❌ Aucune musique sélectionnée");
+    return null;
+  }
+}
 
   Future<void> _fetchParticipants() async {
   Map<String, dynamic> details = {};
@@ -365,6 +394,73 @@ ElevatedButton.icon(
   label: Text("Partager sur Messenger"),
   style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
 ),
+ElevatedButton.icon(
+  icon: Icon(Icons.camera_alt),
+  label: Text("Créer un souvenir"),
+  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+  onPressed: () async {
+  final picker = ImagePicker();
+  final picked = await picker.pickMultiImage();
+
+  if (picked != null && picked.isNotEmpty) {
+    final files = picked.map((e) => File(e.path)).toList();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Téléversement en cours...")),
+    );
+
+    await uploadReelImages(widget.event.id!, widget.userId, files);
+    print(widget.event.id);
+    await generateReel(widget.event.id!);
+  }
+}
+,
+),
+ElevatedButton.icon(
+  icon: Icon(Icons.music_note),
+  label: Text("Ajouter une musique"),
+  onPressed: () async {
+    final path = await pickMusicFile();
+
+    if (path != null) {
+      // Extraire juste le nom du fichier
+      final filename = path.split('/').last;
+
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/reels/add-music/${widget.event.id}'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"music": filename}),
+      );
+
+      if (response.statusCode == 200|| response.statusCode==201) {
+        print("✅ Musique ajoutée !");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("🎵 Musique ajoutée au souvenir !")),
+        );
+      } else {
+        print("❌ Erreur : ${response.body}");
+      }
+    }
+  },
+),
+
+if(_reelExists)
+  ElevatedButton.icon(
+  icon: Icon(Icons.movie),
+  label: Text("🎬 Voir souvenir"),
+  onPressed: () {
+    final reelUrl = '${ApiConstants.baseUrl}/reels/${widget.event.id}.mp4';
+    print("🎥 Requête vers : $reelUrl");
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VideoPlayerScreen(videoUrl: reelUrl),
+      ),
+    );
+  },
+),
+
 
             ],
           ),
@@ -450,6 +546,7 @@ ElevatedButton.icon(
   } else {
     print('❌ Erreur lors de la récupération des conversations');
   }
+  
 }
 
 void shareEventToMessenger() {
@@ -520,7 +617,26 @@ void _shareEventToConversation(String conversationId) async {
       },
     );
   }
+Future<void> uploadReelImages(String eventId, String userId, List<File> images) async {
+  var request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
+  );
 
+  request.fields['eventId'] = eventId;
+  request.fields['userId'] = userId;
+
+  for (var image in images) {
+    request.files.add(await http.MultipartFile.fromPath('files', image.path));
+  }
+
+  var response = await request.send();
+  if (response.statusCode == 201) {
+    print("✅ Images uploadées avec succès");
+  } else {
+    print("❌ Erreur d’upload : ${response.statusCode}");
+  }
+  }
   Widget _buildActionButton(
       {required IconData icon,
       required String label,
@@ -536,6 +652,38 @@ void _shareEventToConversation(String conversationId) async {
         ),
         onPressed: onPressed,
       ),
+      
     );
   }
+  Future<void> generateReel(String eventId) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.baseUrl}/reels/generate/$eventId'),
+  );
+
+  if (response.statusCode == 200 || response.statusCode == 201) {
+  print("🎞️ Reel généré avec succès");
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("🎞️ Souvenir généré !")),
+  );
+  await checkReelExists(); // 🔁 Ajoute ça pour afficher le bouton "🎬 Voir souvenir"
+} else {
+  print("❌ Échec de la génération du Reel");
+  print(response.body);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Erreur lors de la génération du Reel.")),
+  );
+}
+
+}
+bool _reelExists = false;
+
+Future<void> checkReelExists() async {
+  final url = Uri.parse('${ApiConstants.baseUrl}/reels/${widget.event.id}.mp4');
+  final response = await http.head(url);
+  setState(() {
+    _reelExists = response.statusCode == 200;
+  });
+}
+
+
 }

@@ -113,6 +113,8 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
           if (userId != null && token != null) {
             await _calendarService.sendUserEventsToBackend(
                 userId!, token!, formattedEvents);
+            await _calendarService.sendUserAvailabilityToBackend(userId!, token!, _freeSlots);
+
           }
         }
       }

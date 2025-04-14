@@ -1,4 +1,3 @@
-// ✅ Version complète HomeScreen avec UI/UX + User Cards + Navigation vers leurs lieux + filtre et recherche
 
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';

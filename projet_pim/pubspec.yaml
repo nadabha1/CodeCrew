@@ -53,6 +53,9 @@ dependencies:
   table_calendar: ^3.0.9
   flutter_speed_dial: ^7.0.0
   share_plus: ^7.2.1
+  video_player: ^2.7.0
+  just_audio: ^0.9.35
+  file_picker: ^6.1.1
 
 
 
