@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/ViewModel/calendar_service.dart';
 import 'package:projet_pim/Model/event.dart' as CustomEvent;
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/date_symbol_data_local.dart'; // Add this import
 
 class CalendarEventsScreen extends StatefulWidget {
   @override
@@ -25,11 +29,15 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
   final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm'); // Formatter
   DateTime _selectedDay = DateTime.now(); // Jour sélectionné
   DateTime _focusedDay = DateTime.now(); // Jour affiché
+  LatLng? _currentLocation;
+
   @override
   void initState() {
     super.initState();
+    initializeDateFormatting('fr_FR'); // Initialize locale data for French
     _deviceCalendarPlugin = DeviceCalendar.DeviceCalendarPlugin();
     _loadUserData();
+    _getUserLocation();
   }
 
   Future<void> _loadUserData() async {
@@ -52,6 +60,32 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         isLoading = false;
       });
     }
+  }
+
+  Future<void> _getUserLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.deniedForever) {
+        return;
+      }
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    setState(() {
+      _currentLocation = LatLng(position.latitude, position.longitude);
+    });
   }
 
   Future<void> _requestPermission() async {
@@ -234,11 +268,28 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
                 _selectedDay = selectedDay;
-                _focusedDay =
-                    focusedDay; // Mise à jour de _focusedDay ici aussi
+                _focusedDay = focusedDay;
               });
-              _showEventDetailsForDay(
-                  selectedDay); // Affiche les détails pour le jour sélectionné
+
+              // _showEventDetailsForDay(selectedDay);
+
+              // Ajoute cette ligne pour afficher les slots libres
+              showModalBottomSheet(
+                context: context,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height *
+                      0.45, // Hauteur max : 45%
+                ),
+                builder: (BuildContext context) {
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.only(top: 16, bottom: 32),
+                    child: _buildFreeSlotMessagesForDay(selectedDay),
+                  );
+                },
+              );
             },
             calendarBuilders: CalendarBuilders(
               // Personnaliser l'apparence des jours
@@ -390,7 +441,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     }
   }
 
-  Widget _buildFreeSlotsList() {
+  /*Widget _buildFreeSlotsList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -408,7 +459,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
               )),
       ],
     );
-  }
+  }*/
 
   Widget _buildNonConflictingEventList() {
     return Column(
@@ -482,11 +533,195 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     );
   }
 
+  List<CustomEvent.Event> _getEventsInFreeSlots() {
+    List<CustomEvent.Event> matchingEvents = [];
+
+    for (var event in _nonConflictingEvents) {
+      for (var slot in _freeSlots) {
+        DateTime slotStart = DateTime.parse(slot['start']!);
+        DateTime slotEnd = DateTime.parse(slot['end']!);
+
+        if (event.startDate.isAfter(slotStart) &&
+            event.startDate.isBefore(slotEnd)) {
+          matchingEvents.add(event);
+          break; // Pas besoin de continuer à vérifier les autres slots
+        }
+      }
+    }
+
+    return matchingEvents;
+  }
+
+  Widget _buildFreeSlotMessages() {
+    // Définir une distance maximale (par exemple 1000 mètres)
+    const double maxDistance = 1000.0;
+
+    final eventsInFreeSlots = _getEventsInFreeSlots();
+
+    if (eventsInFreeSlots.isEmpty) return SizedBox.shrink();
+
+    List<Widget> messagesAndEvents = [];
+
+    for (var event in eventsInFreeSlots) {
+      // Vérifier la proximité de l'événement
+      bool isNearby = false;
+      if (event.location != null && _currentLocation != null) {
+        final distance = Geolocator.distanceBetween(
+          _currentLocation!.latitude,
+          _currentLocation!.longitude,
+          event.location.latitude,
+          event.location.longitude,
+        );
+        isNearby = distance <= maxDistance; // Vérifie si l'événement est proche
+      }
+
+      // Si l'événement est proche, on l'ajoute à la liste
+      if (isNearby) {
+        final slot = _freeSlots.firstWhere(
+          (slot) =>
+              event.startDate.isAfter(DateTime.parse(slot['start']!)) &&
+              event.startDate.isBefore(DateTime.parse(slot['end']!)),
+          orElse: () => {'start': '', 'end': ''},
+        );
+
+        // Phrase générée
+        messagesAndEvents.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Text(
+              generateFreeSlotMessage([slot], 1),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        );
+
+        // Événement associé
+        messagesAndEvents.add(
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 3,
+            child: ListTile(
+              title: Text(event.title),
+              subtitle: Text(
+                  "${DateFormat.yMMMMd().add_Hm().format(event.startDate)} - ${DateFormat.Hm().format(event.endDate)}"),
+              leading: Icon(Icons.event_available),
+            ),
+          ),
+        );
+      }
+    }
+
+    return Column(children: messagesAndEvents);
+  }
+
+  Widget _buildFreeSlotMessagesForDay(DateTime day) {
+    // Définir une distance maximale (par exemple 1000 mètres)
+    const double maxDistance = 1000.0;
+
+    // Filtrer les créneaux libres pour le jour sélectionné
+    final slotsForDay = _freeSlots.where((slot) {
+      final start = DateTime.parse(slot['start']!).toLocal();
+      return start.year == day.year &&
+          start.month == day.month &&
+          start.day == day.day;
+    }).toList();
+
+    // Récupérer les événements qui sont dans ces créneaux libres
+    final eventsInSlots = _getEventsInFreeSlots().where((event) {
+      // Filtrer par créneaux libres
+      bool isInSlot = slotsForDay.any((slot) {
+        final start = DateTime.parse(slot['start']!);
+        final end = DateTime.parse(slot['end']!);
+        return event.startDate.isAfter(start) && event.startDate.isBefore(end);
+      });
+
+      // Filtrer par proximité (distance)
+      bool isNearby = false;
+      if (event.location != null && _currentLocation != null) {
+        final distance = Geolocator.distanceBetween(
+          _currentLocation!.latitude,
+          _currentLocation!.longitude,
+          event.location.latitude,
+          event.location.longitude,
+        );
+        isNearby = distance <= maxDistance; // Vérifie si l'événement est proche
+      }
+
+      return isInSlot &&
+          isNearby; // Retourner les événements dans le créneau libre et proches
+    }).toList();
+
+    if (eventsInSlots.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text("Aucun événement dans vos créneaux libres ce jour-là.",
+            style: TextStyle(fontSize: 16, color: Colors.grey)),
+      );
+    }
+
+    List<Widget> messagesAndEvents = [];
+
+    for (var event in eventsInSlots) {
+      final slot = slotsForDay.firstWhere(
+        (slot) =>
+            event.startDate.isAfter(DateTime.parse(slot['start']!)) &&
+            event.startDate.isBefore(DateTime.parse(slot['end']!)),
+        orElse: () => {'start': '', 'end': ''},
+      );
+
+      // Phrase + événement
+      messagesAndEvents.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+          child: Text(
+            generateFreeSlotMessage([slot], 1),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+      );
+
+      messagesAndEvents.add(
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 3,
+          child: ListTile(
+            title: Text(event.title),
+            subtitle: Text(
+              "${DateFormat.yMMMMd().add_Hm().format(event.startDate)} - ${DateFormat.Hm().format(event.endDate)}",
+            ),
+            leading: Icon(Icons.event_available),
+          ),
+        ),
+      );
+    }
+
+    return Column(children: messagesAndEvents);
+  }
+
   Future<void> _refreshData() async {
     setState(() => isLoading = true);
     await _getCalendarEvents();
     await _fetchNonConflictingEvents();
     setState(() => isLoading = false);
+  }
+
+  List<Event> _getEventsInSameLocation(List<Event> events) {
+    if (_currentLocation == null) return [];
+
+    return events.where((event) {
+      final distance = Geolocator.distanceBetween(
+        _currentLocation!.latitude,
+        _currentLocation!.longitude,
+        event.location.latitude,
+        event.location.longitude,
+      );
+
+      return distance < 200; // 200 mètres de tolérance (modifiable)
+    }).toList();
   }
 
   @override
@@ -499,6 +734,10 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
             icon: Icon(Icons.refresh),
             onPressed: _refreshData,
           ),
+          IconButton(
+            icon: Icon(Icons.my_location),
+            onPressed: _getUserLocation,
+          )
         ],
       ),
       body: isLoading
@@ -509,10 +748,12 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDeviceEventsList(),
+                  _buildFreeSlotMessages(),
+
                   SizedBox(height: 20),
                   // _buildFreeSlotsList(),
                   SizedBox(height: 20),
-                  _buildNonConflictingEventList(),
+                  // _buildNonConflictingEventList(),
                 ],
               ),
             ),
