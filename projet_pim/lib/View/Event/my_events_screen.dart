@@ -108,6 +108,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     setState(() {
       isGeneratingImage = true; // Affiche le message de génération
     });
+
     // Afficher un Dialog pour indiquer que l'image est en train de se générer
     showDialog(
       context: context,
@@ -124,14 +125,19 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         );
       },
     );
+
     try {
       print("Génération du poster pour l'événement : ${event.title}");
 
       final response = await http.post(
-        Uri.parse('http://localhost:3000/ai'),
+        Uri.parse('http://localhost:3000/ai/generate-poster-flux'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "description": description,
+          "title": event.title,
+          "startDate": event.startDate.toIso8601String(),
+          "endDate": event.endDate.toIso8601String(),
+          "location": event.location,
         }),
       );
 
@@ -146,6 +152,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     } catch (e) {
       print("Erreur réseau : $e");
     }
+
     setState(() {
       isGeneratingImage = false; // Arrêter d'afficher le message
     });
