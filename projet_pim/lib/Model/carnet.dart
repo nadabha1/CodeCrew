@@ -1,3 +1,4 @@
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/review.dart';
 
 class Place {
@@ -8,6 +9,11 @@ class Place {
   final String description;
   final List<String> categories;
   final int unlockCost;
+    LatLng? get coordinates {
+    return (latitude != null && longitude != null) 
+        ? LatLng(latitude!, longitude!)
+        : null;
+  }
   final List<String> images; // Liste des URLs des images
   final List<Review> reviews; // Liste des avis associés au lieu
   Place({

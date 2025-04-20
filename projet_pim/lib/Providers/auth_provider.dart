@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:projet_pim/Model/user_model.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Providers/UserPreferences.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'package:http/http.dart' as http;
 
@@ -22,18 +24,55 @@ class AuthProvider with ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+  String? _profileImageUrl;
+  String? get profileImageUrl => _profileImageUrl;
   final String baseUrl =
       "${ApiConstants.baseUrl}/auth"; // Remplace par ton URL de base
 
   bool _isOtpVerified = false;
   bool get isOtpVerified => _isOtpVerified;
+// Méthode pour télécharger l'image
+  Future<String?> uploadImage(XFile image) async {
+    try {
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload'); // URL de l'API
+
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath('photo', image.path));
+
+      debugPrint("📤 Envoi de l'image à : $uri");
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        final responseBody = await response.stream.bytesToString();
+        debugPrint("✅ Réponse du serveur : $responseBody");
+
+        final uploadedImage = jsonDecode(responseBody);
+
+        if (uploadedImage != null && uploadedImage['filename'] != null) {
+          _profileImageUrl =
+              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+          debugPrint("🌐 URL de l'image : $_profileImageUrl");
+          notifyListeners();
+          return _profileImageUrl;
+        } else {
+          debugPrint(
+              "⚠️ Erreur : La réponse ne contient pas de champ 'filename'.");
+        }
+      } else {
+        debugPrint("❌ Échec de l'upload. Code : ${response.statusCode}");
+        final errorResponse = await response.stream.bytesToString();
+        debugPrint("❌ Détails de l'erreur : $errorResponse");
+      }
+    } catch (e) {
+      debugPrint("❌ Erreur lors de l'upload de l'image : $e");
+    }
+    return null; // Retourne null en cas d'échec
+  }
 
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
-
-
 
   Future<void> login(String email, String password) async {
     try {
@@ -118,19 +157,32 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-
-  Future<bool> registerUser(String name, String email, String password, UserPreferences preferences) async {
+  Future<bool> registerUser(String name, String email, String password,
+      String location, UserPreferences preferences, String? profileImageUrl) async {
     _isLoading = true;
     notifyListeners();
 
     const String apiUrl = "${ApiConstants.baseUrl}/users/register";
 
     try {
+      debugPrint("🌐 URL de l'image dans registerUser : $profileImageUrl");
+      if (profileImageUrl == null) {
+        debugPrint(
+            "⚠️ L'URL de l'image n'est pas définie. Assurez-vous que l'image a été uploadée.");
+        return false;
+      }
+
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "user": {"name": name, "email": email, "password": password},
+          "user": {
+            "name": name,
+            "email": email,
+            "password": password,
+            "location": location,
+            "profileImage": profileImageUrl, // Utilisez le paramètre explicite
+          },
           "preferences": preferences.toJson(),
         }),
       );
@@ -138,14 +190,14 @@ class AuthProvider with ChangeNotifier {
       if (response.statusCode == 201 || response.statusCode == 200) {
         final userData = jsonDecode(response.body);
         _userId = userData['_id'].toString(); // Set _userId
-        debugPrint("User ID after registration: $_userId");
+        debugPrint("✅ Utilisateur enregistré avec succès. ID : $_userId");
         return true;
       } else {
         _handleHttpError(response);
         return false;
       }
     } catch (e) {
-      debugPrint("Error during registration: $e");
+      debugPrint("❌ Erreur lors de l'inscription : $e");
       return false;
     } finally {
       _isLoading = false;
@@ -158,7 +210,7 @@ class AuthProvider with ChangeNotifier {
       debugPrint("User ID not set. Cannot add preferences.");
       return false;
     }
-      String apiUrl = "${ApiConstants.baseUrl}/users/$_userId/preferences";
+    String apiUrl = "${ApiConstants.baseUrl}/users/$_userId/preferences";
 
     try {
       final response = await http.post(
@@ -171,7 +223,8 @@ class AuthProvider with ChangeNotifier {
         debugPrint("Preferences added successfully");
         return true;
       } else {
-        debugPrint("Failed to add preferences: ${response.statusCode} - ${response.body}");
+        debugPrint(
+            "Failed to add preferences: ${response.statusCode} - ${response.body}");
         return false;
       }
     } catch (e) {
@@ -190,7 +243,8 @@ class AuthProvider with ChangeNotifier {
         final data = jsonDecode(response.body);
         return UserPreferences.fromJson(data);
       } else {
-        debugPrint("Failed to fetch preferences: ${response.statusCode} - ${response.body}");
+        debugPrint(
+            "Failed to fetch preferences: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
@@ -199,7 +253,8 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> updateUserPreferences(String userId, UserPreferences preferences) async {
+  Future<bool> updateUserPreferences(
+      String userId, UserPreferences preferences) async {
     String apiUrl = "$baseUrl/users/$userId/preferences"; // Updated endpoint
 
     try {
@@ -213,7 +268,8 @@ class AuthProvider with ChangeNotifier {
         debugPrint("Preferences updated successfully");
         return true;
       } else {
-        debugPrint("Failed to update preferences: ${response.statusCode} - ${response.body}");
+        debugPrint(
+            "Failed to update preferences: ${response.statusCode} - ${response.body}");
         return false;
       }
     } catch (e) {
@@ -253,7 +309,8 @@ class AuthProvider with ChangeNotifier {
         _showMessage(context, message);
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ResetPasswordScreen(email: email)),
+          MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(email: email)),
         );
       } else {
         final errorResponse = jsonDecode(response.body);
@@ -298,5 +355,36 @@ class AuthProvider with ChangeNotifier {
     }
 
     return false; // Default to false if request fails
+  }
+
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifier si le service de localisation est activé
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      debugPrint("Le service de localisation est désactivé.");
+      return null;
+    }
+
+    // Vérifier les permissions
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        debugPrint("Permission refusée.");
+        return null;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      debugPrint("Permission refusée de façon permanente.");
+      return null;
+    }
+
+    // Obtenir la position actuelle
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
 }

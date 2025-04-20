@@ -4,12 +4,15 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart' as loc;
 import 'package:geocoding/geocoding.dart';
-import 'package:projet_pim/Providers/user_provider.dart'; // Updated import for UserProvider
+import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/UserProfilePage.dart';
+import 'package:projet_pim/View/ar_view_screen.dart';
 import 'package:projet_pim/View/profile.dart';
+
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:projet_pim/Model/carnet.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key, required this.userId}) : super(key: key);
@@ -21,23 +24,22 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  loc.LocationData? _currentLocation; // Current user location
-  List<Marker> _markers = []; // List to hold markers for the map
-  TextEditingController _searchController =
-      TextEditingController(); // Controller for the search bar
-  LatLng _searchLocation = LatLng(36.8065, 10.1815); // Default to Tunis
+  loc.LocationData? _currentLocation;
+  List<Marker> _markers = [];
+  TextEditingController _searchController = TextEditingController();
+  LatLng _searchLocation = LatLng(36.8065, 10.1815);
   String? _userId;
   String? _token;
-  bool _isLoading = true; // To prevent null errors before loading session
+  bool _isLoading = true;
+  bool _showARView = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSession(); // Load user session (userId & token)
-    _getUserLocation(); // Get user's current location on screen load
+    _loadSession();
+    _getUserLocation();
   }
 
-  // Function to load user session from SharedPreferences
   Future<void> _loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString("jwt_token");
@@ -49,177 +51,168 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _isLoading = false;
     });
 
-    // If token or userId is missing, redirect to login
     if (_userId == null || _token == null) {
       Navigator.pushReplacementNamed(context, "/login");
     }
   }
 
-  // Function to get the user's current location
   Future<void> _getUserLocation() async {
     loc.Location location = loc.Location();
     try {
       bool serviceEnabled = await location.serviceEnabled();
       if (!serviceEnabled) {
         serviceEnabled = await location.requestService();
-        if (!serviceEnabled) {
-          return; // If location service is not enabled, do nothing
-        }
+        if (!serviceEnabled) return;
       }
 
       loc.PermissionStatus permission = await location.hasPermission();
       if (permission == loc.PermissionStatus.denied) {
         permission = await location.requestPermission();
-        if (permission != loc.PermissionStatus.granted) {
-          return; // If permission is not granted, do nothing
-        }
+        if (permission != loc.PermissionStatus.granted) return;
       }
 
-      // Fetch current location
       loc.LocationData currentLocation = await location.getLocation();
-
       setState(() {
-        _currentLocation = currentLocation; // Update the location state
+        _currentLocation = currentLocation;
       });
     } catch (e) {
-      print("Error: $e");
+      print("Error getting location: $e");
+      setState(() {
+        _currentLocation = loc.LocationData.fromMap({
+          'latitude': 36.8065,
+          'longitude': 10.1815,
+          'accuracy': 0.0
+        });
+      });
     }
   }
 
-  // Function to get coordinates from city name
   Future<LatLng> _getCoordinatesFromCity(String cityName) async {
     try {
       List<Location> locations = await locationFromAddress(cityName);
-      if (locations.isNotEmpty) {
-        return LatLng(locations.first.latitude, locations.first.longitude);
-      } else {
-        return LatLng(36.8065, 10.1815); // Default to Tunis if no result
-      }
+      return locations.isNotEmpty
+          ? LatLng(locations.first.latitude, locations.first.longitude)
+          : LatLng(36.8065, 10.1815);
     } catch (e) {
       print('Error getting coordinates: $e');
-      return LatLng(36.8065, 10.1815); // Default to Tunis if error
+      return LatLng(36.8065, 10.1815);
     }
   }
 
-  // Function to get markers from user data
   Future<List<Marker>> _getMarkers(List<Map<String, dynamic>> users) async {
     List<Marker> markers = [];
     for (var user in users) {
-      // Affiche l'utilisateur et sa localisation pour déboguer
-      print('User: ${user['location']}');
-
-      LatLng userLocation = await _getCoordinatesFromCity(user['location']);
-
-      markers.add(Marker(
-        point: userLocation,
-        width: 40.0,
-        height: 40.0,
-        child: GestureDetector(
-          onTap: () {
-            // Afficher un Dialog avec les informations du profil
-            _showUserProfileDialog(user);
-          },
-          child: CircleAvatar(
-            radius: 20.0,
-            backgroundImage:
-                user['profileImage'] != null && user['profileImage'].isNotEmpty
-                    ? NetworkImage(
-                        user['profileImage']) // Afficher l'image depuis l'URL
-                    : AssetImage('assets/default_profile.png')
-                        as ImageProvider, // Image locale par défaut
-            backgroundColor: Colors.transparent,
+      try {
+        LatLng userLocation = await _getCoordinatesFromCity(user['location']);
+        markers.add(Marker(
+          point: userLocation,
+          width: 40.0,
+          height: 40.0,
+          child: GestureDetector(
+            onTap: () => _showUserProfileDialog(user),
+            child: CircleAvatar(
+              radius: 20.0,
+              backgroundImage: user['profileImage'] != null && user['profileImage'].isNotEmpty
+                  ? NetworkImage(user['profileImage'])
+                  : AssetImage('assets/default_profile.png') as ImageProvider,
+            ),
           ),
-        ),
-      ));
+        ));
+      } catch (e) {
+        print('Error creating marker for user ${user['_id']}: $e');
+      }
     }
-    print(
-        'Markers count: ${markers.length}'); // Vérifiez le nombre de marqueurs
+    if (_currentLocation != null) {
+      markers.add(_getUserLocationMarker());
+    }
     return markers;
   }
 
-  // Function to open the place in Google Maps
-  void _openInGoogleMaps(double latitude, double longitude) async {
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
-    if (await canLaunch(url.toString())) {
-      await launch(url.toString());
-    } else {
-      throw 'Could not launch $url';
-    }
+  Marker _getUserLocationMarker() {
+    return Marker(
+      point: LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!),
+      width: 40.0,
+      height: 40.0,
+      child: Icon(Icons.location_on, color: Colors.blue, size: 40.0),
+    );
   }
 
-  // Function to search for location by name (city or place)
-  Future<void> _searchLocationByName(String placeName) async {
-    try {
-      List<Location> locations = await locationFromAddress(placeName);
-      if (locations.isNotEmpty) {
-        setState(() {
-          _searchLocation =
-              LatLng(locations.first.latitude, locations.first.longitude);
-        });
-      }
-    } catch (e) {
-      print('Error getting coordinates: $e');
-    }
+void _toggleARView() {
+  if (_currentLocation == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Waiting for location...')),
+    );
+    return;
   }
-
-  // Function to show user profile in a dialog
+  setState(() {
+    _showARView = !_showARView;
+  });
+}
   void _showUserProfileDialog(Map<String, dynamic> user) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(user['name'] ??
-              'Nom de l\'utilisateur'), // Afficher le nom de l'utilisateur
+          title: Text(user['name'] ?? 'User'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
                 radius: 50.0,
-                backgroundImage: user['profileImage'] != null &&
-                        user['profileImage'].isNotEmpty
-                    ? NetworkImage(
-                        user['profileImage']) // Afficher l'image du profil
-                    : AssetImage('assets/default_profile.png')
-                        as ImageProvider, // Image locale par défaut
+                backgroundImage: user['profileImage'] != null && user['profileImage'].isNotEmpty
+                    ? NetworkImage(user['profileImage'])
+                    : AssetImage('assets/default_profile.png') as ImageProvider,
               ),
               SizedBox(height: 10),
-              Text('Localisation: ${user['location'] ?? 'Inconnue'}'),
-              Text('job: ${user['job'] ?? 'Inconnue'}'),
-              Text('Autres détails: ${user['bio'] ?? 'Non disponible'}'),
+              Text('Location: ${user['location'] ?? 'Unknown'}'),
+              Text('Job: ${user['job'] ?? 'Unknown'}'),
+              Text('Bio: ${user['bio'] ?? 'Not available'}'),
             ],
           ),
-          actions: <Widget>[
+          actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                String userId =
-                    user['_id'] ?? 'defaultId'; // Get the tapped user's ID
-                String token = _token ?? ''; // Pass the token here
-
-                // Navigate to the user's profile page with the ID and token
+                Navigator.of(context).pop();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => TravelerProfileScreen(
-                      travelerId: user['_id'], // Pass the tapped user's ID
-                      loggedInUserId:
-                          widget.userId, // Pass the logged-in user's token
+                      travelerId: user['_id'],
+                      loggedInUserId: widget.userId,
                     ),
                   ),
                 );
               },
-              child: Text('Voir le Profil'),
-            )
+              child: Text('View Profile'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Close'),
+            ),
           ],
         );
       },
     );
   }
 
+  Place _createUserPlace(Map<String, dynamic> user) {
+    return Place(
+      id: user['_id'] ?? 'unknown',
+      name: user['name'] ?? 'Unknown User',
+      latitude: user['coordinates']?['lat']?.toDouble(),
+      longitude: user['coordinates']?['lng']?.toDouble(),
+      description: user['bio'] ?? '',
+      categories: [user['job'] ?? 'user'],
+      unlockCost: 0,
+      images: user['profileImage'] != null 
+          ? [user['profileImage']] 
+          : ['assets/default_profile.png'],
+      reviews: [],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Show loading screen while the session is being loaded
     if (_isLoading) {
       return Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -228,84 +221,133 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Explorer"),
+        title: Text(_showARView ? 'AR Explorer' : 'Map Explorer'),
+        actions: [
+          IconButton(
+            icon: Icon(_showARView ? Icons.map : Icons.camera_alt),
+            onPressed: _toggleARView,
+            tooltip: _showARView ? 'Switch to Map' : 'Switch to AR',
+          ),
+        ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Rechercher un lieu',
-                border: OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () {
-                    // Call the search function when search button is pressed
-                    _searchLocationByName(_searchController.text);
-                  },
+          if (!_showARView)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: 'Search location',
+                  border: OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.search),
+                    onPressed: () => _searchLocationByName(_searchController.text),
+                  ),
                 ),
               ),
             ),
+          Expanded(
+            child: _showARView
+                ? _buildARView(context)
+                : _buildMapView(context),
           ),
-          _currentLocation == null
-              ? Center(child: CircularProgressIndicator())
-              : Consumer<UserProvider>(
-                  builder: (context, userProvider, child) {
-                    // Fetch users if not already loaded
-                    if (userProvider.users.isEmpty) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        userProvider
-                            .fetchUsers(_token ?? ''); // Use token for API
-                      });
-                    }
-
-                    // FutureBuilder to load markers from user data
-                    return FutureBuilder<List<Marker>>(
-                      future: _getMarkers(userProvider.users),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        }
-
-                        if (snapshot.hasError) {
-                          return Center(
-                              child: Text("Error: ${snapshot.error}"));
-                        }
-
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return Center(child: Text("No users found"));
-                        }
-
-                        _markers = snapshot.data!;
-
-                        return Expanded(
-                          child: FlutterMap(
-                            options: MapOptions(
-                              center:
-                                  _searchLocation, // Center map on the searched location
-                              zoom: 12.0,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                subdomains: ['a', 'b', 'c'],
-                              ),
-                              MarkerLayer(
-                                markers: _markers,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
         ],
       ),
     );
+  }
+
+  Widget _buildMapView(BuildContext context) {
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        if (userProvider.users.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            userProvider.fetchUsers(_token ?? '');
+          });
+          return Center(child: CircularProgressIndicator());
+        }
+
+        return FutureBuilder<List<Marker>>(
+          future: _getMarkers(userProvider.users),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No users found'));
+            }
+
+            return FlutterMap(
+              options: MapOptions(
+                center: _currentLocation != null
+                    ? LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!)
+                    : _searchLocation,
+                zoom: 12.0,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                  subdomains: ['a', 'b', 'c'],
+                ),
+                MarkerLayer(markers: snapshot.data!),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildARView(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    
+    if (_currentLocation == null) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    final userPlace = Place(
+      id: _userId ?? 'current_user',
+      name: 'Your Location',
+      latitude: _currentLocation!.latitude,
+      longitude: _currentLocation!.longitude,
+      description: 'Current user location',
+      categories: ['user'],
+      unlockCost: 0,
+      images: ['assets/default_profile.png'],
+      reviews: [],
+    );
+
+    final nearbyPlaces = userProvider.users
+        .where((user) => user['coordinates'] != null)
+        .map(_createUserPlace)
+        .toList();
+
+    return ARViewScreen(
+      userPlace: userPlace,
+      nearbyPlaces: nearbyPlaces,
+    );
+  }
+
+  Future<void> _searchLocationByName(String placeName) async {
+    if (placeName.isEmpty) return;
+    
+    try {
+      List<Location> locations = await locationFromAddress(placeName);
+      if (locations.isNotEmpty) {
+        setState(() {
+          _searchLocation = LatLng(
+            locations.first.latitude,
+            locations.first.longitude,
+          );
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not find location: $placeName')),
+      );
+    }
   }
 }

@@ -1,3 +1,5 @@
+import 'package:latlong2/latlong.dart';
+
 class User {
   final String id;
   final String name;
@@ -9,10 +11,14 @@ class User {
   final String job;
   final String location;
   final String bio;
-  final String? profileImage; // Peut être null
+  final String? profileImage;
   final int likes;
   final int coins;
   final int favorites;
+
+  // Simplified location fields (keep only what mock AR needs)
+  final LatLng? coordinates;
+  final List<String> searchHistory;
 
   User({
     required this.id,
@@ -25,14 +31,14 @@ class User {
     required this.job,
     required this.location,
     required this.bio,
-    this.profileImage, // Optionnel
-
+    this.profileImage,
     required this.likes,
     required this.coins,
     required this.favorites,
+    this.coordinates,
+    this.searchHistory = const [],
   });
 
-  // Factory method to create a User instance from JSON
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['_id'] as String,
@@ -44,19 +50,20 @@ class User {
       resetPasswordOtpExpires: json['resetPasswordOtpExpires'] != null
           ? DateTime.parse(json['resetPasswordOtpExpires'])
           : null,
-      job: json['job'] as String? ?? '', // Évite les erreurs si null
-      location: json['location'] as String? ?? '',
-      bio: json['bio'] as String? ?? '',
-
-      profileImage: json['profileImage'] as String?, // Peut être null
-
-      likes: json['likes'] as int? ?? 0, // Si null, met 0
-      coins: json['coins'] as int? ?? 0, // Si null, met 0
-      favorites: json['favorites'] as int? ?? 0, // Si null, met 0
+      job: json['job'] ?? '',
+      location: json['location'] ?? '',
+      bio: json['bio'] ?? '',
+      profileImage: json['profileImage'],
+      likes: json['likes'] ?? 0,
+      coins: json['coins'] ?? 0,
+      favorites: json['favorites'] ?? 0,
+      coordinates: json['coordinates'] != null
+          ? LatLng(json['coordinates']['lat'], json['coordinates']['lng'])
+          : null,
+      searchHistory: (json['searchHistory'] as List?)?.cast<String>() ?? [],
     );
   }
 
-  // Method to convert a User instance to JSON
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
@@ -73,6 +80,10 @@ class User {
       'likes': likes,
       'coins': coins,
       'favorites': favorites,
+      'coordinates': coordinates != null
+          ? {'lat': coordinates!.latitude, 'lng': coordinates!.longitude}
+          : null,
+      'searchHistory': searchHistory,
     };
   }
 }
