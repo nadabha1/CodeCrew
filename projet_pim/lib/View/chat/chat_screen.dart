@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -29,12 +34,35 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _messageController = TextEditingController();
   String? otherUserName;
+  FlutterSoundRecorder? _recorder;
+  bool isRecording = false;
+  String? _audioPath;
+  FlutterSoundPlayer _player = FlutterSoundPlayer();
+  bool isPlaying = false;
+  String? currentlyPlayingUrl;
 
   @override
   void initState() {
     super.initState();
     fetchConversations();
     fetchMessages();
+    initRecorder();
+    _player.openPlayer();
+  }
+
+  Future<void> initRecorder() async {
+    _recorder = FlutterSoundRecorder();
+    await _recorder!.openRecorder();
+    await Permission.microphone.request();
+  }
+
+  @override
+  void dispose() {
+    _recorder?.closeRecorder();
+    _recorder = null;
+    _messageController.dispose();
+    super.dispose();
+    _player.closePlayer();
   }
 
   Future<void> fetchConversations() async {
@@ -135,10 +163,13 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("📢 *${event.title}*", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("📢 ${event.title}",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   SizedBox(height: 4),
-                  Text("📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
-                  Text("📅 Début : ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
+                  Text(
+                      "📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
+                  Text(
+                      "📅 Début : ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
                   Text("🔗 Rejoins : chat/${event.id}"),
                 ],
               ),
@@ -146,6 +177,104 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> startRecording() async {
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Permission micro refusée')),
+      );
+      return;
+    }
+
+    final dir = await getApplicationDocumentsDirectory();
+    _audioPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.aac';
+
+    await _recorder!.startRecorder(toFile: _audioPath);
+    setState(() => isRecording = true);
+  }
+
+  Future<void> stopRecording() async {
+    await _recorder!.stopRecorder();
+    setState(() => isRecording = false);
+    if (_audioPath != null) {
+      await sendAudioMessage(_audioPath!);
+    }
+  }
+
+  Future<void> sendAudioMessage(String path) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConstants.baseUrl}/messages/audio'),
+    );
+
+    request.fields['conversationId'] = widget.conversationId;
+    request.fields['senderId'] = widget.userId;
+    request.files.add(await http.MultipartFile.fromPath('audio', path));
+    final response = await request.send();
+    final respStr = await response.stream.bytesToString();
+
+    if (response.statusCode == 201) {
+      fetchMessages();
+    } else {
+      print("Erreur d'envoi audio: $respStr");
+    }
+  }
+
+  Widget _buildAudioPlayer(String url, bool isMe) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isMe ? Colors.deepPurple[100] : Colors.grey[300],
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
+          bottomLeft: Radius.circular(isMe ? 12 : 0),
+          bottomRight: Radius.circular(isMe ? 0 : 12),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.audiotrack, color: Colors.deepPurple),
+          SizedBox(width: 8),
+          IconButton(
+            icon: Icon(
+              isPlaying && currentlyPlayingUrl == url
+                  ? Icons.stop
+                  : Icons.play_arrow,
+              color: Colors.deepPurple,
+            ),
+            onPressed: () async {
+              if (isPlaying && currentlyPlayingUrl == url) {
+                await _player.stopPlayer();
+                setState(() {
+                  isPlaying = false;
+                  currentlyPlayingUrl = null;
+                });
+              } else {
+                await _player.startPlayer(
+                  fromURI: "${ApiConstants.baseUrl}/$url",
+                  whenFinished: () {
+                    setState(() {
+                      isPlaying = false;
+                      currentlyPlayingUrl = null;
+                    });
+                  },
+                );
+                setState(() {
+                  isPlaying = true;
+                  currentlyPlayingUrl = url;
+                });
+              }
+            },
+          ),
+          Text("Audio"),
+        ],
+      ),
     );
   }
 
@@ -167,25 +296,31 @@ class _ChatScreenState extends State<ChatScreen> {
                 final isMe = msg['sender']?['_id'] == widget.userId;
 
                 return Align(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment:
+                      isMe ? Alignment.centerRight : Alignment.centerLeft,
                   child: msg['type'] == 'shared_event'
                       ? _buildSharedEventCard(msg['eventId'])
-                      : Container(
-                          margin: EdgeInsets.symmetric(vertical: 6),
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.deepPurple[100] : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(msg['content'] ?? ""),
-                              SizedBox(height: 4),
-                              Text(formatTimestamp(msg['createdAt']), style: TextStyle(fontSize: 10)),
-                            ],
-                          ),
-                        ),
+                      : msg['type'] == 'audio'
+                          ? _buildAudioPlayer(msg['content'], isMe)
+                          : Container(
+                              margin: EdgeInsets.symmetric(vertical: 6),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isMe
+                                    ? Colors.deepPurple[100]
+                                    : Colors.grey[300],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(msg['content'] ?? ""),
+                                  SizedBox(height: 4),
+                                  Text(formatTimestamp(msg['createdAt']),
+                                      style: TextStyle(fontSize: 10)),
+                                ],
+                              ),
+                            ),
                 );
               },
             ),
@@ -212,7 +347,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 SizedBox(width: 6),
                 IconButton(
                   icon: Icon(Icons.send, color: Colors.deepPurple),
-                  onPressed: () => sendMessage(text: _messageController.text),
+                  onPressed: () =>
+                      sendMessage(text: _messageController.text.trim()),
+                ),
+                IconButton(
+                  icon: Icon(isRecording ? Icons.stop : Icons.mic,
+                      color: Colors.redAccent),
+                  onPressed: isRecording ? stopRecording : startRecording,
                 ),
               ],
             ),

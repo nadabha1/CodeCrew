@@ -58,6 +58,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
   vector_math: ^2.1.0
   ar_location_view: ^2.0.16
+  flutter_sound: ^9.2.13
 
   flutter_localizations:
     sdk: flutter
