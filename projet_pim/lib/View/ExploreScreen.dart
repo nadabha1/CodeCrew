@@ -5,12 +5,16 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart' as loc;
 import 'package:geocoding/geocoding.dart';
-import 'package:projet_pim/Providers/user_provider.dart'; // Updated import for UserProvider
+import 'package:projet_pim/Providers/user_provider.dart';
+import 'package:projet_pim/View/ARViewScreen.dart';
 import 'package:projet_pim/View/UserProfilePage.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+// Add map type enum
+enum MapType { defaultMap, satellite }
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key, required this.userId}) : super(key: key);
@@ -22,23 +26,72 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  loc.LocationData? _currentLocation; // Current user location
-  List<Marker> _markers = []; // List to hold markers for the map
-  TextEditingController _searchController =
-      TextEditingController(); // Controller for the search bar
-  LatLng _searchLocation = LatLng(36.8065, 10.1815); // Default to Tunis
+  loc.LocationData? _currentLocation;
+  List<Marker> _markers = [];
+  TextEditingController _searchController = TextEditingController();
+  LatLng _searchLocation = LatLng(36.8065, 10.1815);
   String? _userId;
   String? _token;
-  bool _isLoading = true; // To prevent null errors before loading session
+  bool _isLoading = true;
+
+  // New state for map type
+  MapType _selectedMapType = MapType.defaultMap;
 
   @override
   void initState() {
     super.initState();
-    _loadSession(); // Load user session (userId & token)
-    _getUserLocation(); // Get user's current location on screen load
+    _loadSession();
+    _getUserLocation();
   }
 
-  // Function to load user session from SharedPreferences
+  // Return tile URL depending on map type
+  String _getTileUrl() {
+    switch (_selectedMapType) {
+      case MapType.satellite:
+        return 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case MapType.defaultMap:
+      default:
+        return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  }
+
+  // Map type selector bottom sheet
+  void _showMapTypePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.map),
+              title: Text("Carte par défaut"),
+              onTap: () {
+                setState(() {
+                  _selectedMapType = MapType.defaultMap;
+                });
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.satellite),
+              title: Text("Vue satellite"),
+              onTap: () {
+                setState(() {
+                  _selectedMapType = MapType.satellite;
+                });
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString("jwt_token");
@@ -50,30 +103,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _isLoading = false;
     });
 
-    // If token or userId is missing, redirect to login
     if (_userId == null || _token == null) {
       Navigator.pushReplacementNamed(context, "/login");
     }
   }
 
-  // Function to get the user's current location
   Future<void> _getUserLocation() async {
     loc.Location location = loc.Location();
     try {
       bool serviceEnabled = await location.serviceEnabled();
       if (!serviceEnabled) {
         serviceEnabled = await location.requestService();
-        if (!serviceEnabled) {
-          return;
-        }
+        if (!serviceEnabled) return;
       }
 
       loc.PermissionStatus permission = await location.hasPermission();
       if (permission == loc.PermissionStatus.denied) {
         permission = await location.requestPermission();
-        if (permission != loc.PermissionStatus.granted) {
-          return;
-        }
+        if (permission != loc.PermissionStatus.granted) return;
       }
 
       loc.LocationData currentLocation = await location.getLocation();
@@ -88,18 +135,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  // Function to get coordinates from city name
   Future<LatLng> _getCoordinatesFromCity(String cityName) async {
     try {
       List<Location> locations = await locationFromAddress(cityName);
       if (locations.isNotEmpty) {
         return LatLng(locations.first.latitude, locations.first.longitude);
       } else {
-        return LatLng(36.8065, 10.1815); // Default to Tunis if no result
+        return LatLng(36.8065, 10.1815);
       }
     } catch (e) {
       print('Error getting coordinates: $e');
-      return LatLng(36.8065, 10.1815); // Default to Tunis if error
+      return LatLng(36.8065, 10.1815);
     }
   }
 
@@ -107,10 +153,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     Map<String, List<Map<String, dynamic>>> groupedUsers = {};
     List<Marker> markers = [];
 
-    // Group users by their location
     for (var user in users) {
-      String location = user['location'] ??
-          'Inconnue'; // Get location string like "Latitude,Longitude"
+      String location = user['location'] ?? 'Inconnue';
 
       if (!groupedUsers.containsKey(location)) {
         groupedUsers[location] = [];
@@ -118,9 +162,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       groupedUsers[location]!.add(user);
     }
 
-    // Loop through each group of users (grouped by location)
     for (var entry in groupedUsers.entries) {
-      // Parse the location string into latitude and longitude
       String location = entry.key;
       List<String> latLon = location.split(',');
 
@@ -128,15 +170,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
         double userLat = double.parse(latLon[0].trim());
         double userLon = double.parse(latLon[1].trim());
 
-        LatLng userLocation =
-            LatLng(userLat, userLon); // Use parsed latitude and longitude
+        LatLng userLocation = LatLng(userLat, userLon);
         List<Map<String, dynamic>> usersAtLocation = entry.value;
 
-        // Loop through users at the same location and create markers
         for (int i = 0; i < usersAtLocation.length; i++) {
-          double offset = 0.0005 * i; // Offset to avoid marker overlap
-          double angle = (i * 360 / usersAtLocation.length) *
-              (3.14159265359 / 180); // Convert to radians
+          double offset = 0.0005 * i;
+          double angle = (i * 360 / usersAtLocation.length) * (pi / 180);
 
           LatLng adjustedLocation = LatLng(
             userLocation.latitude + offset * sin(angle),
@@ -144,13 +183,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
           );
 
           markers.add(Marker(
-            point: adjustedLocation, // Use the adjusted position
+            point: adjustedLocation,
             width: 50.0,
             height: 50.0,
             child: GestureDetector(
               onTap: () {
-                _showUserListBottomSheet(
-                    usersAtLocation); // Show the list of users at the location
+                _showUserListBottomSheet(usersAtLocation);
               },
               child: Stack(
                 alignment: Alignment.center,
@@ -204,14 +242,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
       builder: (BuildContext context) {
         return Container(
           padding: EdgeInsets.all(16),
-          height: MediaQuery.of(context).size.height * 0.5, // Ajuste la hauteur
+          height: MediaQuery.of(context).size.height * 0.5,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Utilisateurs à cet emplacement',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text('Utilisateurs à cet emplacement',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               Expanded(
                 child: ListView.separated(
@@ -227,10 +263,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             : AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                       ),
-                      title: Text(
-                        user['name'] ?? 'Utilisateur inconnu',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      title: Text(user['name'] ?? 'Utilisateur inconnu',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text(user['job'] ?? 'Métier inconnu'),
                       trailing: user['likes'] != null
                           ? Row(
@@ -269,7 +303,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  // Function to open the place in Google Maps
   void _openInGoogleMaps(double latitude, double longitude) async {
     final url = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
@@ -280,7 +313,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  // Function to search for location by name (city or place)
   Future<void> _searchLocationByName(String placeName) async {
     try {
       List<Location> locations = await locationFromAddress(placeName);
@@ -297,7 +329,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Show loading screen while the session is being loaded
     if (_isLoading) {
       return Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -305,9 +336,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Explorer"),
-      ),
+      appBar: AppBar(title: const Text("Explorer")),
       body: Column(
         children: [
           Padding(
@@ -320,26 +349,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
                   onPressed: () {
-                    // Call the search function when search button is pressed
                     _searchLocationByName(_searchController.text);
                   },
                 ),
               ),
             ),
-          ),
+          ), // Button to navigate to AR View Screen
+
           _currentLocation == null
               ? Center(child: CircularProgressIndicator())
               : Consumer<UserProvider>(
                   builder: (context, userProvider, child) {
-                    // Fetch users if not already loaded
                     if (userProvider.users.isEmpty) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        userProvider
-                            .fetchUsers(_token ?? ''); // Use token for API
+                        userProvider.fetchUsers(_token ?? '');
                       });
                     }
 
-                    // FutureBuilder to load markers from user data
                     return FutureBuilder<List<Marker>>(
                       future: _getMarkers(userProvider.users),
                       builder: (context, snapshot) {
@@ -360,20 +386,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         _markers = snapshot.data!;
 
                         return Expanded(
-                          child: FlutterMap(
-                            options: MapOptions(
-                              center:
-                                  _searchLocation, // Utilise la localisation de l'appareil
-                              zoom: 12.0,
-                            ),
+                          child: Stack(
                             children: [
-                              TileLayer(
-                                urlTemplate:
-                                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                subdomains: ['a', 'b', 'c'],
+                              FlutterMap(
+                                options: MapOptions(
+                                  center: _searchLocation,
+                                  zoom: 12.0,
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: _getTileUrl(),
+                                    subdomains: ['a', 'b', 'c'],
+                                  ),
+                                  MarkerLayer(markers: _markers),
+                                ],
                               ),
-                              MarkerLayer(
-                                markers: _markers,
+                              Positioned(
+                                top: 80,
+                                right: 10,
+                                child: FloatingActionButton(
+                                  mini: true,
+                                  backgroundColor: Colors.white,
+                                  child:
+                                      Icon(Icons.layers, color: Colors.black),
+                                  onPressed: _showMapTypePicker,
+                                ),
                               ),
                             ],
                           ),
@@ -382,6 +419,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     );
                   },
                 ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ARViewScreen()),
+                  );
+                },
+                icon: Icon(Icons.view_in_ar, size: 24),
+                label: Text(
+                  "Explorer en AR",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 7, horizontal: 7),
+                  backgroundColor: const Color.fromARGB(255, 255, 174, 107),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  elevation: 6,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -30,6 +30,7 @@ import 'package:projet_pim/ViewModel/login.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -42,6 +43,8 @@ void main() async {
   String? token = prefs.getString("jwt_token");
   String? userId = prefs.getString("user_id");
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
+  MapboxOptions.setAccessToken(
+      "pk.eyJ1Ijoic2FsbWF5Y2IiLCJhIjoiY205bGV4YzhuMDFvODJtcjdudWdnc2Z4aiJ9.QOLpg1lQZCsB0fy0_3Cekg");
 
   // 🛠️ Proper initialization settings for both platforms
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -170,11 +173,10 @@ class MyApp extends StatelessWidget {
                     ModalRoute.of(context)?.settings.arguments as String? ?? '',
                 userId: userId ?? '',
               ),
-              '/place': (context) {
-  final place = ModalRoute.of(context)?.settings.arguments as Place;
-  return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
-},
-
+          '/place': (context) {
+            final place = ModalRoute.of(context)?.settings.arguments as Place;
+            return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
+          },
         },
       );
     });

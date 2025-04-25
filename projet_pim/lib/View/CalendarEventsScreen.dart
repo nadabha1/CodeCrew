@@ -1,44 +1,73 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/ViewModel/calendar_service.dart';
 import 'package:projet_pim/Model/event.dart' as CustomEvent;
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Add this import
+import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 
 class CalendarEventsScreen extends StatefulWidget {
+  final String userId;
+  final String token;
+  const CalendarEventsScreen(
+      {Key? key, required this.userId, required this.token})
+      : super(key: key);
   @override
   _CalendarEventsScreenState createState() => _CalendarEventsScreenState();
 }
 
-class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
+class _CalendarEventsScreenState extends State<CalendarEventsScreen>
+    with TickerProviderStateMixin {
   late DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin;
   late EventProvider _eventProvider;
   final CalendarService _calendarService = CalendarService();
   List<DeviceCalendar.Event> _events = [];
+  List<Event> _event = [];
+  List<Event> _filteredEvents = [];
+  bool _isLoading = true;
+  TextEditingController _searchController = TextEditingController();
+  String _selectedSort = 'date';
   List<Map<String, String>> _freeSlots = [];
   String? userId;
   String? token;
   bool isLoading = true;
   List<CustomEvent.Event> _nonConflictingEvents = [];
   final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm'); // Formatter
-  DateTime _selectedDay = DateTime.now(); // Jour sélectionné
+  DateTime? _selectedDay;
   DateTime _focusedDay = DateTime.now(); // Jour affiché
   LatLng? _currentLocation;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     initializeDateFormatting('fr_FR'); // Initialize locale data for French
     _deviceCalendarPlugin = DeviceCalendar.DeviceCalendarPlugin();
     _loadUserData();
     _getUserLocation();
+    _eventProvider = EventProvider(userId: widget.userId);
+    _fetchAllEvents();
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _searchController.clear();
+      _selectedDay = null;
+      _filteredEvents = _event;
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -449,49 +478,6 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     }
   }
 
-  /*Widget _buildFreeSlotsList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('🕒 Créneaux libres',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        if (_freeSlots.isEmpty)
-          Text("Aucun créneau disponible")
-        else
-          ..._freeSlots.map((slot) => ListTile(
-                leading: Icon(Icons.schedule),
-                title: Text(
-                    formatter.format(DateTime.parse(slot['start']!).toLocal())),
-                subtitle: Text(
-                    '→ ${formatter.format(DateTime.parse(slot['end']!).toLocal())}'),
-              )),
-      ],
-    );
-  }*/
-
-  /* Widget _buildNonConflictingEventList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_nonConflictingEvents.isNotEmpty)
-          Text(
-              generateFreeSlotMessage(_freeSlots, _nonConflictingEvents.length),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        SizedBox(height: 10),
-        if (_nonConflictingEvents.isEmpty)
-          Text("Aucun événement proposé pendant vos créneaux disponibles.")
-        else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children:
-                  _nonConflictingEvents.map((e) => _buildEventCard(e)).toList(),
-            ),
-          ),
-      ],
-    );
-  }*/
-
   Widget _buildEventCard(CustomEvent.Event event) {
     final dateText =
         formatter.format(event.startDate?.toLocal() ?? DateTime.now());
@@ -742,54 +728,342 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     setState(() => isLoading = false);
   }
 
-  /* List<Event> _getEventsInSameLocation(List<Event> events) {
-    if (_currentLocation == null) return [];
+  Widget _buildHorizontalCalendar() {
+    return TableCalendar(
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: _focusedDay,
+      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      onDaySelected: (selectedDay, focusedDay) {
+        setState(() {
+          _selectedDay = selectedDay;
+          _focusedDay = focusedDay;
+          _filterByDate(selectedDay);
+        });
+      },
+      calendarFormat: CalendarFormat.week,
+      startingDayOfWeek: StartingDayOfWeek.monday,
+      headerStyle: HeaderStyle(
+        formatButtonVisible: false,
+        titleCentered: true,
+      ),
+      calendarStyle: CalendarStyle(
+        todayDecoration: BoxDecoration(
+          color: Colors.deepPurple,
+          shape: BoxShape.circle,
+        ),
+        selectedDecoration: BoxDecoration(
+          color: Colors.blueAccent,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
 
-    return events.where((event) {
-      final distance = Geolocator.distanceBetween(
-        _currentLocation!.latitude,
-        _currentLocation!.longitude,
-        event.location.latitude,
-        event.location.longitude,
+  void _filterByDate(DateTime date) {
+    setState(() {
+      _filteredEvents = _event.where((event) {
+        return event.startDate.year == date.year &&
+            event.startDate.month == date.month &&
+            event.startDate.day == date.day;
+      }).toList();
+    });
+  }
+
+  _filterEvents(String query) async {
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _filteredEvents = _event.where((event) {
+        final titleMatch = event.title.toLowerCase().contains(lowerQuery);
+        final participantMatch = event.participants.any((p) {
+          final name = p['name'];
+          return name.toLowerCase().contains(lowerQuery);
+        });
+        return titleMatch || participantMatch;
+      }).toList();
+      _sortEvents();
+    });
+  }
+
+  void _sortEvents() {
+    if (_selectedSort == 'date') {
+      _filteredEvents.sort((a, b) => a.startDate.compareTo(b.startDate));
+    }
+  }
+
+  Future<void> _fetchAllEvents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/events/all'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
       );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _event =
+              data.map((json) => Event.fromJson(json, widget.userId)).toList();
+          _filteredEvents = _event;
+          _sortEvents();
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        print('🔴 Erreur: ${response.body}');
+      }
+    } catch (e) {
+      print('🔴 Exception: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
-      return distance < 200; // 200 mètres de tolérance (modifiable)
-    }).toList();
-  }*/
+  void _showJoinConfirmationDialog(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Rejoindre l'événement ?"),
+          content: Text("Prix de participation : ${event.joinPrice} coins"),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("Annuler")),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _eventProvider.joinEvent(widget.userId, event.id);
+                await _fetchAllEvents();
+              },
+              child: Text("Confirmer"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  TextEditingController searchController = TextEditingController();
+
+  void onSearch(String keyword) {
+    if (keyword.isNotEmpty) {
+      ActivityLoggerService.logAction(
+        userId: widget.userId,
+        type: "search event",
+        value: keyword,
+      );
+    }
+  }
+
+  Widget _buildStyledEventCard(Event event) {
+    bool isParticipating = event.isParticipating;
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(event.title,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text(event.description,
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+            SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.calendar_today, size: 14),
+              SizedBox(width: 6),
+              Text(event.startDate.toString().split(" ")[0],
+                  style: TextStyle(fontSize: 12)),
+            ]),
+            SizedBox(height: 4),
+            Row(children: [
+              Icon(Icons.location_on, size: 14),
+              SizedBox(width: 6),
+              Text(
+                '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
+                style: TextStyle(fontSize: 12),
+              ),
+            ]),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (isParticipating) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GroupChatScreen(
+                            eventProvider: EventProvider(userId: widget.userId),
+                            conversationId: event.conversationId ?? "",
+                            groupName: event.title,
+                          ),
+                        ),
+                      );
+                    } else {
+                      _showJoinConfirmationDialog(event);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isParticipating ? Colors.green : Colors.deepOrange,
+                  ),
+                  child:
+                      Text(isParticipating ? "Rejoindre le Chat" : "Rejoindre"),
+                ),
+                IconButton(
+                  icon: Icon(Icons.more_horiz),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EventDetailsScreen(
+                          event: event,
+                          userId: widget.userId,
+                          token: widget.token,
+                          eventProvider: _eventProvider,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Calendar Events'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _refreshData,
-          ),
-          IconButton(
-            icon: Icon(Icons.my_location),
-            onPressed: _getUserLocation,
-          )
-        ],
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDeviceEventsList(),
-                  _buildFreeSlotMessages(),
+    List<Event> recentEvents = _filteredEvents
+        .where((e) => e.startDate.isBefore(DateTime.now()))
+        .toList();
+    List<Event> upcomingEvents = _filteredEvents
+        .where((e) => e.startDate.isAfter(DateTime.now()))
+        .toList();
 
-                  SizedBox(height: 20),
-                  // _buildFreeSlotsList(),
-                  SizedBox(height: 20),
-                  // _buildNonConflictingEventList(),
-                ],
-              ),
+    return Scaffold(
+      backgroundColor: Color(0xFFF7F4FC),
+      appBar: AppBar(
+        backgroundColor: Color(0xFFDBD9FE),
+        title: Text("Tous les événements"),
+        elevation: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: "Calendrier"),
+            Tab(text: "Tous les événements"),
+          ],
+        ),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                // Affichage du calendrier et des événements dans l'onglet "Calendrier"
+                Scaffold(
+                  appBar: AppBar(
+                    title: Text('Calendar Events'),
+                    actions: [
+                      IconButton(
+                        icon: Icon(Icons.refresh),
+                        onPressed:
+                            _refreshData, // Fonction de rafraîchissement des données
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.my_location),
+                        onPressed:
+                            _getUserLocation, // Fonction pour obtenir la localisation de l'utilisateur
+                      ),
+                    ],
+                  ),
+                  body: _isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildDeviceEventsList(), // Liste des événements de l'appareil
+                              _buildFreeSlotMessages(), // Messages concernant les créneaux horaires libres
+
+                              SizedBox(height: 20),
+                              // _buildFreeSlotsList(), // Liste des créneaux horaires libres (optionnel)
+                              SizedBox(height: 20),
+                              // _buildNonConflictingEventList(), // Liste des événements sans conflits (optionnel)
+                            ],
+                          ),
+                        ),
+                ),
+
+                // Affichage des événements dans l'onglet "Tous les événements"
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  child: Column(
+                    children: [
+                      // Champ de recherche pour filtrer les événements
+                      TextField(
+                        controller: _searchController,
+                        onChanged: _filterEvents,
+                        onSubmitted: onSearch,
+                        decoration: InputDecoration(
+                          hintText: 'Rechercher par titre ou participant...',
+                          prefixIcon: Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      // Affichage du calendrier en haut de la liste des événements
+                      SizedBox(height: 20),
+                      _buildHorizontalCalendar(), // Ajout du calendrier
+
+                      if (_selectedDay != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: _resetFilters,
+                            icon: Icon(Icons.refresh, color: Colors.deepPurple),
+                            label: Text("Réinitialiser",
+                                style: TextStyle(color: Colors.deepPurple)),
+                          ),
+                        ),
+                      SizedBox(height: 10),
+                      // Liste des événements filtrés
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            if (recentEvents.isNotEmpty) ...[
+                              Text("\u{1F4C5} Événements récents",
+                                  style: sectionStyle),
+                              ...recentEvents.map(_buildStyledEventCard),
+                              Divider(thickness: 1.5),
+                            ],
+                            if (upcomingEvents.isNotEmpty) ...[
+                              Text("\u{1F680} À venir", style: sectionStyle),
+                              ...upcomingEvents.map(_buildStyledEventCard),
+                            ]
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
     );
   }
+
+  final sectionStyle = TextStyle(
+      fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple);
 }

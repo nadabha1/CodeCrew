@@ -7,6 +7,7 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
+import 'package:projet_pim/View/ARViewScreen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
@@ -119,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => CalendarEventsScreen()),
+                MaterialPageRoute(
+                    builder: (context) => CalendarEventsScreen(
+                        userId: widget.userId, token: _token!)),
               );
             },
           ),
