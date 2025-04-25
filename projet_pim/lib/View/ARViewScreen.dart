@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ar_location_view/ar_location_view.dart';
@@ -26,11 +28,25 @@ class _ARViewScreenState extends State<ARViewScreen> {
   List<Place> places = [];
   User? matchedUser;
   Place? matchedPlace;
+  Timer? _locationTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _locationTimer = Timer.periodic(Duration(seconds: 1), (_) async {
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
+        if (mounted) {
+          setState(() {
+            _userPosition = pos;
+          });
+        }
+      } catch (e) {
+        print("❌ Erreur lors du rafraîchissement de la position : $e");
+      }
+    });
   }
 
   Future<void> _initializeData() async {
@@ -201,12 +217,15 @@ class _ARViewScreenState extends State<ARViewScreen> {
                   const w = 250.0, h = 120.0;
                   String? dist;
                   if (_userPosition != null) {
-                    dist = "${Geolocator.distanceBetween(
+                    final d = Geolocator.distanceBetween(
                       _userPosition!.latitude,
                       _userPosition!.longitude,
                       annotation.position.latitude,
                       annotation.position.longitude,
-                    ).toStringAsFixed(0)} m";
+                    );
+                    dist = d < 1000
+                        ? "${d.toStringAsFixed(0)} m"
+                        : "${(d / 1000).toStringAsFixed(1)} km";
                   }
 
                   return Transform.translate(
@@ -280,5 +299,11 @@ class _ARViewScreenState extends State<ARViewScreen> {
               );
             }),
     );
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
   }
 }
