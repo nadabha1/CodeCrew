@@ -124,6 +124,8 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                                     eventProvider:
                                         EventProvider(userId: _userId!),
 
+                                    userId: _userId!,
+
                                     conversationId: conversation['_id'],
                                     groupName: conversation[
                                         'title'], // ✅ Passe le titre du groupe

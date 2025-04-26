@@ -11,6 +11,8 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
+import 'package:projet_pim/View/chat/CallScreen.dart';
+import 'package:projet_pim/ViewModel/agora_service.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -284,6 +286,26 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Text(otherUserName ?? "Discussion"),
         backgroundColor: const Color(0xFFFFCDB1),
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final callLink = 'call:${'monChannel'}';
+              await sendMessage(text: callLink);
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CallScreen(
+                    channelName: 'monChannel',
+                    conversationId: widget.conversationId,
+                    userId: widget.userId,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.call),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -314,7 +336,38 @@ class _ChatScreenState extends State<ChatScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(msg['content'] ?? ""),
+                                  msg['content'] != null &&
+                                          msg['content']
+                                              .toString()
+                                              .startsWith('call:')
+                                      ? GestureDetector(
+                                          onTap: () {
+                                            final channelName = msg['content']
+                                                .toString()
+                                                .substring(
+                                                    5); // enlever 'call:'
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => CallScreen(
+                                                  channelName: channelName,
+                                                  conversationId:
+                                                      widget.conversationId,
+                                                  userId: widget.userId,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            "📞 Rejoindre l'appel",
+                                            style: TextStyle(
+                                              color: Colors.blue,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(msg['content'] ?? ""),
                                   SizedBox(height: 4),
                                   Text(formatTimestamp(msg['createdAt']),
                                       style: TextStyle(fontSize: 10)),

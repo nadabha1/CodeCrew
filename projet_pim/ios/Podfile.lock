@@ -1,4 +1,50 @@
 PODS:
+  - agora_rtc_engine (6.5.1):
+    - AgoraIrisRTC_iOS (= 4.5.1-build.1)
+    - AgoraRtcEngine_iOS (= 4.5.1)
+    - Flutter
+  - AgoraInfra_iOS (1.2.13)
+  - AgoraIrisRTC_iOS (4.5.1-build.1)
+  - AgoraRtcEngine_iOS (4.5.1):
+    - AgoraRtcEngine_iOS/AIAEC (= 4.5.1)
+    - AgoraRtcEngine_iOS/AIAECLL (= 4.5.1)
+    - AgoraRtcEngine_iOS/AINS (= 4.5.1)
+    - AgoraRtcEngine_iOS/AINSLL (= 4.5.1)
+    - AgoraRtcEngine_iOS/AudioBeauty (= 4.5.1)
+    - AgoraRtcEngine_iOS/ClearVision (= 4.5.1)
+    - AgoraRtcEngine_iOS/ContentInspect (= 4.5.1)
+    - AgoraRtcEngine_iOS/FaceCapture (= 4.5.1)
+    - AgoraRtcEngine_iOS/FaceDetection (= 4.5.1)
+    - AgoraRtcEngine_iOS/LipSync (= 4.5.1)
+    - AgoraRtcEngine_iOS/ReplayKit (= 4.5.1)
+    - AgoraRtcEngine_iOS/RtcBasic (= 4.5.1)
+    - AgoraRtcEngine_iOS/SpatialAudio (= 4.5.1)
+    - AgoraRtcEngine_iOS/VideoAv1CodecDec (= 4.5.1)
+    - AgoraRtcEngine_iOS/VideoAv1CodecEnc (= 4.5.1)
+    - AgoraRtcEngine_iOS/VideoCodecDec (= 4.5.1)
+    - AgoraRtcEngine_iOS/VideoCodecEnc (= 4.5.1)
+    - AgoraRtcEngine_iOS/VirtualBackground (= 4.5.1)
+    - AgoraRtcEngine_iOS/VQA (= 4.5.1)
+  - AgoraRtcEngine_iOS/AIAEC (4.5.1)
+  - AgoraRtcEngine_iOS/AIAECLL (4.5.1)
+  - AgoraRtcEngine_iOS/AINS (4.5.1)
+  - AgoraRtcEngine_iOS/AINSLL (4.5.1)
+  - AgoraRtcEngine_iOS/AudioBeauty (4.5.1)
+  - AgoraRtcEngine_iOS/ClearVision (4.5.1)
+  - AgoraRtcEngine_iOS/ContentInspect (4.5.1)
+  - AgoraRtcEngine_iOS/FaceCapture (4.5.1)
+  - AgoraRtcEngine_iOS/FaceDetection (4.5.1)
+  - AgoraRtcEngine_iOS/LipSync (4.5.1)
+  - AgoraRtcEngine_iOS/ReplayKit (4.5.1)
+  - AgoraRtcEngine_iOS/RtcBasic (4.5.1):
+    - AgoraInfra_iOS (= 1.2.13)
+  - AgoraRtcEngine_iOS/SpatialAudio (4.5.1)
+  - AgoraRtcEngine_iOS/VideoAv1CodecDec (4.5.1)
+  - AgoraRtcEngine_iOS/VideoAv1CodecEnc (4.5.1)
+  - AgoraRtcEngine_iOS/VideoCodecDec (4.5.1)
+  - AgoraRtcEngine_iOS/VideoCodecEnc (4.5.1)
+  - AgoraRtcEngine_iOS/VirtualBackground (4.5.1)
+  - AgoraRtcEngine_iOS/VQA (4.5.1)
   - ar_location_view (0.0.1):
     - Flutter
   - camera_avfoundation (0.0.1):
@@ -20,6 +66,8 @@ PODS:
     - Flutter
     - FlutterMacOS
   - image_picker_ios (0.0.1):
+    - Flutter
+  - iris_method_channel (0.0.1):
     - Flutter
   - location (0.0.1):
     - Flutter
@@ -54,6 +102,7 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
+  - agora_rtc_engine (from `.symlinks/plugins/agora_rtc_engine/ios`)
   - ar_location_view (from `.symlinks/plugins/ar_location_view/ios`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - device_calendar (from `.symlinks/plugins/device_calendar/ios`)
@@ -64,6 +113,7 @@ DEPENDENCIES:
   - geocoding_ios (from `.symlinks/plugins/geocoding_ios/ios`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
+  - iris_method_channel (from `.symlinks/plugins/iris_method_channel/ios`)
   - location (from `.symlinks/plugins/location/ios`)
   - mapbox_maps_flutter (from `.symlinks/plugins/mapbox_maps_flutter/ios`)
   - native_device_orientation (from `.symlinks/plugins/native_device_orientation/ios`)
@@ -76,6 +126,9 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - AgoraInfra_iOS
+    - AgoraIrisRTC_iOS
+    - AgoraRtcEngine_iOS
     - flutter_sound_core
     - MapboxCommon
     - MapboxCoreMaps
@@ -83,6 +136,8 @@ SPEC REPOS:
     - Turf
 
 EXTERNAL SOURCES:
+  agora_rtc_engine:
+    :path: ".symlinks/plugins/agora_rtc_engine/ios"
   ar_location_view:
     :path: ".symlinks/plugins/ar_location_view/ios"
   camera_avfoundation:
@@ -103,6 +158,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/geolocator_apple/darwin"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
+  iris_method_channel:
+    :path: ".symlinks/plugins/iris_method_channel/ios"
   location:
     :path: ".symlinks/plugins/location/ios"
   mapbox_maps_flutter:
@@ -123,6 +180,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
+  agora_rtc_engine: 7434787c0b5284d803c31c726562b8399b8c1744
+  AgoraInfra_iOS: 65e11a2183ab7836258768868d06058c22701b13
+  AgoraIrisRTC_iOS: dd3d957c25be6bd2b2a5d03fe706ebe8a46909f0
+  AgoraRtcEngine_iOS: 5092a058c7b2842db39d8ca614d451af6f84969a
   ar_location_view: ab334bd317a6e9774de4451abdf986cf459527c1
   camera_avfoundation: be3be85408cd4126f250386828e9b1dfa40ab436
   device_calendar: b55b2c5406cfba45c95a59f9059156daee1f74ed
@@ -134,6 +195,7 @@ SPEC CHECKSUMS:
   geocoding_ios: 86f1c479822f07a2f79f7094f2b753d1e9e20215
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
+  iris_method_channel: b9db2053dac3dc84e256c8792eff6f11323a53bd
   location: 155caecf9da4f280ab5fe4a55f94ceccfab838f8
   mapbox_maps_flutter: 4def394c2c589f0be7b7f33b7f152aee897ca2af
   MapboxCommon: 68daa8291a799ba2e24050160a1eb71e090ac0ca

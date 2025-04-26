@@ -350,6 +350,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                     EventProvider(userId: widget.userId),
                                 conversationId: widget.event.conversationId,
                                 groupName: widget.event.title,
+                                userId: widget.userId,
                               ),
                             ),
                           );

@@ -899,6 +899,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                             eventProvider: EventProvider(userId: widget.userId),
                             conversationId: event.conversationId ?? "",
                             groupName: event.title,
+                            userId: widget.userId,
                           ),
                         ),
                       );

@@ -241,6 +241,7 @@ class _AllEventsScreenState extends State<AllEventsScreen>
                             eventProvider: EventProvider(userId: widget.userId),
                             conversationId: event.conversationId ?? "",
                             groupName: event.title,
+                            userId: widget.userId,
                           ),
                         ),
                       );
