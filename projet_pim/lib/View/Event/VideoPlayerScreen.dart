@@ -26,7 +26,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void initState() {
     super.initState();
 
-    final fixedUrl = widget.videoUrl.replaceFirst("localhost", "${ApiConstants.baseUrl3}");
+    final fixedUrl =
+        widget.videoUrl.replaceFirst("localhost", "${ApiConstants.baseUrl2}");
     _controller = VideoPlayerController.network(fixedUrl);
 
     _controller.initialize().then((_) {
@@ -50,13 +51,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _changeMusic() async {
-
-
     await Permission.storage.request();
 
     if (!await Permission.manageExternalStorage.request().isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⛔ Permission refusée pour accéder aux fichiers")),
+        const SnackBar(
+            content: Text("⛔ Permission refusée pour accéder aux fichiers")),
       );
       return;
     }
@@ -80,7 +80,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
         final uploadRes = await uploadReq.send();
 
-if (uploadRes.statusCode == 200 || uploadRes.statusCode == 201) {
+        if (uploadRes.statusCode == 200 || uploadRes.statusCode == 201) {
           print("✅ Upload musique réussi");
 
           // Étape 2: appel add-music
@@ -98,7 +98,8 @@ if (uploadRes.statusCode == 200 || uploadRes.statusCode == 201) {
           } else {
             print("❌ Erreur serveur: ${response.body}");
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("❌ Erreur lors de la modification.")),
+              const SnackBar(
+                  content: Text("❌ Erreur lors de la modification.")),
             );
           }
         } else {
@@ -164,7 +165,9 @@ if (uploadRes.statusCode == 200 || uploadRes.statusCode == 201) {
           ? FloatingActionButton(
               onPressed: () {
                 setState(() {
-                  _controller.value.isPlaying ? _controller.pause() : _controller.play();
+                  _controller.value.isPlaying
+                      ? _controller.pause()
+                      : _controller.play();
                 });
               },
               child: Icon(

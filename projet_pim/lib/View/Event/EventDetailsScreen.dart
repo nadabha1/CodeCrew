@@ -56,14 +56,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   void initState() {
     super.initState();
     _fetchParticipants();
-      fetchReels(); // ✅ récupérer tous les reels
-
+    fetchReels(); // ✅ récupérer tous les reels
   }
-   Future<void> _generateReel() async {
+
+  Future<void> _generateReel() async {
     final response = await http.post(
-  Uri.parse('${ApiConstants.baseUrl}/reels/generate/${widget.event.id}/${widget.userId}'),
+      Uri.parse(
+          '${ApiConstants.baseUrl}/reels/generate/${widget.event.id}/${widget.userId}'),
     );
-    if (response.statusCode == 200|| response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       print("🎞️ Reel généré avec succès");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("🎞️ Souvenir généré !")),
@@ -75,51 +76,53 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       );
     }
   }
+
   Future<void> fetchReels() async {
-  setState(() {
-    isLoading = true;
-  });
+    setState(() {
+      isLoading = true;
+    });
 
-  try {
-    final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}/reels?eventId=${widget.event.id}'),
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/reels?eventId=${widget.event.id}'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
 
-    if (response.statusCode == 200|| response.statusCode == 201) {
-      final List<dynamic> data = jsonDecode(response.body);
-      if (data.isEmpty) {
-        _reelExists = false;
-        return;
-      }
-      print("✅ Reels récupérés : ${data.length}");
-      // 🔥 filtrer les reels visibles :
-      reelsUrls = [];
-      for (var reel in data) {
-        if (reel['isShared'] == true || reel['userId'] == widget.userId) {
-reelsUrls.add('${ApiConstants.baseUrl}/${reel['videoUrl']}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isEmpty) {
+          _reelExists = false;
+          return;
         }
+        print("✅ Reels récupérés : ${data.length}");
+        // 🔥 filtrer les reels visibles :
+        reelsUrls = [];
+        for (var reel in data) {
+          if (reel['isShared'] == true || reel['userId'] == widget.userId) {
+            reelsUrls.add('${ApiConstants.baseUrl}/${reel['videoUrl']}');
+          }
+        }
+        _reelExists = reelsUrls.isNotEmpty;
+      } else {
+        _reelExists = false;
       }
-      _reelExists = reelsUrls.isNotEmpty;
-    } else {
+    } catch (e) {
       _reelExists = false;
+      print('Erreur récupération reels: $e');
     }
-  } catch (e) {
-    _reelExists = false;
-    print('Erreur récupération reels: $e');
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
-  setState(() {
-    isLoading = false;
-  });
-}
-
- Future<void> _checkReels() async {
+  Future<void> _checkReels() async {
     setState(() => isLoading = true);
     try {
-      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/reels/${widget.event.id}'));
+      final response = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/reels/${widget.event.id}'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         if (data.isNotEmpty) {
@@ -138,97 +141,96 @@ reelsUrls.add('${ApiConstants.baseUrl}/${reel['videoUrl']}');
     setState(() => isLoading = false);
   }
 
-Future<void> _uploadAndGenerateReel({required bool isShared}) async {
-  final picker = ImagePicker();
-  final picked = await picker.pickMultiImage();
+  Future<void> _uploadAndGenerateReel({required bool isShared}) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickMultiImage();
 
-  if (picked.isNotEmpty) {
-    final files = picked.map((e) => File(e.path)).toList();
+    if (picked.isNotEmpty) {
+      final files = picked.map((e) => File(e.path)).toList();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Téléversement en cours...")),
-    );
-
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
-    );
-    request.fields['eventId'] = widget.event.id;
-    request.fields['userId'] = widget.userId;
-    request.fields['isShared'] = isShared.toString(); // 👈✅ on ajoute le choix
-
-    for (var file in files) {
-      request.files.add(await http.MultipartFile.fromPath('files', file.path));
-    }
-
-    var response = await request.send();
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      print("✅ Images uploadées avec succès");
-      await _generateReel();
-    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur d’upload.")),
+        const SnackBar(content: Text("Téléversement en cours...")),
       );
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
+      );
+      request.fields['eventId'] = widget.event.id;
+      request.fields['userId'] = widget.userId;
+      request.fields['isShared'] =
+          isShared.toString(); // 👈✅ on ajoute le choix
+
+      for (var file in files) {
+        request.files
+            .add(await http.MultipartFile.fromPath('files', file.path));
+      }
+
+      var response = await request.send();
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print("✅ Images uploadées avec succès");
+        await _generateReel();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erreur d’upload.")),
+        );
+      }
     }
   }
-}
 
   void _openStoryView() {
-  if (reelsUrls.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Aucun souvenir disponible.")),
+    if (reelsUrls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Aucun souvenir disponible.")),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReelStoryView(reelsUrls: reelsUrls),
+        //  builder: (_) => TestVideoScreen(),
+      ),
     );
-    return;
-  }
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ReelStoryView(reelsUrls: reelsUrls),
-          //  builder: (_) => TestVideoScreen(),
-
-    ),
-  );
-}
-
-
-Future<String?> pickMusicFile() async {
-  // Demande de permission
-  if (!await Permission.storage.request().isGranted) {
-    print('⛔ Permission refusée');
-    return null;
   }
 
-  final result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['mp3', 'm4a', 'aac'],
-  );
+  Future<String?> pickMusicFile() async {
+    // Demande de permission
+    if (!await Permission.storage.request().isGranted) {
+      print('⛔ Permission refusée');
+      return null;
+    }
 
-  if (result != null && result.files.single.path != null) {
-    print("🎵 Musique choisie : ${result.files.single.path}");
-    return result.files.single.path;
-  } else {
-    print("❌ Aucune musique sélectionnée");
-    return null;
-  }
-}
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'm4a', 'aac'],
+    );
 
-  Future<void> _fetchParticipants() async {
-  Map<String, dynamic> details = {};
-  for (var participant in widget.event.participants) {
-    final userId = participant['_id'];
-    try {
-      var user = await userService.getUserById(userId, widget.token);
-      details[userId] = user;
-    } catch (e) {
-      print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
+    if (result != null && result.files.single.path != null) {
+      print("🎵 Musique choisie : ${result.files.single.path}");
+      return result.files.single.path;
+    } else {
+      print("❌ Aucune musique sélectionnée");
+      return null;
     }
   }
-  setState(() {
-    participantDetails = details;
-    isLoading = false;
-  });
-}
 
+  Future<void> _fetchParticipants() async {
+    Map<String, dynamic> details = {};
+    for (var participant in widget.event.participants) {
+      final userId = participant['_id'];
+      try {
+        var user = await userService.getUserById(userId, widget.token);
+        details[userId] = user;
+      } catch (e) {
+        print("❌ Erreur lors de la récupération de l'utilisateur $userId : $e");
+      }
+    }
+    setState(() {
+      participantDetails = details;
+      isLoading = false;
+    });
+  }
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, HH:mm').format(date); // Format personnalisé
@@ -429,8 +431,9 @@ Future<String?> pickMusicFile() async {
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: widget.event.participants.length,
                           itemBuilder: (context, index) {
-final participant = widget.event.participants[index];
-final userId = participant['_id'];
+                            final participant =
+                                widget.event.participants[index];
+                            final userId = participant['_id'];
                             var user = participantDetails[userId];
                             bool isCurrentUser = userId == widget.userId;
 
@@ -472,8 +475,8 @@ final userId = participant['_id'];
                                   ),
                                   title: Text(
                                     "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
-                                    style:
-                                        const TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
                                   ),
                                   subtitle:
                                       Text(user?["email"] ?? "Email inconnu"),
@@ -490,10 +493,10 @@ final userId = participant['_id'];
                       context,
                       MaterialPageRoute(
                         builder: (context) => GroupChatScreen(
-                                                            eventProvider: EventProvider(userId: widget.userId),
-
+                          eventProvider: EventProvider(userId: widget.userId),
                           conversationId: widget.event.conversationId,
                           groupName: widget.event.title,
+                          userId: widget.userId,
                         ),
                       ),
                     );
@@ -502,63 +505,67 @@ final userId = participant['_id'];
                   label: const Text("Rejoindre le Chat"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 221, 170, 228),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-                ElevatedButton.icon(
-  onPressed: () {
-    _showShareInConversationDialog();
-  },
-  icon: const Icon(Icons.share, color: Colors.white),
-  label: const Text("Partager dans une conversation"),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.deepPurple,
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-  ),
-),
-ElevatedButton.icon(
-  onPressed: shareEventToMessenger,
-  icon: const Icon(Icons.send),
-  label: const Text("Partager sur Messenger") ,
-  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent,),
-  
-),
-ElevatedButton.icon(
-  icon: const Icon(Icons.camera_alt),
-  label: const Text("Créer un souvenir"),
-  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple  ),
-onPressed: () {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Souhaites-tu partager ce souvenir ?'),
-      actions: [
-        TextButton(
-          child: const Text('Privé 🔒'),
-          onPressed: () {
-            Navigator.pop(context);
-            _uploadAndGenerateReel(isShared: false); // 🚀 upload privé
-          },
-        ),
-        TextButton(
-          child: const Text('Public 🌍'),
-          onPressed: () {
-            Navigator.pop(context);
-            _uploadAndGenerateReel(isShared: true); // 🚀 upload public
-          },
-        ),
-      ],
-    ),
-  );
-},
-
-),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _showShareInConversationDialog();
+                },
+                icon: const Icon(Icons.share, color: Colors.white),
+                label: const Text("Partager dans une conversation"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: shareEventToMessenger,
+                icon: const Icon(Icons.send),
+                label: const Text("Partager sur Messenger"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                ),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.camera_alt),
+                label: const Text("Créer un souvenir"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Souhaites-tu partager ce souvenir ?'),
+                      actions: [
+                        TextButton(
+                          child: const Text('Privé 🔒'),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _uploadAndGenerateReel(
+                                isShared: false); // 🚀 upload privé
+                          },
+                        ),
+                        TextButton(
+                          child: const Text('Public 🌍'),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _uploadAndGenerateReel(
+                                isShared: true); // 🚀 upload public
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
 /*if(_reelExists)
   ElevatedButton.icon(
   icon: const Icon(Icons.movie),
@@ -575,22 +582,21 @@ onPressed: () {
     );
   },
 ),*/
-if (_reelExists)
-  ElevatedButton.icon(
-    onPressed: _openStoryView,
-    icon: const Icon(Icons.movie),
-    label: const Text("🎬 Voir souvenirs"),
-    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-  ),
-
-  if (!_reelExists)
-                  const Center(
-                    child: Text(
-                      "Pas encore de souvenirs 🎬",
-                      style: TextStyle(color: Colors.grey),
-                    ),
+              if (_reelExists)
+                ElevatedButton.icon(
+                  onPressed: _openStoryView,
+                  icon: const Icon(Icons.movie),
+                  label: const Text("🎬 Voir souvenirs"),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                ),
+              if (!_reelExists)
+                const Center(
+                  child: Text(
+                    "Pas encore de souvenirs 🎬",
+                    style: TextStyle(color: Colors.grey),
                   ),
-
+                ),
             ],
           ),
         ),
@@ -605,94 +611,99 @@ if (_reelExists)
         Icon(icon, color: iconColor),
         const SizedBox(width: 8),
         Text("$label : ",
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.black)),
         Expanded(
             child: Text(value,
                 style: const TextStyle(fontSize: 16, color: Colors.black))),
       ],
     );
-  }void _showShareInConversationDialog() async {
-  final response = await http.get(
-    Uri.parse('${ApiConstants.baseUrl}/conversations/${widget.userId}'),
-    headers: {'Authorization': 'Bearer ${widget.token}'},
-  );
+  }
 
-  if (response.statusCode == 200) {
-    final conversations = jsonDecode(response.body);
+  void _showShareInConversationDialog() async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/conversations/${widget.userId}'),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
+    );
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Partager l'événement"),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: conversations.length,
-            itemBuilder: (context, index) {
-              final conv = conversations[index];
-              final List participants = conv['participants'];
-              String nameToDisplay;
+    if (response.statusCode == 200) {
+      final conversations = jsonDecode(response.body);
 
-              if (conv['title'] != null && conv['title'].toString().isNotEmpty) {
-                nameToDisplay = conv['title']; // Groupe
-              } else {
-                final other = participants.firstWhere(
-                  (p) => p['_id'] != widget.userId,
-                  orElse: () => {'name': 'Utilisateur inconnu'},
-                );
-                nameToDisplay = other['name'] ?? 'Utilisateur inconnu'; // Privée
-              }
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Partager l'événement"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: conversations.length,
+              itemBuilder: (context, index) {
+                final conv = conversations[index];
+                final List participants = conv['participants'];
+                String nameToDisplay;
 
-              return ListTile(
-                title: Text(nameToDisplay),
-                onTap: () async {
-                  final event = widget.event;
+                if (conv['title'] != null &&
+                    conv['title'].toString().isNotEmpty) {
+                  nameToDisplay = conv['title']; // Groupe
+                } else {
+                  final other = participants.firstWhere(
+                    (p) => p['_id'] != widget.userId,
+                    orElse: () => {'name': 'Utilisateur inconnu'},
+                  );
+                  nameToDisplay =
+                      other['name'] ?? 'Utilisateur inconnu'; // Privée
+                }
 
-                  final message = """
+                return ListTile(
+                  title: Text(nameToDisplay),
+                  onTap: () async {
+                    final event = widget.event;
+
+                    final message = """
 📢 *${event.title}*
 📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
 📅 Début : ${_formatDate(event.startDate)}
 🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
 """;
 
-                  await shareEventMessage(
-                    conversationId: conv['_id'],
-                    userId: widget.userId,
-                    eventId: event.id,
-                    context: context,
-                    msg: message,
-                  );
+                    await shareEventMessage(
+                      conversationId: conv['_id'],
+                      userId: widget.userId,
+                      eventId: event.id,
+                      context: context,
+                      msg: message,
+                    );
 
-                  Navigator.pop(context);
-                },
-              );
-            },
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
           ),
         ),
-      ),
-    );
-  } else {
-    print('❌ Erreur lors de la récupération des conversations');
+      );
+    } else {
+      print('❌ Erreur lors de la récupération des conversations');
+    }
   }
-  
-}
 
-void shareEventToMessenger() {
-  final event = widget.event;
-  final message = """
+  void shareEventToMessenger() {
+    final event = widget.event;
+    final message = """
 📢 ${event.title}
 📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
 📅 Début : ${_formatDate(event.startDate)}
 🔗 Rejoins : ${event.conversationId != null ? "chat/${event.conversationId}" : "cet événement"}
 """;
 
-  Share.share(message);
-}
-void _shareEventToConversation(String conversationId) async {
-  final event = widget.event;
+    Share.share(message);
+  }
 
-  final message = """
+  void _shareEventToConversation(String conversationId) async {
+    final event = widget.event;
+
+    final message = """
 📢 *${event.title}*
 📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}
 📅 Début : ${_formatDate(event.startDate)}
@@ -700,33 +711,32 @@ void _shareEventToConversation(String conversationId) async {
 
 """;
 
-  final response = await http.post(
-    Uri.parse('${ApiConstants.baseUrl}/messages'),
-    headers: {
-      'Authorization': 'Bearer ${widget.token}',
-      'Content-Type': 'application/json'
-    },
-    body: jsonEncode({
-      "conversationId": conversationId,
-      "senderId": widget.userId,
-      "content": message,
-    }),
-  );
-  print("🔁 Envoi : $conversationId | sender=${widget.userId}");
-  print("🔁 Contenu : $message");
-
-
-  if (response.statusCode == 201) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ Événement partagé avec succès !')),
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/messages'),
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+        'Content-Type': 'application/json'
+      },
+      body: jsonEncode({
+        "conversationId": conversationId,
+        "senderId": widget.userId,
+        "content": message,
+      }),
     );
-  } else {
-    print("Erreur d'envoi : ${response.body}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('❌ Échec du partage de l’événement')),
-    );
+    print("🔁 Envoi : $conversationId | sender=${widget.userId}");
+    print("🔁 Contenu : $message");
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Événement partagé avec succès !')),
+      );
+    } else {
+      print("Erreur d'envoi : ${response.body}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Échec du partage de l’événement')),
+      );
+    }
   }
-}
 
   Widget _buildLocationDetailRow(String coords) {
     return FutureBuilder<String>(
@@ -746,26 +756,29 @@ void _shareEventToConversation(String conversationId) async {
       },
     );
   }
-Future<void> uploadReelImages(String eventId, String userId, List<File> images) async {
-  var request = http.MultipartRequest(
-    'POST',
-    Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
-  );
 
-  request.fields['eventId'] = eventId;
-  request.fields['userId'] = userId;
+  Future<void> uploadReelImages(
+      String eventId, String userId, List<File> images) async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
+    );
 
-  for (var image in images) {
-    request.files.add(await http.MultipartFile.fromPath('files', image.path));
+    request.fields['eventId'] = eventId;
+    request.fields['userId'] = userId;
+
+    for (var image in images) {
+      request.files.add(await http.MultipartFile.fromPath('files', image.path));
+    }
+
+    var response = await request.send();
+    if (response.statusCode == 201) {
+      print("✅ Images uploadées avec succès");
+    } else {
+      print("❌ Erreur d’upload : ${response.statusCode}");
+    }
   }
 
-  var response = await request.send();
-  if (response.statusCode == 201) {
-    print("✅ Images uploadées avec succès");
-  } else {
-    print("❌ Erreur d’upload : ${response.statusCode}");
-  }
-  }
   Widget _buildActionButton(
       {required IconData icon,
       required String label,
@@ -781,31 +794,27 @@ Future<void> uploadReelImages(String eventId, String userId, List<File> images) 
         ),
         onPressed: onPressed,
       ),
-      
     );
   }
+
   Future<void> generateReel(String eventId) async {
-  final response = await http.post(
-  Uri.parse('${ApiConstants.baseUrl}/reels/generate/${widget.event.id}/${widget.userId}'),
-  );
+    final response = await http.post(
+      Uri.parse(
+          '${ApiConstants.baseUrl}/reels/generate/${widget.event.id}/${widget.userId}'),
+    );
 
-  if (response.statusCode == 200 || response.statusCode == 201) {
-  print("🎞️ Reel généré avec succès");
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("🎞️ Souvenir généré !")),
-  );
-  await fetchReels(); // 🔁 Ajoute ça pour afficher le bouton "🎬 Voir souvenir"
-} else {
-  print("❌ Échec de la génération du Reel");
-  print(response.body);
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Erreur lors de la génération du Reel.")),
-  );
-}
-
-}
-
-
-
-
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("🎞️ Reel généré avec succès");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("🎞️ Souvenir généré !")),
+      );
+      await fetchReels(); // 🔁 Ajoute ça pour afficher le bouton "🎬 Voir souvenir"
+    } else {
+      print("❌ Échec de la génération du Reel");
+      print(response.body);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erreur lors de la génération du Reel.")),
+      );
+    }
+  }
 }

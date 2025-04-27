@@ -28,57 +28,57 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final String _selectedSort = 'date';
 
-DateTime _focusedDay = DateTime.now();
-DateTime? _selectedDay;
-void _resetFilters() {
-  setState(() {
-    _searchController.clear();
-    _selectedDay = null;
-    _filteredEvents = _events;
-  });
-}
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  void _resetFilters() {
+    setState(() {
+      _searchController.clear();
+      _selectedDay = null;
+      _filteredEvents = _events;
+    });
+  }
 
-Widget _buildHorizontalCalendar() {
-  return TableCalendar(
-    firstDay: DateTime.utc(2020, 1, 1),
-    lastDay: DateTime.utc(2030, 12, 31),
-    focusedDay: _focusedDay,
-    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-    onDaySelected: (selectedDay, focusedDay) {
-      setState(() {
-        _selectedDay = selectedDay;
-        _focusedDay = focusedDay;
-        _filterByDate(selectedDay);
-      });
-    },
-    calendarFormat: CalendarFormat.week,
-    startingDayOfWeek: StartingDayOfWeek.monday,
-    headerStyle: const HeaderStyle(
-      formatButtonVisible: false,
-      titleCentered: true,
-    ),
-    calendarStyle: const CalendarStyle(
-      todayDecoration: BoxDecoration(
-        color: Colors.deepPurple,
-        shape: BoxShape.circle,
+  Widget _buildHorizontalCalendar() {
+    return TableCalendar(
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: _focusedDay,
+      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      onDaySelected: (selectedDay, focusedDay) {
+        setState(() {
+          _selectedDay = selectedDay;
+          _focusedDay = focusedDay;
+          _filterByDate(selectedDay);
+        });
+      },
+      calendarFormat: CalendarFormat.week,
+      startingDayOfWeek: StartingDayOfWeek.monday,
+      headerStyle: const HeaderStyle(
+        formatButtonVisible: false,
+        titleCentered: true,
       ),
-      selectedDecoration: BoxDecoration(
-        color: Colors.blueAccent,
-        shape: BoxShape.circle,
+      calendarStyle: const CalendarStyle(
+        todayDecoration: BoxDecoration(
+          color: Colors.deepPurple,
+          shape: BoxShape.circle,
+        ),
+        selectedDecoration: BoxDecoration(
+          color: Colors.blueAccent,
+          shape: BoxShape.circle,
+        ),
       ),
-    ),
-  );
-  
-}
-void _filterByDate(DateTime date) {
-  setState(() {
-    _filteredEvents = _events.where((event) {
-      return event.startDate.year == date.year &&
-             event.startDate.month == date.month &&
-             event.startDate.day == date.day;
-    }).toList();
-  });
-}
+    );
+  }
+
+  void _filterByDate(DateTime date) {
+    setState(() {
+      _filteredEvents = _events.where((event) {
+        return event.startDate.year == date.year &&
+            event.startDate.month == date.month &&
+            event.startDate.day == date.day;
+      }).toList();
+    });
+  }
 
   @override
   void initState() {
@@ -88,11 +88,10 @@ void _filterByDate(DateTime date) {
   }
 
   _filterEvents(String query) async {
-    
     final lowerQuery = query.toLowerCase();
     setState(() {
       _filteredEvents = _events.where((event) {
-final titleMatch = event.title.toLowerCase().contains(lowerQuery);
+        final titleMatch = event.title.toLowerCase().contains(lowerQuery);
         final participantMatch = event.participants.any((p) {
           final name = p['name'];
           return name.toLowerCase().contains(lowerQuery);
@@ -118,7 +117,8 @@ final titleMatch = event.title.toLowerCase().contains(lowerQuery);
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
-          _events = data.map((json) => Event.fromJson(json, widget.userId)).toList();
+          _events =
+              data.map((json) => Event.fromJson(json, widget.userId)).toList();
           _filteredEvents = _events;
           _sortEvents();
           _isLoading = false;
@@ -141,7 +141,9 @@ final titleMatch = event.title.toLowerCase().contains(lowerQuery);
           title: const Text("Rejoindre l'événement ?"),
           content: Text("Prix de participation : ${event.joinPrice} coins"),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Annuler")),
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("Annuler")),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
@@ -155,18 +157,18 @@ final titleMatch = event.title.toLowerCase().contains(lowerQuery);
       },
     );
   }
-TextEditingController searchController = TextEditingController();
 
-void onSearch(String keyword) {
-  if (keyword.isNotEmpty) {
-    ActivityLoggerService.logAction(
-      userId: widget.userId,
-      type: "search event",
-      value: keyword,
-    );
+  TextEditingController searchController = TextEditingController();
+
+  void onSearch(String keyword) {
+    if (keyword.isNotEmpty) {
+      ActivityLoggerService.logAction(
+        userId: widget.userId,
+        type: "search event",
+        value: keyword,
+      );
+    }
   }
-}
-
 
   Widget _buildStyledEventCard(Event event) {
     bool isParticipating = event.isParticipating;
@@ -179,23 +181,27 @@ void onSearch(String keyword) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(event.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(event.title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text(event.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(event.description,
+                maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 10),
             Row(children: [
               const Icon(Icons.calendar_today, size: 14),
               const SizedBox(width: 6),
-              Text(event.startDate.toString().split(" ")[0], style: const TextStyle(fontSize: 12)),
+              Text(event.startDate.toString().split(" ")[0],
+                  style: const TextStyle(fontSize: 12)),
             ]),
             const SizedBox(height: 4),
             Row(children: [
               const Icon(Icons.location_on, size: 14),
               const SizedBox(width: 6),
-Text(
-  '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
-  style: const TextStyle(fontSize: 12),
-),
+              Text(
+                '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
+                style: const TextStyle(fontSize: 12),
+              ),
             ]),
             const SizedBox(height: 10),
             Row(
@@ -208,10 +214,10 @@ Text(
                         context,
                         MaterialPageRoute(
                           builder: (_) => GroupChatScreen(
-                                                              eventProvider: EventProvider(userId: widget.userId),
-
+                            eventProvider: EventProvider(userId: widget.userId),
                             conversationId: event.conversationId ?? "",
                             groupName: event.title,
+                            userId: widget.userId,
                           ),
                         ),
                       );
@@ -220,9 +226,11 @@ Text(
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isParticipating ? Colors.green : Colors.deepOrange,
+                    backgroundColor:
+                        isParticipating ? Colors.green : Colors.deepOrange,
                   ),
-                  child: Text(isParticipating ? "Rejoindre le Chat" : "Rejoindre"),
+                  child:
+                      Text(isParticipating ? "Rejoindre le Chat" : "Rejoindre"),
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz),
@@ -248,13 +256,14 @@ Text(
     );
   }
 
- 
-  
-
   @override
   Widget build(BuildContext context) {
-    List<Event> recentEvents = _filteredEvents.where((e) => e.startDate.isBefore(DateTime.now())).toList();
-    List<Event> upcomingEvents = _filteredEvents.where((e) => e.startDate.isAfter(DateTime.now())).toList();
+    List<Event> recentEvents = _filteredEvents
+        .where((e) => e.startDate.isBefore(DateTime.now()))
+        .toList();
+    List<Event> upcomingEvents = _filteredEvents
+        .where((e) => e.startDate.isAfter(DateTime.now()))
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4FC),
@@ -273,7 +282,7 @@ Text(
                     controller: _searchController,
                     onChanged: _filterEvents,
                     onSubmitted: onSearch,
-                      decoration: InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Rechercher par titre ou participant...',
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
@@ -284,23 +293,26 @@ Text(
                       ),
                     ),
                   ),
-                      _buildHorizontalCalendar(), // 👈 Ajoute ce widget
+                  _buildHorizontalCalendar(), // 👈 Ajoute ce widget
                   if (_selectedDay != null)
-  Align(
-    alignment: Alignment.centerRight,
-    child: TextButton.icon(
-      onPressed: _resetFilters,
-      icon: const Icon(Icons.refresh, color: Colors.deepPurple),
-      label: const Text("Réinitialiser", style: TextStyle(color: Colors.deepPurple)),
-    ),
-  ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _resetFilters,
+                        icon:
+                            const Icon(Icons.refresh, color: Colors.deepPurple),
+                        label: const Text("Réinitialiser",
+                            style: TextStyle(color: Colors.deepPurple)),
+                      ),
+                    ),
 
                   const SizedBox(height: 10),
                   Expanded(
                     child: ListView(
                       children: [
                         if (recentEvents.isNotEmpty) ...[
-                          Text("\u{1F4C5} Événements récents", style: sectionStyle),
+                          Text("\u{1F4C5} Événements récents",
+                              style: sectionStyle),
                           ...recentEvents.map(_buildStyledEventCard),
                           const Divider(thickness: 1.5),
                         ],
@@ -317,5 +329,6 @@ Text(
     );
   }
 
-  final sectionStyle = const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple);
+  final sectionStyle = const TextStyle(
+      fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple);
 }
