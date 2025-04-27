@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/TripPlanningScreen.dart';
 import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
 import 'package:projet_pim/View/ARViewScreen.dart';
-import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
@@ -129,14 +129,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ListTile(
             leading: Icon(Icons.flight_takeoff),
             title: Text('Plan Your Trip'),
-            onTap: () {
+            /* onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
                         TripPlanningScreen(userId: widget.userId)),
               );
-            },
+            },*/
           ),
           ListTile(
             leading: Icon(Icons.cloud),
