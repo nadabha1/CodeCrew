@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/event.dart';
-import 'package:projet_pim/Model/user_entity.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
@@ -13,14 +12,17 @@ import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
-import 'package:projet_pim/View/follow/FollowersFollowingListScreen.dart';
+import 'package:projet_pim/View/follow/FollowersScreen.dart';
+import 'package:projet_pim/View/follow/FollowingScreen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
-import 'package:projet_pim/ViewModel/carnet_service.dart'; // Assure-toi d'importer le CarnetService
+import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Assure-toi d'importer le modèle Carnet
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -55,8 +57,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (_userId == null) return;
 
       // Fetch followers and following lists
-      List<User> followers = await userService.getFollowers(_userId);
-      List<User> following = await userService.getFollowing(_userId);
+      List<String> followers = await userService.getFollowers(_userId);
+      List<String> following = await userService.getFollowing(_userId);
 
       // Fetch follower and following counts
       int followersCount = await userService.getFollowersCount(_userId);
@@ -80,7 +82,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> fetchUser() async {
     try {
-      fetchFollowerData();
       // Appel pour récupérer les données utilisateur
       UserService userService = UserService();
       Map<String, dynamic> user =
@@ -92,17 +93,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Appel pour récupérer le carnet de l'utilisateur
       CarnetService carnetService = CarnetService();
       List<Carnet> carnet = await carnetService.getUserCarnet(widget.userId);
-      //fetchEvents
+
+      // Fetch events
       EventProvider eventProvider =
           Provider.of<EventProvider>(context, listen: false);
-      await eventProvider.fetchSpecificEvents(widget.userId);
+      await eventProvider
+          .fetchEvents(widget.userId); // Remplacez par fetchEvents
+
+      // Ensure 'location' is parsed correctly
+      if (userData?['location'] != null) {
+        try {
+          LatLng userLocation = _parseLocation(userData!['location']);
+          String address = await getAddressFromLatLng(userLocation);
+          userData?['locationName'] = address;
+        } catch (e) {
+          print("❌ Error parsing user location: $e");
+          userData?['locationName'] = "Lieu inconnu"; // Default value
+        }
+      }
 
       setState(() {
         userData = user;
-        userCarnet = carnet; // Met à jour le carnet de l'utilisateur
+        userCarnet = carnet; // Ensure userCarnet is updated correctly
         isLoading = false;
       });
-      await fetchFollowerData(); // ✅ Fetch follower data after user data
+
+      await fetchFollowerData(); // Fetch follower data after user data
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -144,6 +160,100 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Future<String> getAddressFromLatLng(LatLng location) async {
+    try {
+      print(
+          "🌍 Fetching address for coordinates: ${location.latitude}, ${location.longitude}");
+
+      if (location.latitude == 0.0 && location.longitude == 0.0) {
+        print(
+            "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
+        return "Lieu inconnu";
+      }
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(location.latitude, location.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+
+        // Extraire les informations utiles
+        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
+        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
+        String region = place.administrativeArea ?? "Région inconnue";
+        String country = place.country ?? "Pays inconnu";
+
+        // Construire une adresse détaillée
+        String formattedAddress = "$street, $city, $region, $country";
+        print("✅ Geocoding successful: $formattedAddress");
+
+        return formattedAddress;
+      } else {
+        print("⚠️ No placemarks found for the given coordinates.");
+      }
+    } catch (e) {
+      print("❌ Erreur lors du géocodage : $e");
+    }
+
+    return "Lieu inconnu";
+  }
+
+  LatLng _parseLocation(dynamic location) {
+    try {
+      if (location is Map<String, dynamic>) {
+        print("📍 Parsing location as Map: $location");
+        return LatLng(
+          location['latitude'] ?? 0.0,
+          location['longitude'] ?? 0.0,
+        );
+      } else if (location is String) {
+        print("📍 Parsing location as String: $location");
+        // Split the string into latitude and longitude
+        List<String> coordinates = location.split(',');
+        if (coordinates.length == 2) {
+          return LatLng(
+            double.parse(coordinates[0].trim()), // Latitude
+            double.parse(coordinates[1].trim()), // Longitude
+          );
+        } else {
+          print("⚠️ Invalid string format for location: $location");
+        }
+      }
+    } catch (e) {
+      print("❌ Error parsing location: $e");
+    }
+    print("⚠️ Invalid location format. Returning default coordinates.");
+    return LatLng(0, 0); // Default value
+  }
+
+  Future<String> getLocationName() async {
+    try {
+      if (userData?['location'] != null) {
+        LatLng parsedLocation = _parseLocation(userData!['location']);
+        return await getAddressFromLatLng(parsedLocation);
+      } else {
+        print("⚠️ No location data found in userData.");
+      }
+    } catch (e) {
+      print("❌ Error fetching location name: $e");
+    }
+    return "Lieu inconnu"; // Default value
+  }
+
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -170,8 +280,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     offset: const Offset(0, 20),
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundImage: userData?['profilePicture'] != null
-                          ? NetworkImage(userData!['profilePicture'])
+                      backgroundImage: userData?['profileImage'] != null &&
+                              userData!['profileImage'].isNotEmpty
+                          ? NetworkImage(userData!['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -220,12 +331,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        userData?['location'] ?? 'Lieu inconnu',
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                        ),
+                      FutureBuilder<String>(
+                        future: getLocationName(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Text(
+                              "Chargement...",
+                              style: TextStyle(
+                                  color: Colors.black54, fontSize: 14),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            print(
+                                "❌ Error in FutureBuilder: ${snapshot.error}");
+                            return const Text(
+                              "Erreur de localisation",
+                              style: TextStyle(color: Colors.red, fontSize: 14),
+                            );
+                          }
+                          print("📍 Location displayed: ${snapshot.data}");
+                          return Text(
+                            snapshot.data ?? "Lieu inconnu",
+                            style: const TextStyle(
+                                color: Colors.black54, fontSize: 14),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -320,14 +451,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           count: userData?['followersCount']?.toString() ?? '0',
                           label: 'Followers',
                           onTap: () {
-                            final List<User> followers =
-                                List<User>.from(userData?['followers'] ?? []);
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => FollowersFollowingListScreen(
-                                  users: followers,
-                                  title: 'Followers',
+                                builder: (context) => FollowersScreen(
+                                  userIds: List<String>.from(
+                                      userData?['followers'] ?? []),
+                                  token:
+                                      widget.token, // Pass the required token
                                 ),
                               ),
                             );
@@ -336,16 +467,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         SizedBox(width: 20),
                         _StatItem(
                           count: userData?['followingCount']?.toString() ?? '0',
-                          label: 'Following',
+                          label: 'following',
                           onTap: () {
-                            final List<User> following =
-                                List<User>.from(userData?['following'] ?? []);
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => FollowersFollowingListScreen(
-                                  users: following,
-                                  title: 'Following',
+                                builder: (context) => FollowingScreen(
+                                  userIds: List<String>.from(
+                                      userData?['following'] ?? []),
+
+                                  token:
+                                      widget.token, // Pass the required token),
                                 ),
                               ),
                             );
@@ -380,7 +512,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CarnetDetailsPage(
-                                        carnet: userCarnet[0]),
+                                      carnet: userCarnet[0],
+                                    ),
                                   ),
                                 ).then((_) {
                                   fetchUser(); // Rafraîchir les données après le retour
@@ -412,20 +545,58 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                     // 📌 Section Carnet d’Adresses avec les données du carnet
                     SizedBox(
+                      height: 30,
+                      child: userCarnet.isNotEmpty
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  userCarnet[0].title ?? "Titre non spécifié",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    buildStarRating(
+                                        userCarnet[0].globalAverageRating),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      userCarnet[0]
+                                          .globalAverageRating
+                                          .toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : const SizedBox(),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
                       height: 180,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: userCarnet.isNotEmpty
-                            ? userCarnet[0].places.length
-                            : 0,
-                        itemBuilder: (context, index) {
-                          return AddressCard(
-                            place: userCarnet[0].places[index],
-                            fetchUser: fetchUser,
-                            // Passe directement l'objet Place
-                          );
-                        },
-                      ),
+                      child: userCarnet.isNotEmpty &&
+                              userCarnet[0].places.isNotEmpty
+                          ? ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: userCarnet[0].places.length,
+                              itemBuilder: (context, index) {
+                                return AddressCard(
+                                  place: userCarnet[0].places[index],
+                                  fetchUser: fetchUser,
+                                );
+                              },
+                            )
+                          : const Center(
+                              child: Text(
+                                "Aucune place disponible",
+                                style:
+                                    TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                            ),
                     ),
                     // ✅ Floating Action Button ici
                     Padding(
@@ -461,6 +632,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         },
                       ),
                     ),
+                    // 📌 Section Événements
                     const SizedBox(height: 32),
                     const Text(
                       'Événements',
@@ -473,35 +645,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    eventProvider.userEvents.isEmpty
+                    eventProvider.events.isEmpty
                         ? const Center(
                             child: Text(
-                              "Aucun événement recommandé pour vous.",
+                              "Aucun événement disponible",
                               style:
                                   TextStyle(fontSize: 16, color: Colors.grey),
                             ),
                           )
                         : Column(
-                            children: eventProvider.userEvents.map((event) {
+                            children: eventProvider.events.map((event) {
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 8),
                                 child: Card(
                                   elevation: 10,
-                                  shadowColor:
-                                      Colors.deepPurpleAccent.withOpacity(0.3),
+                                  shadowColor: Colors.deepPurpleAccent
+                                      .withOpacity(0.3), // More subtle shadow
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(
+                                        16), // More rounded corners
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.all(16),
+                                    padding: const EdgeInsets.all(
+                                        16), // Padding around the content
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
                                       gradient: LinearGradient(
                                         colors: [
-                                          Color.fromARGB(255, 191, 168, 252),
-                                          Color.fromARGB(255, 164, 125, 171)
-                                              .withOpacity(0.7),
+                                          const Color.fromARGB(
+                                              255, 191, 168, 252),
+                                          const Color.fromARGB(
+                                                  255, 164, 125, 171)
+                                              .withOpacity(0.7)
                                         ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
@@ -511,18 +687,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                       contentPadding: EdgeInsets.zero,
                                       leading: CircleAvatar(
                                         radius: 24,
-                                        backgroundColor:
-                                            Color.fromARGB(255, 212, 196, 255),
+                                        backgroundColor: const Color.fromARGB(
+                                            255, 212, 196, 255),
                                         child: Icon(Icons.event,
                                             color: Colors.white),
                                       ),
                                       title: Text(
                                         event.title,
                                         style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                        ),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.white),
                                       ),
                                       subtitle: Text(
                                         event.description,
@@ -530,9 +705,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                             color: Colors.white70,
                                             fontSize: 14),
                                       ),
-                                      trailing: Icon(Icons.arrow_forward_ios,
-                                          size: 16, color: Colors.white),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.arrow_forward_ios,
+                                              size: 16, color: Colors.white),
+                                        ],
+                                      ),
                                       onTap: () {
+                                        // Navigate to event details
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
@@ -552,6 +733,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               );
                             }).toList(),
                           ),
+
                     const SizedBox(height: 32),
                     const Text(
                       'Publications',
@@ -577,6 +759,25 @@ class AddressCard extends StatelessWidget {
 
   const AddressCard({required this.place, required this.fetchUser, Key? key})
       : super(key: key);
+
+  Future<String> getPlaceAddress() async {
+    try {
+      if (place.latitude != null && place.longitude != null) {
+        LatLng placeLocation = LatLng(place.latitude!, place.longitude!);
+        return await placemarkFromCoordinates(
+                placeLocation.latitude, placeLocation.longitude)
+            .then((placemarks) {
+          if (placemarks.isNotEmpty) {
+            return "${placemarks.first.locality}, ${placemarks.first.country}";
+          }
+          return "Lieu inconnu";
+        });
+      }
+    } catch (e) {
+      print("❌ Error fetching place address: $e");
+    }
+    return "Lieu inconnu"; // Default value
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -638,14 +839,31 @@ class AddressCard extends StatelessWidget {
                           color: Colors.white,
                           size: 16,
                         ),
-                        Text(
-                          place.latitude != null && place.longitude != null
-                              ? '${place.latitude}, ${place.longitude}'
-                              : 'Lieu inconnu',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                        const SizedBox(width: 4),
+                        FutureBuilder<String>(
+                          future: getPlaceAddress(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Text(
+                                "Chargement...",
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 14),
+                              );
+                            }
+                            if (snapshot.hasError) {
+                              return const Text(
+                                "Erreur de localisation",
+                                style:
+                                    TextStyle(color: Colors.red, fontSize: 14),
+                              );
+                            }
+                            return Text(
+                              snapshot.data ?? "Lieu inconnu",
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -674,36 +892,17 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent, // No background by default
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        splashColor: Colors.grey.withOpacity(0.2),
-        highlightColor: Colors.grey.withOpacity(0.1),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Column(
-            children: [
-              Text(
-                count,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(label),
+        ],
       ),
     );
   }

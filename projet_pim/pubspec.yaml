@@ -44,11 +44,31 @@ dependencies:
   fluttertoast: ^8.0.9  
   flutter_rating_bar: ^4.0.0
   socket_io_client: ^2.0.3+1
-  intl: ^0.18.0 
+  intl: ^0.19.0 
   web_socket_channel: ^2.3.0  # Ajoute cette ligne
   flutter_local_notifications: ^18.0.1  # Pour les notifications locales
-  table_calendar: ^3.0.8
+  geolocator: ^10.1.0
+  device_calendar: ^4.0.0
+  permission_handler: ^11.0.0
+  table_calendar: ^3.0.9
   flutter_speed_dial: ^7.0.0
+  share_plus: ^7.2.1
+  video_player: ^2.7.0
+  just_audio: ^0.9.35
+  file_picker: ^6.1.1
+  convex_bottom_bar: ^3.0.0
+  flutter_spinkit: ^5.1.0
+  flutter_staggered_animations: ^1.1.0
+  google_fonts: ^6.1.0
+
+
+
+dependency_overrides:
+  geolocator_android: 4.4.0
+
+
+  flutter_localizations:
+    sdk: flutter
 
 
 

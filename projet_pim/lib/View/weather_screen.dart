@@ -12,7 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class WeatherScreen extends StatefulWidget {
   final String userId;
-  const WeatherScreen({required this.userId});
+  final Map<String, dynamic> weatherData;
+  const WeatherScreen({
+    required this.userId,
+    required this.weatherData,
+  });
 
   @override
   _WeatherScreenState createState() => _WeatherScreenState();

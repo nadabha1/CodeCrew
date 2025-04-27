@@ -73,9 +73,9 @@ Widget _buildHorizontalCalendar() {
 void _filterByDate(DateTime date) {
   setState(() {
     _filteredEvents = _events.where((event) {
-      return event.date.year == date.year &&
-             event.date.month == date.month &&
-             event.date.day == date.day;
+      return event.startDate.year == date.year &&
+             event.startDate.month == date.month &&
+             event.startDate.day == date.day;
     }).toList();
   });
 }
@@ -94,7 +94,7 @@ void _filterByDate(DateTime date) {
       _filteredEvents = _events.where((event) {
 final titleMatch = event.title.toLowerCase().contains(lowerQuery);
         final participantMatch = event.participants.any((p) {
-          final name = p['name'] ?? '';
+          final name = p['name'];
           return name.toLowerCase().contains(lowerQuery);
         });
         return titleMatch || participantMatch;
@@ -105,9 +105,7 @@ final titleMatch = event.title.toLowerCase().contains(lowerQuery);
 
   void _sortEvents() {
     if (_selectedSort == 'date') {
-      _filteredEvents.sort((a, b) => a.date.compareTo(b.date));
-    } else if (_selectedSort == 'location') {
-      _filteredEvents.sort((a, b) => a.location.compareTo(b.location));
+      _filteredEvents.sort((a, b) => a.startDate.compareTo(b.startDate));
     }
   }
 
@@ -188,13 +186,16 @@ void onSearch(String keyword) {
             Row(children: [
               Icon(Icons.calendar_today, size: 14),
               SizedBox(width: 6),
-              Text(event.date.toString().split(" ")[0], style: TextStyle(fontSize: 12)),
+              Text(event.startDate.toString().split(" ")[0], style: TextStyle(fontSize: 12)),
             ]),
             SizedBox(height: 4),
             Row(children: [
               Icon(Icons.location_on, size: 14),
               SizedBox(width: 6),
-              Text(event.location, style: TextStyle(fontSize: 12)),
+Text(
+  '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
+  style: TextStyle(fontSize: 12),
+),
             ]),
             SizedBox(height: 10),
             Row(
@@ -207,6 +208,8 @@ void onSearch(String keyword) {
                         context,
                         MaterialPageRoute(
                           builder: (_) => GroupChatScreen(
+                                                              eventProvider: EventProvider(userId: widget.userId),
+
                             conversationId: event.conversationId ?? "",
                             groupName: event.title,
                           ),
@@ -250,8 +253,8 @@ void onSearch(String keyword) {
 
   @override
   Widget build(BuildContext context) {
-    List<Event> recentEvents = _filteredEvents.where((e) => e.date.isBefore(DateTime.now())).toList();
-    List<Event> upcomingEvents = _filteredEvents.where((e) => e.date.isAfter(DateTime.now())).toList();
+    List<Event> recentEvents = _filteredEvents.where((e) => e.startDate.isBefore(DateTime.now())).toList();
+    List<Event> upcomingEvents = _filteredEvents.where((e) => e.startDate.isAfter(DateTime.now())).toList();
 
     return Scaffold(
       backgroundColor: Color(0xFFF7F4FC),

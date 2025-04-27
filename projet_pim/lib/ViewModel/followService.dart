@@ -37,24 +37,24 @@ class FollowService {
   }
 
   // 🔹 Get followers
-  // Future<List<Map<String, dynamic>>> getFollowers(String userId) async {
-  //   final response = await http.get(Uri.parse('$baseUrl/followers/$userId'));
+  Future<List<Map<String, dynamic>>> getFollowers(String userId) async {
+    final response = await http.get(Uri.parse('$baseUrl/followers/$userId'));
 
-  //   if (response.statusCode == 200) {
-  //     return List<Map<String, dynamic>>.from(json.decode(response.body));
-  //   } else {
-  //     throw Exception('Failed to load followers');
-  //   }
-  // }
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load followers');
+    }
+  }
 
   // 🔹 Get following users
-  // Future<List<Map<String, dynamic>>> getFollowing(String userId) async {
-  //   final response = await http.get(Uri.parse('$baseUrl/following/$userId'));
+  Future<List<Map<String, dynamic>>> getFollowing(String userId) async {
+    final response = await http.get(Uri.parse('$baseUrl/following/$userId'));
 
-  //   if (response.statusCode == 200) {
-  //     return List<Map<String, dynamic>>.from(json.decode(response.body));
-  //   } else {
-  //     throw Exception('Failed to load following');
-  //   }
-  // }
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load following');
+    }
+  }
 }

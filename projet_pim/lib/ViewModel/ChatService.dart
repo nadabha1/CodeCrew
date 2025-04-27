@@ -1,8 +1,12 @@
+import 'package:projet_pim/Providers/conversation_provider.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatService {
   late IO.Socket socket;
+  final ConversationProvider conversationProvider;
+
+  ChatService({required this.conversationProvider});
 
   void connect(String userId) {
     socket = IO.io(
@@ -16,7 +20,9 @@ class ChatService {
 
     socket.on('receiveMessage', (data) {
       print('New message: $data');
-      // Update your chat UI here (state management like Provider, Riverpod, etc.)
+      // Update the conversation's last message using the provider
+      conversationProvider.updateLastMessage(
+          data['conversationId'], data['content']);
     });
 
     socket.onDisconnect((_) {

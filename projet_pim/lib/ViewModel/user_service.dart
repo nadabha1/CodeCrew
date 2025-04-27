@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/conversation.dart';
-import 'package:projet_pim/Model/user_entity.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class UserService {
@@ -29,14 +28,36 @@ class UserService {
     }
   }
   Future<List<dynamic>> getMatchingUsers(String userId) async {
-  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
+   final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
 
-  if (response.statusCode == 200) {
+   if (response.statusCode == 200) {
     return jsonDecode(response.body);
-  } else {
+   } else {
     throw Exception("Erreur lors du chargement des utilisateurs similaires");
+   }
+ }
+  Future<List<Map<String, dynamic>>> matchUser(String userId) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}/match/$userId'); // Change to your real backend URL
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 201) {
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        return List<Map<String, dynamic>>.from(data['results']);
+      } else {
+        throw Exception('Failed to match users');
+      }
+    } else {
+      throw Exception('Failed to match users: ${response.statusCode}');
+    }
   }
-}
+
 
 
   // Récupérer la liste de tous les utilisateurs
@@ -95,28 +116,26 @@ class UserService {
   }
 
   // ✅ Get Followers List
-  Future<List<User>> getFollowers(String userId) async {
+  Future<List<String>> getFollowers(String userId) async {
     final response = await http
         .get(Uri.parse('${ApiConstants.baseUrl}/follow/followers/$userId'));
 
     if (response.statusCode == 200) {
-       final data = json.decode(response.body);
-        final List<dynamic> followersList = data['followers'];
-       return followersList.map((item) => User.fromJson(item)).toList();
+      final data = json.decode(response.body);
+      return List<String>.from(data['followers']);
     } else {
       throw Exception("Failed to fetch followers");
     }
   }
 
   // ✅ Get Following List
-  Future<List<User>> getFollowing(String userId) async {
+  Future<List<String>> getFollowing(String userId) async {
     final response = await http
         .get(Uri.parse('${ApiConstants.baseUrl}/follow/following/$userId'));
 
     if (response.statusCode == 200) {
-       final data = json.decode(response.body);
-        final List<dynamic> followersList = data['following'];
-       return followersList.map((item) => User.fromJson(item)).toList();
+      final data = json.decode(response.body);
+      return List<String>.from(data['following']);
     } else {
       throw Exception("Failed to fetch following");
     }
@@ -153,8 +172,9 @@ class UserService {
     String token,
     String name,
     String job,
-    String location,
     String bio,
+    String? profileImageUrl,
+    String? location, // ✅ Add latitudeLongitude parameter
   ) async {
     try {
       print("🔄 Preparing Profile Update Request...");
@@ -168,8 +188,9 @@ class UserService {
         body: jsonEncode({
           'name': name,
           'job': job,
-          'location': location,
           'bio': bio,
+          'profileImage': profileImageUrl,
+          'location': location, // ✅ Include in payload
         }),
       );
 

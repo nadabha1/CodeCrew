@@ -53,6 +53,8 @@
   <string>sms</string>
   <string>mailto</string>
   <string>googlemaps</string>
+  <string>geo</string>
+
 </array>
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>Your message about location usage</string>
@@ -65,6 +67,17 @@
 </dict>
 <key>FirebaseAppDelegateProxyEnabled</key>
 <false/>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Your message here explaining why you need location</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Your message here explaining why you need location</string>
+<key>NSCalendarsUsageDescription</key>
+<string>Cette application utilise votre agenda pour vous suggérer des événements.</string>
+<key>NSCameraUsageDescription</key>
+<string>Nous avons besoin d'accéder à la caméra pour ajouter des photos de lieux</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Nous avons besoin d'accéder à votre galerie</string>
+
 
 </dict>
 </plist>

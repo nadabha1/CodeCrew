@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Widgets/eventCardMessageWidget.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -8,10 +10,14 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class GroupChatScreen extends StatefulWidget {
   final String conversationId;
   final String groupName;
+  final EventProvider eventProvider;
+
 
   const GroupChatScreen({
     required this.conversationId,
     required this.groupName,
+      required this.eventProvider,
+
   });
 
   @override
@@ -63,7 +69,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> fetchMessages() async {
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/messages/c/${widget.conversationId}'));
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/messages/c/${widget.conversationId}'));
     if (response.statusCode == 200) {
       final List<dynamic> jsonData = jsonDecode(response.body);
       setState(() {
@@ -143,20 +150,42 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final message = messages[index];
-final isMe = (message['sender'] is String)
-    ? message['sender'] == _userId  // Si sender est une chaîne
-    : message['sender']['_id'] == _userId;  // Si sender est un objet
+                  final isMe = (message['sender'] is String)
+                      ? message['sender'] == _userId // Si sender est une chaîne
+                      : message['sender']['_id'] ==
+                          _userId; // Si sender est un objet
 
-final senderName = (message['sender'] is String)
-    ? 'Utilisateur inconnu'  // Si sender est juste un ID, pas de nom
-    : message['sender']['name'] ?? 'Utilisateur inconnu';  // Si sender est un objet
+                  final senderName = (message['sender'] is String)
+                      ? 'Utilisateur inconnu' // Si sender est juste un ID, pas de nom
+                      : message['sender']['name'] ??
+                          'Utilisateur inconnu'; // Si sender est un objet
+if (message['type'] == 'shared_event') {
+  return FutureBuilder(
+    future: widget.eventProvider.getEventById(message['event']),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());
+      }
+      if (!snapshot.hasData) return Text("Événement introuvable");
+
+      return EventCardMessage(
+        event: snapshot.data!,
+        userId: _userId ?? '',
+        token: '', // ajoute ton token si besoin
+        eventProvider: widget.eventProvider,
+      );
+    },
+  );
+}
 
                   return Align(
-                    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment:
+                        isMe ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       padding: EdgeInsets.all(8),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                      constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.7),
                       decoration: BoxDecoration(
                         color: isMe ? Colors.blue[200] : Colors.white,
                         borderRadius: BorderRadius.circular(12),
@@ -189,6 +218,7 @@ final senderName = (message['sender'] is String)
                         ],
                       ),
                     ),
+                    
                   );
                 },
               ),

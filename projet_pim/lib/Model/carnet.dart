@@ -10,6 +10,8 @@ class Place {
   final int unlockCost;
   final List<String> images; // Liste des URLs des images
   final List<Review> reviews; // Liste des avis associés au lieu
+  final double averageRating;
+
   Place({
     required this.id,
     required this.name,
@@ -20,6 +22,7 @@ class Place {
     required this.unlockCost,
     required this.images,
     this.reviews = const [],
+    this.averageRating = 0.0, // Valeur par défaut
   });
 
   factory Place.fromJson(Map<String, dynamic> json) {
@@ -32,6 +35,8 @@ class Place {
       categories: List<String>.from(json['categories']),
       unlockCost: json['unlockCost'],
       images: List<String>.from(json['images']), // Initialisation des images
+      averageRating:
+          (json['averageRating'] ?? 0).toDouble(), // Récupérer la note moyenne
     );
   }
 
@@ -44,6 +49,7 @@ class Place {
     int? unlockCost,
     double? latitude,
     double? longitude,
+    double? averageRating,
   }) {
     return Place(
       id: this.id, // Keep the same ID
@@ -56,6 +62,7 @@ class Place {
       unlockCost: unlockCost ?? this.unlockCost,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      averageRating: averageRating ?? this.averageRating,
     );
   }
 }
@@ -65,12 +72,14 @@ class Carnet {
   final String title;
   final String owner;
   final List<Place> places;
+  final double globalAverageRating;
 
   Carnet({
     required this.id,
     required this.title,
     required this.owner,
     required this.places,
+    this.globalAverageRating = 0.0, // Valeur par défaut
   });
 
   factory Carnet.fromJson(Map<String, dynamic> json) {
@@ -82,6 +91,7 @@ class Carnet {
       title: json['title'],
       owner: json['owner'],
       places: placesList,
+      globalAverageRating: (json['globalAverageRating'] ?? 0).toDouble(),
     );
   }
 }

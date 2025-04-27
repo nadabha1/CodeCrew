@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
+import 'package:projet_pim/View/UserPreferences/CompleteProfilePage.dart';
+import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
+import 'package:projet_pim/View/settings/UpdateChoiceScreen.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
@@ -36,42 +39,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// ✅ **Navigate to Edit Profile & Update UI on Return**
   Future<void> _navigateToEditProfile() async {
-    final session = await _loadUserSession();
+  final session = await _loadUserSession();
 
-    if (session['userId'] == null || session['token'] == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("User session expired. Please log in again.")),
-      );
-      return;
-    }
-
-    final updatedProfileData = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProfileScreen(
-          userId: session['userId']!,
-          token: session['token']!,
-          userData: userData,
-          name: userData['name'] ?? 'Unknown Name',
-          job: userData['job'] ?? 'No Job Specified',
-          location: userData['location'] ?? 'No Location Specified',
-          currentProfilePicture: userData['profilePicture'],
-        ),
-      ),
+  if (session['userId'] == null || session['token'] == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("User session expired. Please log in again.")),
     );
-
-    // ✅ Update UI if user changed profile details
-    if (updatedProfileData != null) {
-      setState(() {
-        userData['name'] = updatedProfileData['name'];
-        userData['job'] = updatedProfileData['job'];
-        userData['location'] = updatedProfileData['location'];
-        userData['bio'] = updatedProfileData['bio'];
-        userData['profilePicture'] = updatedProfileData['profileImage'];
-      });
-    }
+    return;
   }
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => UpdateChoiceScreen(userData: userData),
+    ),
+  );
+}
+
 
   /// ✅ **Confirm and Delete User Account**
   void _confirmDeleteAccount(BuildContext context) async {
@@ -125,6 +109,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// ✅ **Navigate to Complete Profile Screen**
+  // Navigate to Complete Profile Flow
+  Future<void> _navigateToCompleteProfile() async {
+    final session = await _loadUserSession();
+
+    if (session['userId'] == null || session['token'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please log in again.")),
+      );
+      return;
+    }
+
+    if (userData['preferences'] == null) {
+      // Navigate to the first step of the profile completion process (Gender Selection Page)
+      Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => CompleteProfilePage(
+      userId: session['userId']!,
+      token: session['token']!,
+    ),
+     ),
+      );
+
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("You already indicated your preferences.")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -153,8 +169,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: userData['profilePicture'] != null
-                          ? NetworkImage(userData['profilePicture'])
+                      backgroundImage: userData['profileImage'] != null
+                          ? NetworkImage(userData['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -190,6 +206,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
+              const SizedBox(height: 30),
+              if (userData['preferences'] ==
+                  null) // Only show if preferences are not filled
+                _buildSettingsTile(
+                  context,
+                  icon: Icons.person,
+                  title: "Complete Your Profile",
+                  subtitle: "Fill out your preferences",
+                  iconColor: Colors.blue,
+                  onTap:
+                      _navigateToCompleteProfile, // Navigate to GenderSelectionPage
+                ),
               const SizedBox(height: 30),
 
               // ✅ **Dark Mode Toggle**

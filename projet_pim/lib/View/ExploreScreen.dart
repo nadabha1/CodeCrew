@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -63,7 +64,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (!serviceEnabled) {
         serviceEnabled = await location.requestService();
         if (!serviceEnabled) {
-          return; // If location service is not enabled, do nothing
+          return;
         }
       }
 
@@ -71,15 +72,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (permission == loc.PermissionStatus.denied) {
         permission = await location.requestPermission();
         if (permission != loc.PermissionStatus.granted) {
-          return; // If permission is not granted, do nothing
+          return;
         }
       }
 
-      // Fetch current location
       loc.LocationData currentLocation = await location.getLocation();
 
       setState(() {
-        _currentLocation = currentLocation; // Update the location state
+        _currentLocation = currentLocation;
+        _searchLocation =
+            LatLng(currentLocation.latitude!, currentLocation.longitude!);
       });
     } catch (e) {
       print("Error: $e");
@@ -101,40 +103,170 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  // Function to get markers from user data
   Future<List<Marker>> _getMarkers(List<Map<String, dynamic>> users) async {
+    Map<String, List<Map<String, dynamic>>> groupedUsers = {};
     List<Marker> markers = [];
+
+    // Group users by their location
     for (var user in users) {
-      // Affiche l'utilisateur et sa localisation pour déboguer
-      print('User: ${user['location']}');
+      String location = user['location'] ??
+          'Inconnue'; // Get location string like "Latitude,Longitude"
 
-      LatLng userLocation = await _getCoordinatesFromCity(user['location']);
-
-      markers.add(Marker(
-        point: userLocation,
-        width: 40.0,
-        height: 40.0,
-        child: GestureDetector(
-          onTap: () {
-            // Afficher un Dialog avec les informations du profil
-            _showUserProfileDialog(user);
-          },
-          child: CircleAvatar(
-            radius: 20.0,
-            backgroundImage:
-                user['profileImage'] != null && user['profileImage'].isNotEmpty
-                    ? NetworkImage(
-                        user['profileImage']) // Afficher l'image depuis l'URL
-                    : AssetImage('assets/default_profile.png')
-                        as ImageProvider, // Image locale par défaut
-            backgroundColor: Colors.transparent,
-          ),
-        ),
-      ));
+      if (!groupedUsers.containsKey(location)) {
+        groupedUsers[location] = [];
+      }
+      groupedUsers[location]!.add(user);
     }
-    print(
-        'Markers count: ${markers.length}'); // Vérifiez le nombre de marqueurs
+
+    // Loop through each group of users (grouped by location)
+    for (var entry in groupedUsers.entries) {
+      // Parse the location string into latitude and longitude
+      String location = entry.key;
+      List<String> latLon = location.split(',');
+
+      if (latLon.length == 2) {
+        double userLat = double.parse(latLon[0].trim());
+        double userLon = double.parse(latLon[1].trim());
+
+        LatLng userLocation =
+            LatLng(userLat, userLon); // Use parsed latitude and longitude
+        List<Map<String, dynamic>> usersAtLocation = entry.value;
+
+        // Loop through users at the same location and create markers
+        for (int i = 0; i < usersAtLocation.length; i++) {
+          double offset = 0.0005 * i; // Offset to avoid marker overlap
+          double angle = (i * 360 / usersAtLocation.length) *
+              (3.14159265359 / 180); // Convert to radians
+
+          LatLng adjustedLocation = LatLng(
+            userLocation.latitude + offset * sin(angle),
+            userLocation.longitude + offset * cos(angle),
+          );
+
+          markers.add(Marker(
+            point: adjustedLocation, // Use the adjusted position
+            width: 50.0,
+            height: 50.0,
+            child: GestureDetector(
+              onTap: () {
+                _showUserListBottomSheet(
+                    usersAtLocation); // Show the list of users at the location
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 20.0,
+                    backgroundImage:
+                        usersAtLocation[i]['profileImage'] != null &&
+                                usersAtLocation[i]['profileImage'].isNotEmpty
+                            ? NetworkImage(usersAtLocation[i]['profileImage'])
+                            : AssetImage('assets/default_profile.png')
+                                as ImageProvider,
+                    backgroundColor: Colors.transparent,
+                  ),
+                  if (usersAtLocation.length > 1)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          usersAtLocation.length.toString(),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ));
+        }
+      }
+    }
+
     return markers;
+  }
+
+  void _showUserListBottomSheet(List<Map<String, dynamic>> users) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.5, // Ajuste la hauteur
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Utilisateurs à cet emplacement',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: users.length,
+                  separatorBuilder: (context, index) => Divider(),
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: user['profileImage'] != null &&
+                                user['profileImage'].isNotEmpty
+                            ? NetworkImage(user['profileImage'])
+                            : AssetImage('assets/default_profile.png')
+                                as ImageProvider,
+                      ),
+                      title: Text(
+                        user['name'] ?? 'Utilisateur inconnu',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(user['job'] ?? 'Métier inconnu'),
+                      trailing: user['likes'] != null
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.favorite,
+                                    color: Colors.red, size: 18),
+                                SizedBox(width: 4),
+                                Text('${user['likes']}',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            )
+                          : null,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TravelerProfileScreen(
+                              travelerId: user['_id'],
+                              loggedInUserId: widget.userId,
+                              token: _token ?? '',
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // Function to open the place in Google Maps
@@ -161,60 +293,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     } catch (e) {
       print('Error getting coordinates: $e');
     }
-  }
-
-  // Function to show user profile in a dialog
-  void _showUserProfileDialog(Map<String, dynamic> user) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(user['name'] ??
-              'Nom de l\'utilisateur'), // Afficher le nom de l'utilisateur
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 50.0,
-                backgroundImage: user['profileImage'] != null &&
-                        user['profileImage'].isNotEmpty
-                    ? NetworkImage(
-                        user['profileImage']) // Afficher l'image du profil
-                    : AssetImage('assets/default_profile.png')
-                        as ImageProvider, // Image locale par défaut
-              ),
-              SizedBox(height: 10),
-              Text('Localisation: ${user['location'] ?? 'Inconnue'}'),
-              Text('job: ${user['job'] ?? 'Inconnue'}'),
-              Text('Autres détails: ${user['bio'] ?? 'Non disponible'}'),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                String userId =
-                    user['_id'] ?? 'defaultId'; // Get the tapped user's ID
-                String token = _token ?? ''; // Pass the token here
-
-                // Navigate to the user's profile page with the ID and token
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TravelerProfileScreen(
-                      travelerId: user['_id'], // Pass the tapped user's ID
-                      loggedInUserId:
-                          widget.userId, // Pass the logged-in user's token
-                    ),
-                  ),
-                );
-              },
-              child: Text('Voir le Profil'),
-            )
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -285,7 +363,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           child: FlutterMap(
                             options: MapOptions(
                               center:
-                                  _searchLocation, // Center map on the searched location
+                                  _searchLocation, // Utilise la localisation de l'appareil
                               zoom: 12.0,
                             ),
                             children: [

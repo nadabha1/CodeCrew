@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
+import 'package:intl/intl.dart';
+import 'package:projet_pim/View/select_location_screen.dart';
 
 class EditEventScreen extends StatefulWidget {
   final Event event;
@@ -16,7 +21,10 @@ class _EditEventScreenState extends State<EditEventScreen> {
   late TextEditingController titleController;
   late TextEditingController descriptionController;
   late TextEditingController locationController;
-  late DateTime selectedDate;
+  late DateTime startDate;
+  late DateTime endDate;
+  String location = ''; // Initialize as an empty string
+  bool _useAutoLocation = false;
 
   @override
   void initState() {
@@ -24,8 +32,25 @@ class _EditEventScreenState extends State<EditEventScreen> {
     titleController = TextEditingController(text: widget.event.title);
     descriptionController =
         TextEditingController(text: widget.event.description);
-    locationController = TextEditingController(text: widget.event.location);
-    selectedDate = widget.event.date;
+    locationController = TextEditingController(
+        text:
+            "${widget.event.location.latitude},${widget.event.location.longitude}");
+    startDate = widget.event.startDate;
+    endDate = widget.event.endDate;
+    location =
+        "${widget.event.location.latitude},${widget.event.location.longitude}"; // Initialize with event's coordinates
+    _setInitialLocationAddress();
+  }
+
+  Future<void> _setInitialLocationAddress() async {
+    String address = await getAddressFromLatLng(
+      widget.event.location.latitude,
+      widget.event.location.longitude,
+    );
+
+    setState(() {
+      locationController.text = address;
+    });
   }
 
   @override
@@ -36,82 +61,317 @@ class _EditEventScreenState extends State<EditEventScreen> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> _selectStartDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: selectedDate,
+      initialDate: startDate,
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
+
+    if (pickedDate != null && pickedDate != startDate) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(startDate),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          startDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          if (endDate.isBefore(startDate)) {
+            endDate = startDate.add(Duration(hours: 1));
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _selectEndDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: endDate,
+      firstDate: startDate,
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null && pickedDate != endDate) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(endDate),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          endDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
     }
   }
 
   void _saveChanges() {
-    Event updatedEvent = Event(
-  id: widget.event.id,
-  title: titleController.text,
-  description: descriptionController.text,
-  creatorId: widget.event.creatorId,
-  date: selectedDate,
-  location: locationController.text,
-  participants: widget.event.participants,
-  isParticipating: widget.event.isParticipating,
-  joinPrice: widget.event.joinPrice,
-  conversationId: widget.event.conversationId,
-  type: widget.event.type, // 🟢 Ajouter cette ligne
-);
+    if (titleController.text.isNotEmpty &&
+        location.isNotEmpty &&
+        startDate != null &&
+        endDate != null &&
+        endDate.isAfter(startDate)) {
+      // Convert the location string back to a LatLng object
+      List<String> coords = location.split(',');
+      LatLng latLngLocation = LatLng(
+        double.parse(coords[0]),
+        double.parse(coords[1]),
+      );
 
+      // Create an updated Event object
+      Event updatedEvent = Event(
+        id: widget.event.id,
+        title: titleController.text,
+        description: descriptionController.text,
+        creatorId: widget.event.creatorId,
+        startDate: startDate,
+        endDate: endDate,
+        location: latLngLocation, // Pass the LatLng object
+        participants: widget.event.participants,
+        isParticipating: widget.event.isParticipating,
+        joinPrice: widget.event.joinPrice,
+        conversationId: widget.event.conversationId,
+        type: widget.event.type,
+      );
 
-    widget.onSave(updatedEvent);
-    Navigator.pop(context);
+      // Pass the updated Event object to the onSave callback
+      widget.onSave(updatedEvent);
+
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Veuillez remplir tous les champs correctement."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd MMM yyyy, HH:mm').format(date);
+  }
+
+  Future<String> getAddressFromStringCoords(String coords) async {
+    try {
+      final parts = coords.split(',');
+      if (parts.length != 2) return "Coordonnées invalides";
+
+      final lat = double.parse(parts[0]);
+      final lng = double.parse(parts[1]);
+      return await getAddressFromLatLng(lat, lng);
+    } catch (e) {
+      print("Erreur lors de la conversion des coordonnées : $e");
+      return "Adresse inconnue";
+    }
+  }
+
+  Future<String> getAddressFromLatLng(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return "${place.locality}, ${place.country}"; // Example: Paris, France
+      }
+    } catch (e) {
+      print("Erreur de conversion: $e");
+    }
+    return "Localisation inconnue";
+  }
+
+  // Fonction pour obtenir la localisation automatique et l'afficher dans le TextField
+  Future<void> _getLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      String address =
+          await getAddressFromLatLng(position.latitude, position.longitude);
+
+      setState(() {
+        location =
+            "${position.latitude},${position.longitude}"; // Store only the coordinates
+        locationController.text = address; // Display the address
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Impossible de récupérer la localisation!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Fonction pour ouvrir la carte et sélectionner une localisation
+  void _openMapToSelectLocation() async {
+    LatLng? selectedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SelectLocationScreen()),
+    );
+
+    if (selectedLocation != null) {
+      String address = await getAddressFromLatLng(
+          selectedLocation.latitude, selectedLocation.longitude);
+
+      setState(() {
+        location =
+            "${selectedLocation.latitude},${selectedLocation.longitude}"; // Store only the coordinates
+        locationController.text = address; // Display the address
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Modifier l'événement")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: InputDecoration(labelText: "Titre"),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: descriptionController,
-              decoration: InputDecoration(labelText: "Description"),
-              maxLines: 3,
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: locationController,
-              decoration: InputDecoration(labelText: "Lieu"),
-            ),
-            SizedBox(height: 10),
-            Row(
+      appBar: AppBar(
+        title:
+            Text("Modifier l'événement", style: TextStyle(color: Colors.black)),
+        backgroundColor: Color(0xFFEDE7F6),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFEDE7F6), Color(0xFFD1C4E9)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ListView(
+            children: [
+              _buildTextField(titleController, "Titre"),
+              SizedBox(height: 16),
+              _buildTextField(descriptionController, "Description",
+                  maxLines: 3),
+              SizedBox(height: 16),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Utiliser ma localisation automatique"),
+                  Switch(
+                    value: _useAutoLocation,
+                    onChanged: (value) {
+                      setState(() {
+                        _useAutoLocation = value;
+                        if (value) _getLocation();
+                      });
+                    },
+                  ),
+                ],
+              ),
+              TextField(
+                controller: locationController,
+                decoration:
+                    InputDecoration(labelText: "Localisation (adresse)"),
+                readOnly: true,
+              ),
+              SizedBox(height: 10),
+              ElevatedButton.icon(
+                icon: Icon(Icons.map),
+                label: Text("Sélectionner sur la carte"),
+                onPressed: _openMapToSelectLocation,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 166, 125),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              SizedBox(height: 16),
+              _buildDateRow("Début", startDate, _selectStartDate),
+              SizedBox(height: 16),
+              _buildDateRow("Fin", endDate, _selectEndDate),
+              SizedBox(height: 32),
+              _buildSaveButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label,
+      {int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      maxLines: maxLines,
+    );
+  }
+
+  Widget _buildDateRow(
+      String label, DateTime date, Function(BuildContext) onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Date: ${selectedDate.toLocal()}".split(' ')[0]),
-                IconButton(
-                  icon: Icon(Icons.calendar_today),
-                  onPressed: () => _selectDate(context),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  _formatDate(date),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: _saveChanges,
-                child: Text("Enregistrer"),
-              ),
-            ),
-          ],
+          ),
+          IconButton(
+            icon: Icon(Icons.calendar_today,
+                color: Theme.of(context).primaryColor),
+            onPressed: () => onTap(context),
+            splashRadius: 24,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return Center(
+      child: ElevatedButton(
+        onPressed: _saveChanges,
+        child:
+            Text("Enregistrer", style: TextStyle(fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
