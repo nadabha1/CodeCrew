@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:intl/intl.dart'; // For formatting dates
+import 'package:intl/intl.dart';
 import 'TripCalendarScreen.dart';
+
 class TripPlanningScreen extends StatefulWidget {
   final String userId;
 
@@ -32,52 +33,53 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
     }
   }
 
-Future<void> generateTripPlan() async {
-  if (_destinationController.text.isEmpty || _selectedDateRange == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please enter destination and select date range')),
-    );
-    return;
-  }
-
-  setState(() {
-    _isLoading = true;
-    _showResults = false;
-  });
-
-  final dateOnlyFormat = DateFormat('yyyy-MM-dd');
-
-  try {
-    final response = await http.post(
-      Uri.parse('http://localhost:3000/trip/generate'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'destination': _destinationController.text,
-        'startDate': dateOnlyFormat.format(_selectedDateRange!.start),
-        'endDate': dateOnlyFormat.format(_selectedDateRange!.end),
-        'userId': widget.userId,
-      }),
-    );
-
-    final data = json.decode(response.body);
-
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      setState(() {
-        _itinerary = List<Map<String, dynamic>>.from(data['itinerary']);
-        _showResults = true;
-      });
-    } else {
-      final errorMessage = data['message'] ?? 'Failed to generate plan';
-      throw Exception(errorMessage);
+  Future<void> generateTripPlan({bool regenerate = false}) async {
+    if (_destinationController.text.isEmpty || _selectedDateRange == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter destination and select date range')),
+      );
+      return;
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.toString()}')),
-    );
-  } finally {
-    setState(() => _isLoading = false);
+
+    setState(() {
+      _isLoading = true;
+      _showResults = false;
+    });
+
+    final dateOnlyFormat = DateFormat('yyyy-MM-dd');
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/trip/generate'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'destination': _destinationController.text,
+          'startDate': dateOnlyFormat.format(_selectedDateRange!.start),
+          'endDate': dateOnlyFormat.format(_selectedDateRange!.end),
+          'userId': widget.userId,
+          'regenerate': regenerate, // <<< NEW: Send regenerate flag
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        setState(() {
+          _itinerary = List<Map<String, dynamic>>.from(data['itinerary']);
+          _showResults = true;
+        });
+      } else {
+        final errorMessage = data['message'] ?? 'Failed to generate plan';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
-}
 
   void _onDayClicked(int dayIndex) {
     final dayActivities = _itinerary[dayIndex]['activities'];
@@ -217,7 +219,7 @@ Future<void> generateTripPlan() async {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: generateTripPlan,
+                        onPressed: () => generateTripPlan(),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade600,
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -234,33 +236,45 @@ Future<void> generateTripPlan() async {
                 ),
               ),
             ),
-     const SizedBox(height: 24),
-if (_showResults) ...[
-  _buildItineraryCard(),
-  Padding(
-    padding: const EdgeInsets.only(top: 16.0),
-    child: ElevatedButton.icon(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TripCalendarScreen(
-              itinerary: List<Map<String, dynamic>>.from(_itinerary),
-            ),
-          ),
-        );
-      },
-      icon: const Icon(Icons.calendar_month),
-      label: const Text('View in Calendar'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue.shade800,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 24),
+            if (_showResults) ...[
+              _buildItineraryCard(),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+             onPressed: () {
+     Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => TripCalendarScreen(
+        itinerary: List<Map<String, dynamic>>.from(_itinerary),
+        destination: _destinationController.text,
+        startDate: DateFormat('yyyy-MM-dd').format(_selectedDateRange!.start),
+        endDate: DateFormat('yyyy-MM-dd').format(_selectedDateRange!.end),
+        userId: widget.userId,
       ),
     ),
-  ),
-]
-
+  );
+},
+                icon: const Icon(Icons.calendar_month),
+                label: const Text('View in Calendar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade800,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => generateTripPlan(regenerate: true),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Regenerate a New Plan'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade600,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
           ],
         ),
       ),

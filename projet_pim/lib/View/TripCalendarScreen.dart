@@ -1,17 +1,105 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class TripCalendarScreen extends StatelessWidget {
+class TripCalendarScreen extends StatefulWidget {
   final List<Map<String, dynamic>> itinerary;
+  final String destination;
+  final String startDate;
+  final String endDate;
+  final String userId;
 
-  const TripCalendarScreen({required this.itinerary, Key? key}) : super(key: key);
+  const TripCalendarScreen({
+    required this.itinerary,
+    required this.destination,
+    required this.startDate,
+    required this.endDate,
+    required this.userId,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<TripCalendarScreen> createState() => _TripCalendarScreenState();
+}
+
+class _TripCalendarScreenState extends State<TripCalendarScreen> {
+  bool _isAccepting = false;
+
+  Future<void> acceptTrip() async {
+    setState(() {
+      _isAccepting = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/trip/accept'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'userId': widget.userId,
+          'destination': widget.destination,
+          'startDate': widget.startDate,
+          'endDate': widget.endDate,
+          'itinerary': widget.itinerary,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Trip Saved 🎉'),
+            content: const Text('Your trip has been accepted and saved successfully!'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        throw Exception(data['message'] ?? 'Failed to accept trip');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAccepting = false;
+        });
+      }
+    }
+  }
+
+  int calculateTotalActivities() {
+    int total = 0;
+    for (var day in widget.itinerary) {
+      total += (day['activities'] as List).length;
+    }
+    return total;
+  }
+
+  int calculateNumberOfDays() {
+    final start = DateTime.parse(widget.startDate);
+    final end = DateTime.parse(widget.endDate);
+    return end.difference(start).inDays + 1;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Appointment> events = itinerary.expand<Appointment>((day) {
+    final List<Appointment> events = widget.itinerary.expand<Appointment>((day) {
       final date = DateTime.parse(day['date']);
       final activities = List<String>.from(day['activities']);
-
       return activities.map((activity) {
         final hour = _extractHourFromText(activity) ?? 9;
         final color = _getColorByTime(hour);
@@ -26,8 +114,11 @@ class TripCalendarScreen extends StatelessWidget {
       }).toList();
     }).toList();
 
-    final DateTime? minDate = itinerary.isNotEmpty ? DateTime.parse(itinerary.first['date']) : null;
-    final DateTime? maxDate = itinerary.isNotEmpty ? DateTime.parse(itinerary.last['date']).add(const Duration(days: 1)) : null;
+    final DateTime? minDate = widget.itinerary.isNotEmpty ? DateTime.parse(widget.itinerary.first['date']) : null;
+    final DateTime? maxDate = widget.itinerary.isNotEmpty ? DateTime.parse(widget.itinerary.last['date']).add(const Duration(days: 1)) : null;
+
+    final numberOfDays = calculateNumberOfDays();
+    final totalActivities = calculateTotalActivities();
 
     return Scaffold(
       appBar: AppBar(
@@ -37,16 +128,56 @@ class TripCalendarScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Legend
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Trip Statistics 📈', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Destination: ${widget.destination}', style: TextStyle(fontSize: 16))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Days: $numberOfDays', style: TextStyle(fontSize: 16))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle_outline, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Activities: $totalActivities', style: TextStyle(fontSize: 16))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: const [
-                _LegendBadge(color: Colors.orange, label: 'Morning'),
-                _LegendBadge(color: Colors.green, label: 'Afternoon'),
-                _LegendBadge(color: Colors.indigo, label: 'Evening'),
-                _LegendBadge(color: Colors.blueGrey, label: 'Night'),
+                _LegendBadge(color: Colors.orange, label: 'Morning', icon: Icons.wb_sunny),
+                _LegendBadge(color: Colors.green, label: 'Afternoon', icon: Icons.wb_cloudy),
+                _LegendBadge(color: Colors.indigo, label: 'Evening', icon: Icons.brightness_3),
+                _LegendBadge(color: Colors.blueGrey, label: 'Night', icon: Icons.nights_stay),
               ],
             ),
           ),
@@ -66,12 +197,20 @@ class TripCalendarScreen extends StatelessWidget {
               ),
               onTap: (CalendarTapDetails details) {
                 if (details.appointments != null && details.appointments!.isNotEmpty) {
-                  final Appointment appt = details.appointments!.first;
+                  final Appointment appt = details.appointments!.first as Appointment;
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
-                      title: Text(appt.subject),
-                      content: Text(appt.notes ?? ''),
+                      title: Text(
+                        appt.subject,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          appt.notes ?? '',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -84,33 +223,52 @@ class TripCalendarScreen extends StatelessWidget {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isAccepting ? null : acceptTrip,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: _isAccepting
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: Text(
+                  _isAccepting ? 'Saving...' : 'Accept This Trip',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   int? _extractHourFromText(String text) {
-    final regex = RegExp(r'(\d{1,2}):(\d{2})');
-    final match = regex.firstMatch(text);
-    if (match != null) {
-      final hour = int.tryParse(match.group(1)!);
-      return hour;
-    }
-
     final lower = text.toLowerCase();
-    if (lower.contains("morning")) return 9;
-    if (lower.contains("lunch")) return 13;
-    if (lower.contains("afternoon")) return 15;
-    if (lower.contains("evening")) return 18;
+    if (lower.contains("morning")) return 8;
+    if (lower.contains("afternoon")) return 13;
+    if (lower.contains("evening")) return 17;
     if (lower.contains("night")) return 21;
     return null;
   }
 
   Color _getColorByTime(int hour) {
-    if (hour < 12) return Colors.orange;         // Morning
-    if (hour < 17) return Colors.green;          // Afternoon
-    if (hour < 20) return Colors.indigo;         // Evening
-    return Colors.blueGrey;                      // Night
+    if (hour < 12) return Colors.orange;
+    if (hour < 17) return Colors.green;
+    if (hour < 20) return Colors.indigo;
+    return Colors.blueGrey;
   }
 }
 
@@ -123,18 +281,15 @@ class AppointmentDataSource extends CalendarDataSource {
 class _LegendBadge extends StatelessWidget {
   final Color color;
   final String label;
+  final IconData icon;
 
-  const _LegendBadge({required this.color, required this.label, Key? key}) : super(key: key);
+  const _LegendBadge({required this.color, required this.label, required this.icon, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
-        ),
+        Icon(icon, color: color),
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontSize: 14)),
       ],
