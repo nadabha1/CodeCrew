@@ -10,7 +10,7 @@ import 'package:projet_pim/View/user_profile.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
-  const MainScreen({super.key, this.initialIndex = 0});
+  const MainScreen({Key? key, this.initialIndex = 0}) : super(key: key);
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -74,7 +74,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
