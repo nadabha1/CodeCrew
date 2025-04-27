@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 class PlaceDetailsProviderScreen extends StatelessWidget {
   final Place place;
 
-  const PlaceDetailsProviderScreen({required this.place, Key? key}) : super(key: key);
+  const PlaceDetailsProviderScreen({required this.place, super.key});
 
   @override
   Widget build(BuildContext context) {

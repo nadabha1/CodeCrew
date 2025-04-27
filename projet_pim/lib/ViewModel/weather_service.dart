@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class WeatherService {
   Future<Map<String, dynamic>> fetchWeather(String city) async {

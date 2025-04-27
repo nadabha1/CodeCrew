@@ -2,6 +2,7 @@ import 'package:device_calendar/device_calendar.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class CalendarService {
   final DeviceCalendarPlugin _calendarPlugin = DeviceCalendarPlugin();
@@ -19,7 +20,7 @@ class CalendarService {
 
     // Définir la période de récupération
     var now = DateTime.now();
-    var nextWeek = now.add(Duration(days: 7));
+    var nextWeek = now.add(const Duration(days: 7));
 
     // Récupérer les événements
     var eventsResult = await _calendarPlugin.retrieveEvents(
@@ -68,7 +69,7 @@ class CalendarService {
   Future<void> sendFreeSlotsToBackend(
       String userId, String token, List<Map<String, String>> freeSlots) async {
     final url = Uri.parse(
-        'http://localhost:3000/free-time'); // Ensure this matches the backend route
+        '${ApiConstants.baseUrl}/free-time'); // Ensure this matches the backend route
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -116,7 +117,7 @@ class CalendarService {
 
   Future<void> sendUserEventsToBackend(
       String userId, String token, List<Map<String, dynamic>> events) async {
-    final url = Uri.parse('http://localhost:3000/user-events/$userId');
+    final url = Uri.parse('${ApiConstants.baseUrl}/user-events/$userId');
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token', // Include token for authentication
@@ -137,6 +138,26 @@ class CalendarService {
       }
     } catch (e) {
       print('Error sending user events to backend: $e');
+    }
+  }
+
+    Future<void> sendUserAvailabilityToBackend(
+      String userId, String token, List<Map<String, String>> slots) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}/calendar/save-availability');
+    final response = await http.post(
+      url,
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "userId": userId,
+        "availability": slots,
+      }),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception("Erreur lors de l'envoi des créneaux libres");
     }
   }
 }

@@ -19,7 +19,7 @@ class CarnetProvider with ChangeNotifier {
   List<Map<String, dynamic>> get places => _places;
 
   // Liste des images uploadées
-  List<String> _imageUrls = [];
+  final List<String> _imageUrls = [];
   List<String> get imageUrls => _imageUrls;
 
   // Fetch all carnets
@@ -299,9 +299,6 @@ class CarnetProvider with ChangeNotifier {
   Future<String> getCarnetIdByPlaceId(String placeId) async {
     try {
       String? carnetId = await _carnetService.getCarnetIdByPlaceId(placeId);
-      if (carnetId == null) {
-        throw Exception('Carnet ID not found');
-      }
       return carnetId;
     } catch (e) {
       print("Error fetching carnetId: $e");

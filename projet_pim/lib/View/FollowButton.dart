@@ -6,8 +6,8 @@ class FollowButton extends StatefulWidget {
   final bool isFollowing;
   final String token;
 
-  FollowButton(
-      {required this.targetUserId,
+  const FollowButton(
+      {super.key, required this.targetUserId,
       required this.isFollowing,
       required this.token});
 

@@ -11,6 +11,8 @@ import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConversationListScreen extends StatefulWidget {
+  const ConversationListScreen({super.key});
+
   @override
   _ConversationListScreenState createState() => _ConversationListScreenState();
 }
@@ -69,13 +71,13 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Conversations"),
+        title: const Text("Conversations"),
         backgroundColor: const Color(0xFFC8C4FF),
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : conversations.isEmpty
-              ? Center(child: Text("Aucune conversation."))
+              ? const Center(child: Text("Aucune conversation."))
               : ListView.builder(
                   itemCount: conversations.length,
                   itemBuilder: (context, index) {
@@ -99,14 +101,14 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                               )['avatarUrl'] ??
                               'https://example.com/default-avatar.png',
                         ),
+                        backgroundColor: const Color(0xFFC8C4FF),
                         child: isGroupChat
                             ? Icon(Icons.group, color: Colors.white)
                             : Icon(Icons.person, color: Colors.white),
-                        backgroundColor: const Color(0xFFC8C4FF),
                       ),
                       title: Text(
                         participantName,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                         lastMessage != null && lastMessage.isNotEmpty
@@ -152,7 +154,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         spaceBetweenChildren: 10,
         children: [
           SpeedDialChild(
-            child: Icon(Icons.chat),
+            child: const Icon(Icons.chat),
             label: 'Conversation privée',
             backgroundColor: Colors.deepPurple.shade100,
             onTap: () async {
@@ -165,7 +167,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
             },
           ),
           SpeedDialChild(
-            child: Icon(Icons.group),
+            child: const Icon(Icons.group),
             label: 'Créer un groupe',
             backgroundColor: Colors.deepPurple.shade100,
             onTap: () async {

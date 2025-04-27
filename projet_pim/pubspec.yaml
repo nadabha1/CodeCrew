@@ -60,6 +60,10 @@ dependencies:
   ar_location_view: ^2.0.16
   flutter_sound: ^9.2.13
   agora_rtc_engine: ^6.2.8
+  video_player: ^2.7.0
+  just_audio: ^0.9.35
+  file_picker: ^6.1.1
+  story_view: ^0.16.5
 
   flutter_localizations:
     sdk: flutter

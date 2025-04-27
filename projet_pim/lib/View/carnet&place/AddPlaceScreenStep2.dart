@@ -15,7 +15,7 @@ class AddPlaceScreenStep2 extends StatefulWidget {
   final double latitude;
   final double longitude;
 
-  AddPlaceScreenStep2({
+  const AddPlaceScreenStep2({super.key, 
     required this.carnetId,
     required this.placeName,
     required this.placeAddress,
@@ -30,9 +30,9 @@ class AddPlaceScreenStep2 extends StatefulWidget {
 class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _placeNameController = TextEditingController();
-  int _cost = 5;
-  List<String> _selectedCategories = [];
-  List<String> _imageUrls = [];
+  final int _cost = 5;
+  final List<String> _selectedCategories = [];
+  final List<String> _imageUrls = [];
 
   final ImagePicker _picker = ImagePicker();
 
@@ -68,7 +68,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   Future<void> _pickImage() async {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => Padding(
@@ -76,8 +76,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
         child: Wrap(
           children: [
             ListTile(
-              leading: Icon(Icons.camera_alt),
-              title: Text('Prendre une photo'),
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Prendre une photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -88,8 +88,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text('Choisir depuis la galerie'),
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choisir depuis la galerie'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -124,45 +124,45 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFDF5E6),
+      backgroundColor: const Color(0xFFFDF5E6),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 40), // ✅ Ajouter un espace au-dessus du nom
+              const SizedBox(height: 40), // ✅ Ajouter un espace au-dessus du nom
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _placeNameController,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.black),
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "Enter place name...",
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.edit, color: Colors.grey),
+                    icon: const Icon(Icons.edit, color: Colors.grey),
                     onPressed: () {},
                   ),
                 ],
               ),
               Text(
                 widget.placeAddress,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 "Categories of the address",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -196,7 +196,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   }).toList(),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
@@ -208,8 +208,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                 ),
                 maxLines: 3,
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 "Photos de l'adresse",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
@@ -242,7 +242,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                                       _imageUrls.remove(imageUrl);
                                     });
                                   },
-                                  child: CircleAvatar(
+                                  child: const CircleAvatar(
                                     radius: 12,
                                     backgroundColor: Colors.red,
                                     child: Icon(Icons.close,
@@ -253,10 +253,10 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                       GestureDetector(
                         onTap: _pickImage,
-                        child: CircleAvatar(
+                        child: const CircleAvatar(
                           backgroundColor: Colors.orange,
                           radius: 30,
                           child: Icon(Icons.add, color: Colors.white),
@@ -266,7 +266,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
                   final carnetProvider =
@@ -284,7 +284,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MainScreen(),
+                      builder: (context) => const MainScreen(),
                     ),
                   );
                 },
@@ -293,7 +293,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15)),
                 ),
-                child: Text("Valider", style: TextStyle(color: Colors.white)),
+                child: const Text("Valider", style: TextStyle(color: Colors.white)),
               ),
             ],
           ),

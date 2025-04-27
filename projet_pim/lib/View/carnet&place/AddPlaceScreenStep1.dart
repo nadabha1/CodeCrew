@@ -6,7 +6,7 @@ import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep2.dart';
 class AddPlaceScreenStep1 extends StatefulWidget {
   final String carnetId;
 
-  AddPlaceScreenStep1({required this.carnetId});
+  const AddPlaceScreenStep1({super.key, required this.carnetId});
 
   @override
   _AddPlaceScreenStep1State createState() => _AddPlaceScreenStep1State();
@@ -19,7 +19,7 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
   Future<void> searchPlaces(String query) async {
     if (query.isEmpty) return;
 
-    final apiKey = "62cc243a16c642daba0b257791a5eec3"; // Geoapify API Key
+    const apiKey = "62cc243a16c642daba0b257791a5eec3"; // Geoapify API Key
     final url = Uri.parse(
         "https://api.geoapify.com/v1/geocode/search?text=$query&apiKey=$apiKey");
 
@@ -35,23 +35,23 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFCEFEF),
+      backgroundColor: const Color(0xFFFCEFEF),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: "Search for a place...",
-                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
               onChanged: searchPlaces,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
                 itemCount: _searchResults.length,
@@ -59,7 +59,7 @@ class _AddPlaceScreenStep1State extends State<AddPlaceScreenStep1> {
                   var place = _searchResults[index];
                   return ListTile(
                     title: Text(place['properties']['name'] ?? "Unknown Place",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
                         place['properties']['formatted'] ?? "Unknown Address"),
                     onTap: () {

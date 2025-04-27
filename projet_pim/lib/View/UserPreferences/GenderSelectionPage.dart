@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'activity_selection_page.dart';
 
 class GenderSelectionPage extends StatefulWidget {
+  const GenderSelectionPage({super.key});
+
   @override
   _GenderSelectionPageState createState() => _GenderSelectionPageState();
 }
@@ -15,7 +17,7 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
   void _navigateToNextPage() {
     if (_selectedGender == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select your gender!")),
+        const SnackBar(content: Text("Please select your gender!")),
       );
       return;
     }
@@ -50,10 +52,10 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(), // Empty widget to balance the row
+                const SizedBox(), // Empty widget to balance the row
                 TextButton(
                   onPressed: _skipToLogin,
-                  child: Text(
+                  child: const Text(
                     "Skip",
                     style: TextStyle(
                         color: Colors.blue,
@@ -64,10 +66,10 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
               ],
             ),
 
-            LinearProgressIndicator(value: 0.3, color: Colors.green),
-            SizedBox(height: 20),
+            const LinearProgressIndicator(value: 0.3, color: Colors.green),
+            const SizedBox(height: 20),
 
-            Text("What is your gender?",
+            const Text("What is your gender?",
                 style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -84,16 +86,16 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
                   .toList(),
             ),
 
-            Spacer(),
+            const Spacer(),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text("Previous")),
+                    child: const Text("Previous")),
                 ElevatedButton(
-                    onPressed: _navigateToNextPage, child: Text("Next")),
+                    onPressed: _navigateToNextPage, child: const Text("Next")),
               ],
             ),
           ],

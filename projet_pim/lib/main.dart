@@ -69,7 +69,7 @@ void main() async {
   );
 
   // ✅ Initialiser Socket.IO
-  socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+  socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });
@@ -138,7 +138,7 @@ class MyApp extends StatelessWidget {
   final String? userId;
   final String? token;
 
-  const MyApp({Key? key, this.userId, this.token}) : super(key: key);
+  const MyApp({super.key, this.userId, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -149,10 +149,10 @@ class MyApp extends StatelessWidget {
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
         themeMode: ThemeProvider.themeMode,
-        home: userId != null && token != null ? MainScreen() : LoginView(),
+        home: userId != null && token != null ? const MainScreen() : LoginView(),
         routes: {
           '/home': (context) =>
-              HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),
+              const HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),
           '/signup': (context) => SignUpPage(),
           '/gender-selection': (context) => GenderSelectionPage(),
           '/activity-selection': (context) => ActivitySelectionPage(),

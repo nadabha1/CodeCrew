@@ -4,6 +4,8 @@ import 'package:projet_pim/Providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class FinalConfirmationPage extends StatelessWidget {
+  const FinalConfirmationPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     // Retrieve the argument to determine source
@@ -21,16 +23,16 @@ class FinalConfirmationPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LinearProgressIndicator(value: 1.0, color: Colors.green),
-            SizedBox(height: 20),
-            Text(
+            const LinearProgressIndicator(value: 1.0, color: Colors.green),
+            const SizedBox(height: 20),
+            const Text(
               "🎉 Ready to Connect?",
               style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.orange),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Expanded(
               child: ListView(
                 children: [
@@ -39,10 +41,10 @@ class FinalConfirmationPage extends StatelessWidget {
                   _buildPreferenceCard(
                       Icons.sports_soccer,
                       "Favorite Activities",
-                      userPrefs.favoriteActivities?.join(", ") ??
+                      userPrefs.favoriteActivities.join(", ") ??
                           "Not provided"),
                   _buildPreferenceCard(Icons.event, "Event Preferences",
-                      userPrefs.eventPreferences?.join(", ") ?? "Not provided"),
+                      userPrefs.eventPreferences.join(", ") ?? "Not provided"),
                   _buildPreferenceCard(Icons.groups, "Social Preference",
                       userPrefs.socialPreference ?? "Not provided"),
                   _buildPreferenceCard(
@@ -52,7 +54,7 @@ class FinalConfirmationPage extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -60,12 +62,12 @@ class FinalConfirmationPage extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pink[100]),
-                  child: Text("Previous"),
+                  child: const Text("Previous"),
                 ),
                 ElevatedButton(
                   onPressed: () => _finishOnboarding(context, fromSignup),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                  child: Text("Finish"),
+                  child: const Text("Finish"),
                 ),
               ],
             ),
@@ -81,7 +83,7 @@ class FinalConfirmationPage extends StatelessWidget {
 
     if (authProvider.userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text("User ID not found. Please log in again."),
             backgroundColor: Colors.red),
       );
@@ -92,7 +94,7 @@ class FinalConfirmationPage extends StatelessWidget {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text("Preferences added successfully!"),
             backgroundColor: Colors.green),
       );
@@ -106,7 +108,7 @@ class FinalConfirmationPage extends StatelessWidget {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text("Error adding preferences"),
             backgroundColor: Colors.red),
       );
@@ -115,15 +117,15 @@ class FinalConfirmationPage extends StatelessWidget {
 
   Widget _buildPreferenceCard(IconData icon, String title, String value) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 3,
       child: ListTile(
         leading: Icon(icon, color: Colors.orange, size: 30),
         title: Text(title,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         subtitle:
-            Text(value, style: TextStyle(fontSize: 14, color: Colors.black54)),
+            Text(value, style: const TextStyle(fontSize: 14, color: Colors.black54)),
       ),
     );
   }

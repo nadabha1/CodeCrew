@@ -24,14 +24,13 @@ class TravelerProfileScreen extends StatefulWidget {
       {required this.travelerId,
       required this.loggedInUserId,
       required this.token,
-      Key? key})
-      : super(key: key);
+      super.key});
 
   @override
   _TravelerProfileScreenState createState() => _TravelerProfileScreenState();
 }
 
-class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
+class _TravelerProfileScreenState extends State<TravelerProfileScreen> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? travelerData;
   late Future<List<Carnet>> travelerCarnets =
       Future.value([]); // Initialize as empty list
@@ -41,12 +40,14 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
   String? _token;
   UserService userService = UserService();
   CarnetProvider? carnetProvider;
+  late TabController _tabController;
+
 
   @override
   void initState() {
     super.initState();
     carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
-
+  _tabController = TabController(length: 3, vsync: this); // ← ajouter ça !
     fetchTravelerProfile();
     fetchFollowerData();
   }
@@ -164,12 +165,12 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Succès !"),
+          title: const Text("Succès !"),
           content: Text("Vous avez déverrouillé '$placeName' !"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -182,12 +183,12 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Erreur"),
+          title: const Text("Erreur"),
           content: Text(message),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -200,20 +201,20 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Confirmation du déverrouillage"),
+          title: const Text("Confirmation du déverrouillage"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Voulez-vous déverrouiller '$placeName' ?"),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text("Prix pour déverrouiller : $placePrice coins"),
             ],
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Annuler"),
+              child: const Text("Annuler"),
             ),
             TextButton(
               onPressed: () async {
@@ -231,7 +232,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                   _showErrorDialog(e.toString());
                 }
               },
-              child: Text("Confirmer"),
+              child: const Text("Confirmer"),
             ),
           ],
         );
@@ -302,7 +303,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
       print("❌ Error parsing location: $e");
     }
     print("⚠️ Invalid location format. Returning default coordinates.");
-    return LatLng(0, 0); // Default value
+    return const LatLng(0, 0); // Default value
   }
 
   Future<String> getLocationName() async {
@@ -333,6 +334,228 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
     );
   }
 
+Widget _buildCarnetSection() {
+  final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FutureBuilder<List<Carnet>>(
+          future: travelerCarnets,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return const Center(child: Text('Erreur de chargement des carnets'));
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text("Aucun carnet disponible."));
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: snapshot.data!.map((carnet) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Carnet d'Adresses : ${carnet.title}",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: carnet.places.map((place) {
+                          bool isUnlocked = carnetProvider.isPlaceUnlocked(place.id);
+
+                          return Container(
+                            width: 180,
+                            margin: const EdgeInsets.only(right: 12),
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              elevation: 4,
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      height: 120,
+                                      child: Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: isUnlocked
+                                                ? Image.network(
+                                                    place.images.isNotEmpty ? place.images.first : '',
+                                                    width: double.infinity,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
+                                                    },
+                                                  )
+                                                : ImageFiltered(
+                                                    imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                                    child: Image.network(
+                                                      place.images.isNotEmpty ? place.images.first : '',
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
+                                                      },
+                                                    ),
+                                                  ),
+                                          ),
+                                          if (!isUnlocked)
+                                            const Positioned.fill(
+                                              child: Center(
+                                                child: Icon(Icons.lock, color: Colors.white, size: 40),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      place.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (place.categories.isNotEmpty)
+                                      Wrap(
+                                        spacing: 6.0,
+                                        runSpacing: 4.0,
+                                        children: place.categories.map((category) {
+                                          return Chip(
+                                            label: Text(
+                                              category,
+                                              style: const TextStyle(fontSize: 10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                            backgroundColor: Colors.deepPurple[100],
+                                            visualDensity: VisualDensity.compact,
+                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          );
+                                        }).toList(),
+                                      ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        buildStarRating(place.averageRating),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          place.averageRating.toStringAsFixed(1),
+                                          style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton(
+                                      onPressed: isUnlocked
+                                          ? () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => Builder(
+                                                    builder: (newContext) => ChangeNotifierProvider<ReviewProvider>(
+                                                      create: (_) => ReviewProvider(),
+                                                      child: PlaceDetailsScreen(place: place),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          : () async {
+                                              _showConfirmUnlockDialog(place.name, place.unlockCost, place);
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isUnlocked
+                                            ? const Color(0xFF9E9E9E)
+                                            : const Color(0xFFD4F98F),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        textStyle: const TextStyle(fontSize: 12),
+                                      ),
+                                      child: Text(isUnlocked ? "Voir Détails" : "Déverrouiller (${place.unlockCost} coins)"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildInfoTab() {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('Bio: ${travelerData?['bio'] ?? "Pas de bio"}'),
+        const SizedBox(height: 10),
+        Text('Localisation: ${travelerData?['location'] ?? "Inconnue"}'),
+      ],
+    ),
+  );
+}
+Widget _buildAdressesTab() {
+  return FutureBuilder<List<Carnet>>(
+    future: travelerCarnets,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return const Center(child: Text('Erreur de chargement'));
+      }
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return const Center(child: Text('Aucun carnet trouvé.'));
+      }
+      return ListView(
+        scrollDirection: Axis.vertical,
+        children: snapshot.data!.map((carnet) {
+          return ListTile(
+            title: Text(carnet.title),
+            subtitle: Text('${carnet.places.length} lieux'),
+          );
+        }).toList(),
+      );
+    },
+  );
+}
+Widget _buildAvisTab() {
+  return const Center(
+    child: Text('Aucun avis pour l\'instant.'),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
@@ -340,14 +563,14 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Column(
                 children: [
                   // Profil de l'utilisateur
                   Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
                       color: Color(0xFFDBD9FE),
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(30),
@@ -356,7 +579,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        SizedBox(height: 50),
+                        const SizedBox(height: 50),
                         CircleAvatar(
                           radius: 50,
                           backgroundImage: travelerData?['profileImage'] !=
@@ -369,15 +592,15 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                         travelerData?['name'] != null
                             ? Text(
                                 travelerData!['name'],
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontSize: 24, fontWeight: FontWeight.bold),
                               )
-                            : Text("Nom inconnu"),
+                            : const Text("Nom inconnu"),
                         travelerData?['job'] != null
                             ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.work_outline,
+                                  const Icon(Icons.work_outline,
                                       color: Colors.black54, size: 18),
                                   const SizedBox(width: 6),
                                   Text(
@@ -404,7 +627,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                   ),
                                 ],
                               ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -445,19 +668,19 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         ElevatedButton(
                           onPressed: toggleFollow,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isFollowing
-                                ? Color(0xF6F6666)
-                                : Color(0xFFD4F98F),
+                                ? const Color(0x0f6f6666)
+                                : const Color(0xFFD4F98F),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
                           child: Text(isFollowing ? "Unfollow" : "Follow"),
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -480,7 +703,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                 );
                               },
                             ),
-                            SizedBox(width: 20),
+                            const SizedBox(width: 20),
                             _StatItem(
                               count:
                                   travelerData?['followingCount']?.toString() ??
@@ -501,7 +724,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                                 );
                               },
                             ),
-                            SizedBox(width: 20),
+                            const SizedBox(width: 20),
                             _StatItem(
                               count: travelerData?['likes']?.toString() ?? '0',
                               label: 'Likes',
@@ -511,266 +734,34 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> {
                       ],
                     ),
                   ),
-
-                  SizedBox(height: 20),
-
-                  // Section Carnet d'Adresses
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+SingleChildScrollView(
+              child: Column(
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.black,
+                    indicatorColor: Colors.deepPurple,
+                    tabs: const [
+                      Tab(text: 'Infos'),
+                      Tab(text: 'Adresses'),
+                      Tab(text: 'Avis'),
+                    ],
+                  ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    child: TabBarView(
+                      controller: _tabController,
                       children: [
-                        Text(
-                          "Carnet d'Adresses",
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 10),
-                        FutureBuilder<List<Carnet>>(
-                          future: travelerCarnets,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(child: CircularProgressIndicator());
-                            }
-
-                            if (snapshot.hasError) {
-                              return Center(
-                                  child: Text('Error loading carnets'));
-                            }
-
-                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                              return Center(child: Text("No carnet available"));
-                            }
-
-                            return Column(
-                              children: snapshot.data!.map((carnet) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      carnet.title,
-                                      style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    SizedBox(height: 10),
-
-                                    // Liste des places affichées horizontalement
-                                    SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children: carnet.places.map((place) {
-                                          bool isUnlocked = carnetProvider
-                                              .isPlaceUnlocked(place.id);
-
-                                          return Card(
-                                            margin: EdgeInsets.symmetric(
-                                                horizontal: 10),
-                                            child: Container(
-                                              width: 200,
-                                              height:
-                                                  360, // Largeur de la carte
-                                              padding: EdgeInsets.all(10),
-                                              child: Column(
-                                                children: [
-                                                  if (place.images.isNotEmpty)
-                                                    Stack(
-                                                      children: [
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(10),
-                                                          child: isUnlocked
-                                                              ? Image.network(
-                                                                  place.images
-                                                                      .first,
-                                                                  width: 140,
-                                                                  height: 120,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  errorBuilder:
-                                                                      (context,
-                                                                          error,
-                                                                          stackTrace) {
-                                                                    return Icon(
-                                                                        Icons
-                                                                            .broken_image,
-                                                                        size:
-                                                                            50,
-                                                                        color: Colors
-                                                                            .grey);
-                                                                  },
-                                                                )
-                                                              : ImageFiltered(
-                                                                  imageFilter:
-                                                                      ImageFilter.blur(
-                                                                          sigmaX:
-                                                                              5,
-                                                                          sigmaY:
-                                                                              5),
-                                                                  child: Image
-                                                                      .network(
-                                                                    place.images
-                                                                        .first,
-                                                                    width: 140,
-                                                                    height: 120,
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                    errorBuilder:
-                                                                        (context,
-                                                                            error,
-                                                                            stackTrace) {
-                                                                      return Icon(
-                                                                          Icons
-                                                                              .broken_image,
-                                                                          size:
-                                                                              50,
-                                                                          color:
-                                                                              Colors.grey);
-                                                                    },
-                                                                  ),
-                                                                ),
-                                                        ),
-
-                                                        // Icône de cadenas si verrouillé
-                                                        if (!isUnlocked)
-                                                          Positioned(
-                                                            top: 40,
-                                                            left: 55,
-                                                            child: Icon(
-                                                              Icons.lock,
-                                                              size: 40,
-                                                              color: Colors
-                                                                  .white
-                                                                  .withOpacity(
-                                                                      0.8),
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    )
-                                                  else
-                                                    Icon(Icons.broken_image,
-                                                        size: 50,
-                                                        color: Colors.grey),
-                                                  SizedBox(height: 10),
-                                                  Text(
-                                                    place.name,
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  SizedBox(height: 10),
-                                                  if (place.categories !=
-                                                          null &&
-                                                      place.categories
-                                                          .isNotEmpty)
-                                                    Wrap(
-                                                      spacing: 6.0,
-                                                      runSpacing: 4.0,
-                                                      children: place.categories
-                                                          .map((category) {
-                                                        return Chip(
-                                                          label: Text(
-                                                            category,
-                                                            style: const TextStyle(
-                                                                fontSize:
-                                                                    10), // texte plus petit
-                                                          ),
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal: 9,
-                                                                  vertical: 0),
-                                                          visualDensity:
-                                                              VisualDensity
-                                                                  .compact, // réduit la densité
-                                                          materialTapTargetSize:
-                                                              MaterialTapTargetSize
-                                                                  .shrinkWrap,
-                                                          backgroundColor:
-                                                              Colors.deepPurple[
-                                                                  100],
-                                                        );
-                                                      }).toList(),
-                                                    ),
-                                                  const SizedBox(height: 30),
-                                                  Row(
-                                                    children: [
-                                                      buildStarRating(
-                                                          place.averageRating),
-                                                      const SizedBox(width: 6),
-                                                      Text(
-                                                        place.averageRating
-                                                            .toStringAsFixed(1),
-                                                        style: const TextStyle(
-                                                            fontSize: 14,
-                                                            color:
-                                                                Colors.black54),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  SizedBox(height: 20),
-                                                  ElevatedButton(
-                                                    onPressed: isUnlocked
-                                                        ? () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder:
-                                                                    (context) =>
-                                                                        Builder(
-                                                                  builder: (newContext) =>
-                                                                      ChangeNotifierProvider<
-                                                                          ReviewProvider>(
-                                                                    create: (_) =>
-                                                                        ReviewProvider(),
-                                                                    child:
-                                                                        PlaceDetailsScreen(
-                                                                      place:
-                                                                          place,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          }
-                                                        : () async {
-                                                            _showConfirmUnlockDialog(
-                                                                place.name,
-                                                                place
-                                                                    .unlockCost,
-                                                                place);
-                                                          },
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                          isUnlocked
-                                                              ? Color(
-                                                                  0xFF9E9E9E)
-                                                              : Color(
-                                                                  0xFFD4F98F),
-                                                    ),
-                                                    child: Text(isUnlocked
-                                                        ? "View Details"
-                                                        : "Unlock (5 coins)"),
-                                                  )
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            );
-                          },
-                        ),
+                        _buildCarnetSection(),
+                        _buildAdressesTab(),
+                        _buildAvisTab(),
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
+                  // Section Carnet d'Adresses
                 ],
               ),
             ),
@@ -782,33 +773,33 @@ class PlaceCard extends StatelessWidget {
   final Place place;
   final VoidCallback onTap;
 
-  const PlaceCard({required this.place, required this.onTap});
+  const PlaceCard({super.key, required this.place, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        margin: EdgeInsets.all(10),
+        margin: const EdgeInsets.all(10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         elevation: 5,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.place,
               color: Colors.blue,
               size: 40,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(
               place.name,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
               place.description ?? 'No description',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
             ),
           ],
         ),
@@ -821,33 +812,33 @@ class LockedPlaceCard extends StatelessWidget {
   final Place place;
   final VoidCallback onUnlock;
 
-  const LockedPlaceCard({required this.place, required this.onUnlock});
+  const LockedPlaceCard({super.key, required this.place, required this.onUnlock});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(10),
+      margin: const EdgeInsets.all(10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 5,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.lock,
             color: Colors.red,
             size: 40,
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             place.name,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           Text(
             place.description ?? 'No description',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: onUnlock,
             child: Text("Unlock (${place.unlockCost} coins)"),
@@ -870,8 +861,8 @@ class _StatItem extends StatelessWidget {
       child: Column(
         children: [
           Text(count,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-          Text(label, style: TextStyle(color: Colors.black54)),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          Text(label, style: const TextStyle(color: Colors.black54)),
         ],
       ),
     );

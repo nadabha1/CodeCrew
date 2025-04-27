@@ -13,7 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class WeatherScreen extends StatefulWidget {
   final String userId;
   final Map<String, dynamic> weatherData;
-  const WeatherScreen({
+  const WeatherScreen({super.key, 
     required this.userId,
     required this.weatherData,
   });
@@ -48,13 +48,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? _userId = prefs.getString("user_id");
-    String? _token = prefs.getString("jwt_token");
+    String? userId = prefs.getString("user_id");
+    String? token = prefs.getString("jwt_token");
 
-    if (_userId != null && _token != null) {
+    if (userId != null && token != null) {
       setState(() {
-        userId = _userId;
-        token = _token;
+        userId = userId;
+        token = token;
       });
     } else {
       print("User ID or Token is not available");
@@ -158,20 +158,20 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Payment Confirmation"),
+          title: const Text("Payment Confirmation"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Do you want to unlock '$placeName'?"),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text("Price to unlock: $placePrice coins"),
             ],
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
@@ -219,7 +219,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       'Unable to unlock. Missing required information.');
                 }
               },
-              child: Text("Confirm"),
+              child: const Text("Confirm"),
             ),
           ],
         );
@@ -232,12 +232,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Error"),
+          title: const Text("Error"),
           content: Text(message),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -250,12 +250,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Success!"),
+          title: const Text("Success!"),
           content: Text("You have successfully unlocked $placeName!"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -268,10 +268,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Column(
       children: [
         Icon(icon, color: Colors.blueAccent, size: 40),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(label, style: TextStyle(fontSize: 16, color: Colors.grey[700])),
         Text(value,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black)),
@@ -292,11 +292,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           "Lieux à visiter selon la météo",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -304,14 +304,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
               bool isUnlocked = carnetProvider.isPlaceUnlocked(place.id);
 
               return Card(
-                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
                 elevation: 5,
                 child: Container(
                   width: 200, // Width of the card
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     color: const Color.fromARGB(234, 249, 225, 225),
@@ -332,7 +332,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
-                                        return Icon(Icons.broken_image,
+                                        return const Icon(Icons.broken_image,
                                             size: 50, color: Colors.grey);
                                       },
                                     )
@@ -346,7 +346,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) {
-                                          return Icon(Icons.broken_image,
+                                          return const Icon(Icons.broken_image,
                                               size: 50, color: Colors.grey);
                                         },
                                       ),
@@ -365,16 +365,16 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           ],
                         )
                       else
-                        Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                      SizedBox(height: 10),
+                        const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                      const SizedBox(height: 10),
                       // Displaying place name
                       Text(
                         place.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       // Additional information (short description or location)
                       Text(
                         place.description ?? 'No description available',
@@ -383,7 +383,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       // Show button based on place unlocked state
                       ElevatedButton(
                         onPressed: isUnlocked
@@ -404,17 +404,17 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                   place,
                                 );
                               },
-                        child:
-                            Text(isUnlocked ? "Voir détails" : "Déverrouiller"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isUnlocked
-                              ? Color(0xFF9E9E9E)
-                              : Color(0xFFD4F98F),
-                          padding: EdgeInsets.symmetric(vertical: 10),
+                              ? const Color(0xFF9E9E9E)
+                              : const Color(0xFFD4F98F),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
+                        child:
+                            Text(isUnlocked ? "Voir détails" : "Déverrouiller"),
                       )
                     ],
                   ),
@@ -432,12 +432,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFCEFEF),
       appBar: AppBar(
-        title: Text("Météo d'aujourd'hui"),
+        title: const Text("Météo d'aujourd'hui"),
         backgroundColor: const Color(0xFFDBD9FE),
         elevation: 0,
       ),
       body: weatherData == null
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -449,7 +449,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       children: [
                         Text(
                           "${weatherData!['name']}, ${weatherData!['sys']['country']}",
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87),
@@ -459,7 +459,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           width: 120,
                           height: 120,
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         Text(
                           "${weatherData!['weather'][0]['description']}",
                           style:
@@ -468,7 +468,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       ],
                     ),
 
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                     // Détails de la météo
                     Card(
@@ -482,41 +482,41 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           children: [
                             Text(
                               "${weatherData!['main']['temp']}°C",
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 50,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF161055)),
+                                  color: Color(0xFF161055)),
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               "Température ressentie : ${weatherData!['main']['feels_like']}°C",
                               style: TextStyle(
                                   fontSize: 18, color: Colors.grey[600]),
                             ),
-                            Divider(),
+                            const Divider(),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 Column(
                                   children: [
-                                    Text("Min",
+                                    const Text("Min",
                                         style: TextStyle(
                                             fontSize: 16, color: Colors.grey)),
                                     Text(
                                         "${weatherData!['main']['temp_min']}°C",
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                                 Column(
                                   children: [
-                                    Text("Max",
+                                    const Text("Max",
                                         style: TextStyle(
                                             fontSize: 16, color: Colors.grey)),
                                     Text(
                                         "${weatherData!['main']['temp_max']}°C",
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
                                   ],
@@ -528,7 +528,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       ),
                     ),
 
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                     // Autres infos météo (Humidité, Vent)
                     Row(
@@ -541,7 +541,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       ],
                     ),
 
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                     // Infos sur le lever et coucher du soleil
                     Card(
@@ -556,27 +556,27 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           children: [
                             Column(
                               children: [
-                                Icon(Icons.wb_sunny,
+                                const Icon(Icons.wb_sunny,
                                     color: Colors.orange, size: 35),
-                                Text("Lever du soleil",
+                                const Text("Lever du soleil",
                                     style: TextStyle(
                                         fontSize: 16, color: Colors.grey)),
                                 Text(
                                     _formatTime(weatherData!['sys']['sunrise']),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold)),
                               ],
                             ),
                             Column(
                               children: [
-                                Icon(Icons.nightlight_round,
+                                const Icon(Icons.nightlight_round,
                                     color: Colors.blueAccent, size: 35),
-                                Text("Coucher du soleil",
+                                const Text("Coucher du soleil",
                                     style: TextStyle(
                                         fontSize: 16, color: Colors.grey)),
                                 Text(_formatTime(weatherData!['sys']['sunset']),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold)),
                               ],

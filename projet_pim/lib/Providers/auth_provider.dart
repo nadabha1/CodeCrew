@@ -331,7 +331,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> checkUserVerification(String email) async {
-    final String apiUrl = "${ApiConstants.baseUrl}/users/checkverification";
+    const String apiUrl = "${ApiConstants.baseUrl}/users/checkverification";
 
     try {
       debugPrint("🔄 Checking verification status for: $email");

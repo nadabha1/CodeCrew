@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class TripPlanningScreen extends StatefulWidget {
   final String userId;
 
-  TripPlanningScreen({required this.userId});
+  const TripPlanningScreen({super.key, required this.userId});
 
   @override
   _TripPlanningScreenState createState() => _TripPlanningScreenState();
@@ -60,7 +60,7 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Plan Your Trip"),
+        title: const Text("Plan Your Trip"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -69,35 +69,35 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
           children: [
             TextField(
               controller: _destinationController,
-              decoration: InputDecoration(labelText: 'Destination'),
+              decoration: const InputDecoration(labelText: 'Destination'),
             ),
             TextField(
               controller: _daysController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Number of Days'),
+              decoration: const InputDecoration(labelText: 'Number of Days'),
             ),
             TextField(
               controller: _budgetController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Budget'),
+              decoration: const InputDecoration(labelText: 'Budget'),
             ),
             TextField(
               controller: _preferencesController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                   labelText: 'Preferences (e.g., nature, food, etc.)'),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: generateTripPlan,
-              child: Text('Generate Trip Plan'),
+              child: const Text('Generate Trip Plan'),
             ),
-            if (_isLoading) Center(child: CircularProgressIndicator()),
+            if (_isLoading) const Center(child: CircularProgressIndicator()),
             if (_generatedPlan.isNotEmpty && !_isLoading)
               Padding(
                 padding: const EdgeInsets.only(top: 20.0),
                 child: Text(
                   _generatedPlan,
-                  style: TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
           ],

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'FinalConfirmationPage.dart';
 
 class SocialInteractionPage extends StatefulWidget {
+  const SocialInteractionPage({super.key});
+
   @override
   _SocialInteractionPageState createState() => _SocialInteractionPageState();
 }
@@ -15,7 +17,7 @@ class _SocialInteractionPageState extends State<SocialInteractionPage> {
   void _navigateToNextPage() {
     if (_socialPreference == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content:
                 Text("Please select how you prefer to interact socially!")),
       );
@@ -35,18 +37,18 @@ class _SocialInteractionPageState extends State<SocialInteractionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LinearProgressIndicator(value: 0.9, color: Colors.green),
-            SizedBox(height: 20),
+            const LinearProgressIndicator(value: 0.9, color: Colors.green),
+            const SizedBox(height: 20),
 
             // Title
-            Text(
+            const Text(
               "HOW DO YOU LIKE TO SOCIALIZE?",
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.orange),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
 
             // Social Preferences (Radio Buttons)
             Column(
@@ -69,7 +71,7 @@ class _SocialInteractionPageState extends State<SocialInteractionPage> {
                   .toList(),
             ),
 
-            Spacer(),
+            const Spacer(),
 
             // Navigation Buttons
             Row(
@@ -79,12 +81,12 @@ class _SocialInteractionPageState extends State<SocialInteractionPage> {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pink[100]),
-                  child: Text("Previous"),
+                  child: const Text("Previous"),
                 ),
                 ElevatedButton(
                   onPressed: _navigateToNextPage,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                  child: Text("Next"),
+                  child: const Text("Next"),
                 ),
               ],
             ),

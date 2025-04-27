@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import 'EventPreferencePage.dart';
 
 class ActivitySelectionPage extends StatefulWidget {
+  const ActivitySelectionPage({super.key});
+
   @override
   _ActivitySelectionPageState createState() => _ActivitySelectionPageState();
 }
 
 class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
-  List<String> _selectedActivities = [];
+  final List<String> _selectedActivities = [];
   String? _preference;
   String? _socialMediaParticipation;
 
@@ -30,7 +32,7 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
   void _navigateToNextPage() {
     if (_selectedActivities.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select at least one activity!")),
+        const SnackBar(content: Text("Please select at least one activity!")),
       );
       return;
     }
@@ -53,24 +55,24 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              LinearProgressIndicator(value: 0.6, color: Colors.green),
-              SizedBox(height: 20),
+              const LinearProgressIndicator(value: 0.6, color: Colors.green),
+              const SizedBox(height: 20),
 
               // Header Text
-              Text(
+              const Text(
                 "WHAT ACTIVITIES DO YOU ENJOY DURING YOUR FREE TIME?",
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.orange),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
               // Suggestion Label
-              Text("Suggestion:",
+              const Text("Suggestion:",
                   style: TextStyle(fontWeight: FontWeight.bold)),
 
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
               // Activity Selection (Checkbox List)
               Column(
@@ -92,10 +94,10 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
                 }).toList(),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Preference: Indoor or Outdoor
-              Text("Do you prefer:",
+              const Text("Do you prefer:",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               Row(
                 children: ["In Door", "Out Door"]
@@ -121,10 +123,10 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
                     .toList(),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Social Media Participation
-              Text("How often do you participate in social media?",
+              const Text("How often do you participate in social media?",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               TextField(
                 decoration: InputDecoration(
@@ -135,7 +137,7 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
                 onChanged: (value) => _socialMediaParticipation = value,
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Previous & Next Buttons
               Row(
@@ -145,13 +147,13 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.pink[100]),
-                    child: Text("Previous"),
+                    child: const Text("Previous"),
                   ),
                   ElevatedButton(
                     onPressed: _navigateToNextPage,
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                    child: Text("Next"),
+                    child: const Text("Next"),
                   ),
                 ],
               ),

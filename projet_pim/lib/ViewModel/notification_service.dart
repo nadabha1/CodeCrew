@@ -5,7 +5,7 @@ import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class NotificationService {
-  final IO.Socket _socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+  final IO.Socket _socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });

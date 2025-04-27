@@ -7,8 +7,7 @@ class FollowingScreen extends StatefulWidget {
   final List<String> userIds;
   final String token;
 
-  const FollowingScreen({required this.userIds, required this.token, Key? key})
-      : super(key: key);
+  const FollowingScreen({required this.userIds, required this.token, super.key});
 
   @override
   _FollowingScreenState createState() => _FollowingScreenState();
@@ -34,11 +33,11 @@ class _FollowingScreenState extends State<FollowingScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? _userId = prefs.getString("user_id");
+    String? userId = prefs.getString("user_id");
 
-    if (_userId != null) {
+    if (userId != null) {
       setState(() {
-        userId = _userId;
+        userId = userId;
       });
     } else {
       print("User ID is not available");
@@ -53,7 +52,7 @@ class _FollowingScreenState extends State<FollowingScreen> {
       try {
         final data = await userService.getUserById(id, widget.token);
 
-        if (data != null && data is Map<String, dynamic>) {
+        if (data is Map<String, dynamic>) {
           // Ajouter un champ 'isFollowing' pour chaque utilisateur
           data['isFollowing'] =
               true; // Par défaut, les utilisateurs sont déjà suivis
@@ -117,7 +116,7 @@ class _FollowingScreenState extends State<FollowingScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: user['isFollowing']
-                          ? const Color(0xF6F6666)
+                          ? const Color(0x0f6f6666)
                           : const Color(0xFFD4F98F),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
