@@ -30,20 +30,20 @@ Future<void> shareEventMessage({
     );
 
     if (response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("✅ Événement partagé avec succès"),
         backgroundColor: Colors.green,
       ));
     } else {
       print("Erreur: ${response.body}");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("❌ Échec du partage de l'événement"),
         backgroundColor: Colors.red,
       ));
     }
   } catch (e) {
     print("Exception: $e");
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text("❌ Erreur réseau"),
       backgroundColor: Colors.red,
     ));

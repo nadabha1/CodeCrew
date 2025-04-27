@@ -1,6 +1,8 @@
 // lib/api_constants.dart
 class ApiConstants {
-  static const String baseUrl = 'http://172.16.6.51:3000';
-  static const String baseUrl2 = 'http://172.16.6.51:3000';
-  static const String web_socket_channel = '172.16.6.51:3000';
+  static const String baseUrl = 'http://192.168.1.22:3000';
+  static const String baseUrl2 = 'http://192.168.1.22:3000';
+  static const String baseUrl3 = '192.168.1.22';
+  static const String web_socket_channel = '192.168.1.22:3000';
+
 }

@@ -6,6 +6,8 @@ import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NewGroupConversationScreen extends StatefulWidget {
+  const NewGroupConversationScreen({super.key});
+
   @override
   _NewGroupConversationScreenState createState() =>
       _NewGroupConversationScreenState();
@@ -28,16 +30,16 @@ class _NewGroupConversationScreenState
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? _userId = prefs.getString("user_id");
-    String? _token = prefs.getString("jwt_token");
+    String? userId = prefs.getString("user_id");
+    String? token = prefs.getString("jwt_token");
 
-    if (_userId != null && _token != null) {
+    if (userId != null && token != null) {
       setState(() {
-        userId = _userId;
-        token = _token;
+        userId = userId;
+        token = token;
       });
       // Now call getFollowing to fetch followed users
-      await getFollowing(_userId!); // Pass the userId to getFollowing
+      await getFollowing(userId!); // Pass the userId to getFollowing
     } else {
       print("User ID or Token is not available");
       setState(() {
@@ -93,7 +95,7 @@ class _NewGroupConversationScreenState
   Future<void> createGroupConversation() async {
     if (groupNameController.text.isEmpty || selectedUserIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Nom de groupe ou membres manquants.")));
+          const SnackBar(content: Text("Nom de groupe ou membres manquants.")));
       return;
     }
 
@@ -112,23 +114,23 @@ class _NewGroupConversationScreenState
     } else {
       print(response.body);
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur lors de la création du groupe.")));
+          const SnackBar(content: Text("Erreur lors de la création du groupe.")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Créer un groupe")),
+      appBar: AppBar(title: const Text("Créer un groupe")),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
                   TextField(
                     controller: groupNameController,
-                    decoration: InputDecoration(labelText: "Nom du groupe"),
+                    decoration: const InputDecoration(labelText: "Nom du groupe"),
                   ),
                   const SizedBox(height: 20),
                   Expanded(
@@ -142,7 +144,7 @@ class _NewGroupConversationScreenState
                           leading: CircleAvatar(
                             backgroundImage: user['profileImage'] != null
                                 ? NetworkImage(user['profileImage'])
-                                : AssetImage('assets/default_profile.png')
+                                : const AssetImage('assets/default_profile.png')
                                     as ImageProvider,
                           ),
                           title: Text(user['name']),
@@ -164,10 +166,10 @@ class _NewGroupConversationScreenState
                   ),
                   ElevatedButton(
                     onPressed: createGroupConversation,
-                    child: Text("Créer le groupe"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFC8C4FF),
                     ),
+                    child: Text("Créer le groupe"),
                   )
                 ],
               ),

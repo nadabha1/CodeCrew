@@ -7,7 +7,7 @@ class EventChatScreen extends StatefulWidget {
   final String eventId;
   final String userId;
 
-  const EventChatScreen({required this.eventId, required this.userId});
+  const EventChatScreen({super.key, required this.eventId, required this.userId});
 
   @override
   _EventChatScreenState createState() => _EventChatScreenState();
@@ -16,7 +16,7 @@ class EventChatScreen extends StatefulWidget {
 class _EventChatScreenState extends State<EventChatScreen>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _messages = [];
-  TextEditingController _messageController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
   late IO.Socket _socket;
   bool _isConnected = false;
   late AnimationController _animationController;
@@ -27,13 +27,13 @@ class _EventChatScreenState extends State<EventChatScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
     );
     _fadeAnimation =
         CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
     _animationController.forward();
 
-    _socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+    _socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
       'forceNew': true,
@@ -135,12 +135,12 @@ class _EventChatScreenState extends State<EventChatScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text('Chat for ${widget.eventId.substring(0, 8)}...',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Color(0xFF4A90E2),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF4A90E2),
         elevation: 4,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFFF5F7FA), Color(0xFFE0E7FF)],
             begin: Alignment.topCenter,
@@ -153,7 +153,7 @@ class _EventChatScreenState extends State<EventChatScreen>
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: ListView.builder(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final message = _messages[index];
@@ -166,23 +166,23 @@ class _EventChatScreenState extends State<EventChatScreen>
                         timeParts.length > 1 ? timeParts[1].split('.')[0] : '';
 
                     return Padding(
-                      padding: EdgeInsets.only(bottom: 8.0),
+                      padding: const EdgeInsets.only(bottom: 8.0),
                       child: Align(
                         alignment: isSender
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
                         child: Container(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 12.0, vertical: 8.0),
                           constraints: BoxConstraints(
                               maxWidth:
                                   MediaQuery.of(context).size.width * 0.7),
                           decoration: BoxDecoration(
                             color: isSender
-                                ? Color(0xFF4A90E2)
-                                : Color(0xFFEFF2F7),
+                                ? const Color(0xFF4A90E2)
+                                : const Color(0xFFEFF2F7),
                             borderRadius: BorderRadius.circular(12.0),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
                                 blurRadius: 4.0,
@@ -203,7 +203,7 @@ class _EventChatScreenState extends State<EventChatScreen>
                                   fontSize: 16.0,
                                 ),
                               ),
-                              SizedBox(height: 4.0),
+                              const SizedBox(height: 4.0),
                               Text(
                                 time.isNotEmpty ? time : 'N/A',
                                 style: TextStyle(
@@ -223,8 +223,8 @@ class _EventChatScreenState extends State<EventChatScreen>
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-              decoration: BoxDecoration(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
@@ -246,26 +246,26 @@ class _EventChatScreenState extends State<EventChatScreen>
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Color(0xFFF0F2F5),
-                        contentPadding: EdgeInsets.symmetric(
+                        fillColor: const Color(0xFFF0F2F5),
+                        contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16.0, vertical: 8.0),
                       ),
                       onChanged: (text) =>
                           setState(() {}), // Force rebuild on text change
                     ),
                   ),
-                  SizedBox(width: 8.0),
+                  const SizedBox(width: 8.0),
                   FloatingActionButton(
                     mini: true,
                     backgroundColor:
                         _isConnected && _messageController.text.isNotEmpty
-                            ? Color(0xFF4A90E2)
+                            ? const Color(0xFF4A90E2)
                             : Colors.grey,
                     onPressed:
                         _isConnected && _messageController.text.isNotEmpty
                             ? () => sendMessage(_messageController.text)
                             : null,
-                    child: Icon(Icons.send, color: Colors.white),
+                    child: const Icon(Icons.send, color: Colors.white),
                   ),
                 ],
               ),

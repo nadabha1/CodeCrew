@@ -52,7 +52,7 @@ class Place {
     double? averageRating,
   }) {
     return Place(
-      id: this.id, // Keep the same ID
+      id: id, // Keep the same ID
       name: name ??
           this.name, // If a new name is passed, use it; otherwise, keep the current one
       description: description ?? this.description,

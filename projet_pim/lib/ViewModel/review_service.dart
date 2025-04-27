@@ -26,6 +26,16 @@ class ReviewService {
       throw Exception('Network error: Unable to fetch reviews.');
     }
   }
+   Future<List<Review>> getReviewsByUser(String userId) async {
+    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/reviews/user/$userId'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = jsonDecode(response.body);
+      return jsonData.map((data) => Review.fromJson(data)).toList();
+    } else {
+      throw Exception('Erreur lors du chargement des avis');
+    }
+  }
 
   // Add a new review for a place
   Future<bool> addReview(String placeId, Review review) async {
@@ -47,7 +57,7 @@ class ReviewService {
       }
     } catch (e) {
       print("Error in addReview: $e");
-      throw e; // Rethrow to show an error in the UI
+      rethrow; // Rethrow to show an error in the UI
     }
   }
 }

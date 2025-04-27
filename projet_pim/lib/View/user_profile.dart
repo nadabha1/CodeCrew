@@ -28,8 +28,7 @@ class UserProfileScreen extends StatefulWidget {
   final String userId;
   final String token;
 
-  const UserProfileScreen({required this.userId, required this.token, Key? key})
-      : super(key: key);
+  const UserProfileScreen({required this.userId, required this.token, super.key});
 
   @override
   _UserProfileScreenState createState() => _UserProfileScreenState();
@@ -52,17 +51,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       UserService userService = UserService();
       final prefs = await SharedPreferences.getInstance();
-      String? _userId = prefs.getString("user_id");
+      String? userId = prefs.getString("user_id");
 
-      if (_userId == null) return;
+      if (userId == null) return;
 
       // Fetch followers and following lists
-      List<String> followers = await userService.getFollowers(_userId);
-      List<String> following = await userService.getFollowing(_userId);
+      List<String> followers = await userService.getFollowers(userId);
+      List<String> following = await userService.getFollowing(userId);
 
       // Fetch follower and following counts
-      int followersCount = await userService.getFollowersCount(_userId);
-      int followingCount = await userService.getFollowingCount(_userId);
+      int followersCount = await userService.getFollowersCount(userId);
+      int followingCount = await userService.getFollowingCount(userId);
 
       print(
           'Followers count: $followersCount, Following count: $followingCount');
@@ -223,7 +222,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       print("❌ Error parsing location: $e");
     }
     print("⚠️ Invalid location format. Returning default coordinates.");
-    return LatLng(0, 0); // Default value
+    return const LatLng(0, 0); // Default value
   }
 
   Future<String> getLocationName() async {
@@ -412,7 +411,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => FavoritesScreen(),
+                          builder: (context) => const FavoritesScreen(),
                         ),
                       );
                     },
@@ -464,7 +463,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             );
                           },
                         ),
-                        SizedBox(width: 20),
+                        const SizedBox(width: 20),
                         _StatItem(
                           count: userData?['followingCount']?.toString() ?? '0',
                           label: 'following',
@@ -483,7 +482,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             );
                           },
                         ),
-                        SizedBox(width: 20),
+                        const SizedBox(width: 20),
                         _StatItem(
                           count: userData?['likes']?.toString() ?? '0',
                           label: 'Likes',
@@ -685,27 +684,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                     child: ListTile(
                                       contentPadding: EdgeInsets.zero,
-                                      leading: CircleAvatar(
+                                      leading: const CircleAvatar(
                                         radius: 24,
-                                        backgroundColor: const Color.fromARGB(
+                                        backgroundColor: Color.fromARGB(
                                             255, 212, 196, 255),
                                         child: Icon(Icons.event,
                                             color: Colors.white),
                                       ),
                                       title: Text(
                                         event.title,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
                                             color: Colors.white),
                                       ),
                                       subtitle: Text(
                                         event.description,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             color: Colors.white70,
                                             fontSize: 14),
                                       ),
-                                      trailing: Row(
+                                      trailing: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(Icons.arrow_forward_ios,
@@ -757,8 +756,7 @@ class AddressCard extends StatelessWidget {
   final Place place; // Accepting a Place object
   final VoidCallback fetchUser; // Callback to fetch user data
 
-  const AddressCard({required this.place, required this.fetchUser, Key? key})
-      : super(key: key);
+  const AddressCard({required this.place, required this.fetchUser, super.key});
 
   Future<String> getPlaceAddress() async {
     try {
@@ -887,8 +885,8 @@ class _StatItem extends StatelessWidget {
     required this.count,
     required this.label,
     this.onTap,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -921,10 +919,10 @@ class _PublicationCard extends StatelessWidget {
         children: [
           const Icon(Icons.group, size: 40),
           const SizedBox(width: 16),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Peer Group Meetup',
                   style: TextStyle(

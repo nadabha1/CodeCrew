@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import 'SocialInteractionPage.dart';
 
 class EventPreferencePage extends StatefulWidget {
+  const EventPreferencePage({super.key});
+
   @override
   _EventPreferencePageState createState() => _EventPreferencePageState();
 }
 
 class _EventPreferencePageState extends State<EventPreferencePage> {
-  List<String> _selectedEvents = [];
+  final List<String> _selectedEvents = [];
 
   final List<String> _eventTypes = [
     "Concerts",
@@ -26,7 +28,7 @@ class _EventPreferencePageState extends State<EventPreferencePage> {
   void _navigateToNextPage() {
     if (_selectedEvents.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select at least one event type!")),
+        const SnackBar(content: Text("Please select at least one event type!")),
       );
       return;
     }
@@ -47,18 +49,18 @@ class _EventPreferencePageState extends State<EventPreferencePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LinearProgressIndicator(value: 0.75, color: Colors.green),
-            SizedBox(height: 20),
+            const LinearProgressIndicator(value: 0.75, color: Colors.green),
+            const SizedBox(height: 20),
 
             // Title
-            Text(
+            const Text(
               "WHAT KIND OF EVENTS DO YOU LIKE?",
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.orange),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
 
             // Event Preferences (Checkbox List)
             Column(
@@ -80,7 +82,7 @@ class _EventPreferencePageState extends State<EventPreferencePage> {
               }).toList(),
             ),
 
-            Spacer(),
+            const Spacer(),
 
             // Navigation Buttons
             Row(
@@ -90,12 +92,12 @@ class _EventPreferencePageState extends State<EventPreferencePage> {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pink[100]),
-                  child: Text("Previous"),
+                  child: const Text("Previous"),
                 ),
                 ElevatedButton(
                   onPressed: _navigateToNextPage,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                  child: Text("Next"),
+                  child: const Text("Next"),
                 ),
               ],
             ),

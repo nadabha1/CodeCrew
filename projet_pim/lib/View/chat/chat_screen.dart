@@ -14,7 +14,7 @@ class ChatScreen extends StatefulWidget {
   final String token;
   final String userId;
 
-  ChatScreen({
+  const ChatScreen({super.key, 
     required this.conversationId,
     required this.eventProvider,
     required this.token,
@@ -106,10 +106,10 @@ class _ChatScreenState extends State<ChatScreen> {
       future: widget.eventProvider.getEventById(eventId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Text("Chargement...");
+          return const Text("Chargement...");
         }
         if (!snapshot.hasData) {
-          return Text("Événement introuvable");
+          return const Text("Événement introuvable");
         }
 
         final event = snapshot.data!;
@@ -128,15 +128,15 @@ class _ChatScreenState extends State<ChatScreen> {
             );
           },
           child: Card(
-            color: Color(0xFFE6F0FF),
-            margin: EdgeInsets.symmetric(vertical: 6),
+            color: const Color(0xFFE6F0FF),
+            margin: const EdgeInsets.symmetric(vertical: 6),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("📢 *${event.title}*", style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
+                  Text("📢 *${event.title}*", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
                   Text("📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
                   Text("📅 Début : ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
                   Text("🔗 Rejoins : chat/${event.id}"),
@@ -160,7 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
@@ -171,8 +171,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: msg['type'] == 'shared_event'
                       ? _buildSharedEventCard(msg['eventId'])
                       : Container(
-                          margin: EdgeInsets.symmetric(vertical: 6),
-                          padding: EdgeInsets.all(12),
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isMe ? Colors.deepPurple[100] : Colors.grey[300],
                             borderRadius: BorderRadius.circular(10),
@@ -181,8 +181,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(msg['content'] ?? ""),
-                              SizedBox(height: 4),
-                              Text(formatTimestamp(msg['createdAt']), style: TextStyle(fontSize: 10)),
+                              const SizedBox(height: 4),
+                              Text(formatTimestamp(msg['createdAt']), style: const TextStyle(fontSize: 10)),
                             ],
                           ),
                         ),
@@ -190,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          Divider(),
+          const Divider(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
             child: Row(
@@ -209,9 +209,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 IconButton(
-                  icon: Icon(Icons.send, color: Colors.deepPurple),
+                  icon: const Icon(Icons.send, color: Colors.deepPurple),
                   onPressed: () => sendMessage(text: _messageController.text),
                 ),
               ],

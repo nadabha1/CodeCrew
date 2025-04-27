@@ -11,7 +11,7 @@ import 'package:projet_pim/View/EditProfileScreen.dart';
 class SettingsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const SettingsScreen({required this.userData, Key? key}) : super(key: key);
+  const SettingsScreen({required this.userData, super.key});
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -87,17 +87,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool confirmDelete = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Delete Account"),
-        content: Text(
+        title: const Text("Delete Account"),
+        content: const Text(
             "Are you sure you want to delete your account? This action cannot be undone."),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -112,11 +112,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
-                  Text(result['error'], style: TextStyle(color: Colors.red))),
+                  Text(result['error'], style: const TextStyle(color: Colors.red))),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("✅ Account deleted successfully!")),
+          const SnackBar(content: Text("✅ Account deleted successfully!")),
         );
         // ✅ Log out the user and redirect to login page
         final loginViewModel =

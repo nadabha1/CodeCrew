@@ -12,7 +12,7 @@ class MyEventsScreen extends StatefulWidget {
   final String userId;
   final String token;
 
-  const MyEventsScreen({required this.userId, required this.token});
+  const MyEventsScreen({super.key, required this.userId, required this.token});
 
   @override
   State<MyEventsScreen> createState() => _MyEventsScreenState();
@@ -57,9 +57,9 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     int joinPrice = 5;
     String selectedType = _eventTypes.first;
     TextEditingController locationController = TextEditingController();
-    bool _useAutoLocation = false;
+    bool useAutoLocation = false;
 
-    Future<void> _getLocation() async {
+    Future<void> getLocation() async {
       try {
         final pos = await Geolocator.getCurrentPosition();
         final address = await getAddressFromLatLng(pos.latitude, pos.longitude);
@@ -69,12 +69,12 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         });
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur de géolocalisation")),
+          const SnackBar(content: Text("Erreur de géolocalisation")),
         );
       }
     }
 
-    void _openMap() async {
+    void openMap() async {
       final LatLng? selected = await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => SelectLocationScreen()),
@@ -91,28 +91,28 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Créer un événement"),
+        title: const Text("Créer un événement"),
         content: SingleChildScrollView(
           child: Column(
             children: [
               TextField(
-                decoration: InputDecoration(labelText: "Titre"),
+                decoration: const InputDecoration(labelText: "Titre"),
                 onChanged: (v) => title = v,
               ),
               TextField(
-                decoration: InputDecoration(labelText: "Description"),
+                decoration: const InputDecoration(labelText: "Description"),
                 onChanged: (v) => description = v,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Utiliser ma localisation automatique"),
+                  const Text("Utiliser ma localisation automatique"),
                   Switch(
-                    value: _useAutoLocation,
+                    value: useAutoLocation,
                     onChanged: (v) {
                       setState(() {
-                        _useAutoLocation = v;
-                        if (v) _getLocation();
+                        useAutoLocation = v;
+                        if (v) getLocation();
                       });
                     },
                   )
@@ -121,21 +121,21 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
               TextField(
                 controller: locationController,
                 readOnly: true,
-                decoration: InputDecoration(labelText: "Localisation (adresse)"),
+                decoration: const InputDecoration(labelText: "Localisation (adresse)"),
               ),
               ElevatedButton.icon(
-                icon: Icon(Icons.map),
-                label: Text("Choisir sur la carte"),
-                onPressed: _openMap,
+                icon: const Icon(Icons.map),
+                label: const Text("Choisir sur la carte"),
+                onPressed: openMap,
               ),
               TextField(
-                decoration: InputDecoration(labelText: "Prix de participation"),
+                decoration: const InputDecoration(labelText: "Prix de participation"),
                 keyboardType: TextInputType.number,
                 onChanged: (v) => joinPrice = int.tryParse(v) ?? 5,
               ),
               DropdownButtonFormField<String>(
                 value: selectedType,
-                decoration: InputDecoration(labelText: "Type d'événement"),
+                decoration: const InputDecoration(labelText: "Type d'événement"),
                 items: _eventTypes.map((e) => DropdownMenuItem(
                   value: e,
                   child: Text(e),
@@ -160,7 +160,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                     }
                   }
                 },
-                child: Text("Choisir date et heure de début"),
+                child: const Text("Choisir date et heure de début"),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -180,13 +180,13 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                     }
                   }
                 },
-                child: Text("Choisir date et heure de fin"),
+                child: const Text("Choisir date et heure de fin"),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Annuler")),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annuler")),
           TextButton(
             onPressed: () async {
               if (title.isNotEmpty && location.isNotEmpty && startDate != null && endDate != null) {
@@ -203,11 +203,11 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                 Navigator.pop(context);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Remplissez tous les champs.")),
+                  const SnackBar(content: Text("Remplissez tous les champs.")),
                 );
               }
             },
-            child: Text("Créer"),
+            child: const Text("Créer"),
           ),
         ],
       ),
@@ -216,7 +216,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
 
   Widget _buildEventCard(Event event) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 4,
       child: ListTile(
         title: Text(event.title),
@@ -254,19 +254,19 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Mes événements"),
-        backgroundColor: Color(0xFFDBD9FE),
+        title: const Text("Mes événements"),
+        backgroundColor: const Color(0xFFDBD9FE),
       ),
       body: userEvents.isEmpty
-          ? Center(child: Text("Aucun événement pour l’instant."))
+          ? const Center(child: Text("Aucun événement pour l’instant."))
           : ListView.builder(
               itemCount: userEvents.length,
               itemBuilder: (context, index) => _buildEventCard(userEvents[index]),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateEventDialog,
-        backgroundColor: Color(0xFFD4F98F),
-        child: Icon(Icons.add),
+        backgroundColor: const Color(0xFFD4F98F),
+        child: const Icon(Icons.add),
       ),
     );
   }

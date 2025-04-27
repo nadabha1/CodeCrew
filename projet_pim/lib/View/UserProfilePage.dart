@@ -10,7 +10,7 @@ class UserProfilePage extends StatefulWidget {
   final String userId;
   final String token;
 
-  UserProfilePage({required this.userId, required this.token});
+  const UserProfilePage({super.key, required this.userId, required this.token});
 
   @override
   _UserProfilePageState createState() => _UserProfilePageState();
@@ -139,12 +139,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Succès !"),
+          title: const Text("Succès !"),
           content: Text("Vous avez déverrouillé '$placeName' !"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -157,12 +157,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Erreur"),
+          title: const Text("Erreur"),
           content: Text(message),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -175,20 +175,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Confirmation du déverrouillage"),
+          title: const Text("Confirmation du déverrouillage"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Voulez-vous déverrouiller '$placeName' ?"),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text("Prix pour déverrouiller : $placePrice coins"),
             ],
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Annuler"),
+              child: const Text("Annuler"),
             ),
             TextButton(
               onPressed: () async {
@@ -206,7 +206,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   _showErrorDialog(e.toString());
                 }
               },
-              child: Text("Confirmer"),
+              child: const Text("Confirmer"),
             ),
           ],
         );
@@ -217,12 +217,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Profil de l\'Utilisateur')),
+      appBar: AppBar(title: const Text('Profil de l\'Utilisateur')),
       body: FutureBuilder<Map<String, dynamic>>(
         future: user,
         builder: (context, userSnapshot) {
           if (userSnapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (userSnapshot.hasError || !userSnapshot.hasData) {
@@ -246,22 +246,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     backgroundImage: userData['profileImage'] != null &&
                             userData['profileImage'].isNotEmpty
                         ? NetworkImage(userData['profileImage'])
-                        : AssetImage('assets/default_profile.png')
+                        : const AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text(
                   'Nom: ${userData['name'] ?? 'Non spécifié'}',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text('Métier: ${userData['job'] ?? 'Non spécifié'}'),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text('Lieu: ${userData['location'] ?? 'Non spécifié'}'),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text('Bio: ${userData['bio'] ?? 'Non spécifié'}'),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: toggleFollow,
                   style: ElevatedButton.styleFrom(
@@ -271,7 +271,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ),
                   child: Text(isFollowing ? "Unfollow" : "Follow"),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -279,36 +279,36 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       count: travelerData?['followersCount']?.toString() ?? '0',
                       label: 'Followers',
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     _StatItem(
                       count: travelerData?['followingCount']?.toString() ?? '0',
                       label: 'Following',
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     _StatItem(
                       count: travelerData?['likes']?.toString() ?? '0',
                       label: 'Likes',
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text(
                   'Carnets de ${userData['name'] ?? 'cet utilisateur'}',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 FutureBuilder<List<Carnet>>(
                   future: userCarnet,
                   builder: (context, carnetSnapshot) {
                     if (carnetSnapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (carnetSnapshot.hasError ||
                         !carnetSnapshot.hasData ||
                         carnetSnapshot.data!.isEmpty) {
-                      return Padding(
+                      return const Padding(
                         padding: EdgeInsets.all(8.0),
                         child: Text(
                           'Cet utilisateur n\'a pas de carnet.',
@@ -321,11 +321,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     return Column(
                       children: carnets.map((carnet) {
                         return Card(
-                          margin: EdgeInsets.symmetric(vertical: 10),
+                          margin: const EdgeInsets.symmetric(vertical: 10),
                           child: ExpansionTile(
                             title: Text(
                               carnet.title,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             children: carnet.places.map((place) {
@@ -397,8 +397,8 @@ class _StatItem extends StatelessWidget {
     return Column(
       children: [
         Text(count,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-        Text(label, style: TextStyle(color: Colors.black54)),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        Text(label, style: const TextStyle(color: Colors.black54)),
       ],
     );
   }

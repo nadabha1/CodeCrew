@@ -36,7 +36,7 @@ class User {
 
   // Factory method to create a User instance from JSON
   factory User.fromJson(Map<String, dynamic> json) {
-    LatLng parsedLocation = LatLng(0, 0); // Valeur par défaut
+    LatLng parsedLocation = const LatLng(0, 0); // Valeur par défaut
 
     if (json['location'] != null) {
       if (json['location'] is String) {

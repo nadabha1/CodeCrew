@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 class ForgotPasswordScreen extends StatelessWidget {
   final _emailController = TextEditingController();
 
+  ForgotPasswordScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final forgotPasswordProvider = Provider.of<AuthProvider>(context);

@@ -20,7 +20,7 @@ class CalendarService {
 
     // Définir la période de récupération
     var now = DateTime.now();
-    var nextWeek = now.add(Duration(days: 7));
+    var nextWeek = now.add(const Duration(days: 7));
 
     // Récupérer les événements
     var eventsResult = await _calendarPlugin.retrieveEvents(

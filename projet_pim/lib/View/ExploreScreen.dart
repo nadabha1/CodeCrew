@@ -13,7 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({Key? key, required this.userId}) : super(key: key);
+  const ExploreScreen({super.key, required this.userId});
 
   final String userId;
 
@@ -24,9 +24,9 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   loc.LocationData? _currentLocation; // Current user location
   List<Marker> _markers = []; // List to hold markers for the map
-  TextEditingController _searchController =
+  final TextEditingController _searchController =
       TextEditingController(); // Controller for the search bar
-  LatLng _searchLocation = LatLng(36.8065, 10.1815); // Default to Tunis
+  LatLng _searchLocation = const LatLng(36.8065, 10.1815); // Default to Tunis
   String? _userId;
   String? _token;
   bool _isLoading = true; // To prevent null errors before loading session
@@ -95,11 +95,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (locations.isNotEmpty) {
         return LatLng(locations.first.latitude, locations.first.longitude);
       } else {
-        return LatLng(36.8065, 10.1815); // Default to Tunis if no result
+        return const LatLng(36.8065, 10.1815); // Default to Tunis if no result
       }
     } catch (e) {
       print('Error getting coordinates: $e');
-      return LatLng(36.8065, 10.1815); // Default to Tunis if error
+      return const LatLng(36.8065, 10.1815); // Default to Tunis if error
     }
   }
 
@@ -161,7 +161,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         usersAtLocation[i]['profileImage'] != null &&
                                 usersAtLocation[i]['profileImage'].isNotEmpty
                             ? NetworkImage(usersAtLocation[i]['profileImage'])
-                            : AssetImage('assets/default_profile.png')
+                            : const AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                     backgroundColor: Colors.transparent,
                   ),
@@ -170,14 +170,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
                           color: Colors.red,
                           shape: BoxShape.circle,
                         ),
                         child: Text(
                           usersAtLocation.length.toString(),
-                          style: TextStyle(
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold),
@@ -198,25 +198,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void _showUserListBottomSheet(List<Map<String, dynamic>> users) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext context) {
         return Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           height: MediaQuery.of(context).size.height * 0.5, // Ajuste la hauteur
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Utilisateurs à cet emplacement',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Expanded(
                 child: ListView.separated(
                   itemCount: users.length,
-                  separatorBuilder: (context, index) => Divider(),
+                  separatorBuilder: (context, index) => const Divider(),
                   itemBuilder: (context, index) {
                     final user = users[index];
                     return ListTile(
@@ -224,24 +224,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         backgroundImage: user['profileImage'] != null &&
                                 user['profileImage'].isNotEmpty
                             ? NetworkImage(user['profileImage'])
-                            : AssetImage('assets/default_profile.png')
+                            : const AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                       ),
                       title: Text(
                         user['name'] ?? 'Utilisateur inconnu',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(user['job'] ?? 'Métier inconnu'),
                       trailing: user['likes'] != null
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.favorite,
+                                const Icon(Icons.favorite,
                                     color: Colors.red, size: 18),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text('${user['likes']}',
                                     style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
+                                        const TextStyle(fontWeight: FontWeight.bold)),
                               ],
                             )
                           : null,
@@ -299,7 +299,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     // Show loading screen while the session is being loaded
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -316,9 +316,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 labelText: 'Rechercher un lieu',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
+                  icon: const Icon(Icons.search),
                   onPressed: () {
                     // Call the search function when search button is pressed
                     _searchLocationByName(_searchController.text);
@@ -328,7 +328,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           _currentLocation == null
-              ? Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator())
               : Consumer<UserProvider>(
                   builder: (context, userProvider, child) {
                     // Fetch users if not already loaded
@@ -345,7 +345,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
+                          return const Center(child: CircularProgressIndicator());
                         }
 
                         if (snapshot.hasError) {
@@ -354,7 +354,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         }
 
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return Center(child: Text("No users found"));
+                          return const Center(child: Text("No users found"));
                         }
 
                         _markers = snapshot.data!;
@@ -370,7 +370,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               TileLayer(
                                 urlTemplate:
                                     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                subdomains: ['a', 'b', 'c'],
+                                subdomains: const ['a', 'b', 'c'],
                               ),
                               MarkerLayer(
                                 markers: _markers,

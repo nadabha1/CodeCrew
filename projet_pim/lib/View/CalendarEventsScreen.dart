@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarEventsScreen extends StatefulWidget {
+  const CalendarEventsScreen({super.key});
+
   @override
   _CalendarEventsScreenState createState() => _CalendarEventsScreenState();
 }
@@ -34,16 +36,16 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? _userId = prefs.getString("user_id");
-    String? _token = prefs.getString("jwt_token");
+    String? userId = prefs.getString("user_id");
+    String? token = prefs.getString("jwt_token");
 
-    if (_userId != null && _token != null && _isValidUserId(_userId)) {
+    if (userId != null && token != null && _isValidUserId(userId)) {
       setState(() {
-        userId = _userId;
-        token = _token;
+        userId = userId;
+        token = token;
         isLoading = false;
       });
-      _eventProvider = EventProvider(userId: _userId);
+      _eventProvider = EventProvider(userId: userId!);
       _requestPermission();
       await _fetchNonConflictingEvents();
     } else {
@@ -86,7 +88,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
       if (calendarsResult.isSuccess && calendarsResult.data != null) {
         var calendar = calendarsResult.data!.first;
         var startDate = DateTime.now();
-        var endDate = startDate.add(Duration(days: 30));
+        var endDate = startDate.add(const Duration(days: 30));
 
         var eventsResult = await _deviceCalendarPlugin.retrieveEvents(
           calendar.id,
@@ -140,7 +142,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
   List<Map<String, String>> _getFreeSlots(List<DeviceCalendar.Event> events) {
     List<Map<String, String>> freeSlots = [];
     DateTime startOfDay = DateTime.now();
-    DateTime endOfDay = DateTime.now().add(Duration(days: 30));
+    DateTime endOfDay = DateTime.now().add(const Duration(days: 30));
     _freeSlots = _calendarService.getFreeSlots(_events);
 
     if (events.isNotEmpty) {
@@ -209,13 +211,13 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('     📅 Votre calendrier de la semaine ',
+        const Text('     📅 Votre calendrier de la semaine ',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         Container(
           height: 150, // Ajustez la hauteur en fonction de votre besoin
           width: double.infinity,
           padding:
-              EdgeInsets.all(10), // Ajoutez un padding autour du calendrier
+              const EdgeInsets.all(10), // Ajoutez un padding autour du calendrier
           child: TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
@@ -252,14 +254,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.red, // Point rouge
                         shape: BoxShape.circle,
                       ),
                     ),
                   );
                 }
-                return SizedBox.shrink();
+                return const SizedBox.shrink();
               },
             ),
           ),
@@ -286,7 +288,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         builder: (BuildContext context) {
           return Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Container(
+            child: SizedBox(
               height:
                   120, // Hauteur personnalisée du BottomSheet, ajustez selon vos besoins
               child: ListView.builder(
@@ -301,12 +303,12 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
                           // Titre de l'événement avec un style plus attractif
                           Text(
                             event.title ?? 'Sans titre',
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF4A90E2)),
+                                color: Color(0xFF4A90E2)),
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
 
                           // Affichage de la date et heure de l'événement avec un formatage amélioré
                           Text(
@@ -325,35 +327,35 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
                               color: Colors.grey[700],
                             ),
                           ),
-                          SizedBox(height: 15),
+                          const SizedBox(height: 15),
 
                           // Affichage de la localisation si elle est disponible
                           event.location != null
                               ? Row(
                                   children: [
-                                    Icon(Icons.location_on, color: Colors.red),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.location_on, color: Colors.red),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         event.location!,
-                                        style: TextStyle(fontSize: 16),
+                                        style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
                                   ],
                                 )
-                              : SizedBox.shrink(),
+                              : const SizedBox.shrink(),
 
-                          SizedBox(height: 15),
+                          const SizedBox(height: 15),
 
                           // Affichage de la description de l'événement si elle est disponible
                           event.description != null
                               ? Text(
                                   event.description!,
-                                  style: TextStyle(fontSize: 16, height: 1.5),
+                                  style: const TextStyle(fontSize: 16, height: 1.5),
                                 )
-                              : SizedBox.shrink(),
+                              : const SizedBox.shrink(),
 
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
@@ -373,9 +375,9 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         builder: (BuildContext context) {
           return Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Container(
+            child: SizedBox(
               height: 150, // Hauteur personnalisée pour ce BottomSheet
-              child: Center(
+              child: const Center(
                 child: Text(
                   'Aucun événement pour cette journée.',
                   textAlign: TextAlign.center, // Centrer le texte
@@ -396,13 +398,13 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('🕒 Créneaux libres',
+        const Text('🕒 Créneaux libres',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         if (_freeSlots.isEmpty)
-          Text("Aucun créneau disponible")
+          const Text("Aucun créneau disponible")
         else
           ..._freeSlots.map((slot) => ListTile(
-                leading: Icon(Icons.schedule),
+                leading: const Icon(Icons.schedule),
                 title: Text(
                     formatter.format(DateTime.parse(slot['start']!).toLocal())),
                 subtitle: Text(
@@ -419,10 +421,10 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
         if (_nonConflictingEvents.isNotEmpty)
           Text(
               generateFreeSlotMessage(_freeSlots, _nonConflictingEvents.length),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        SizedBox(height: 10),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
         if (_nonConflictingEvents.isEmpty)
-          Text("Aucun événement proposé pendant vos créneaux disponibles.")
+          const Text("Aucun événement proposé pendant vos créneaux disponibles.")
         else
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -437,14 +439,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
 
   Widget _buildEventCard(CustomEvent.Event event) {
     return Padding(
-      padding: EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.only(right: 10),
       child: Card(
         elevation: 8,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         child: Container(
           width: 280,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -452,27 +454,27 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
             borderRadius: BorderRadius.circular(15),
           ),
           child: Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(event.title ?? 'Sans titre',
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.white)),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(event.description ?? 'Aucune description disponible',
-                    style: TextStyle(fontSize: 14, color: Colors.white70)),
-                SizedBox(height: 12),
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, color: Colors.white70, size: 16),
-                    SizedBox(width: 5),
+                    const Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                    const SizedBox(width: 5),
                     Text(
                       formatter
-                          .format(event.startDate?.toLocal() ?? DateTime.now()),
-                      style: TextStyle(color: Colors.white70),
+                          .format(event.startDate.toLocal() ?? DateTime.now()),
+                      style: const TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -495,25 +497,25 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Calendar Events'),
+        title: const Text('Calendar Events'),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: _refreshData,
           ),
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDeviceEventsList(),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   // _buildFreeSlotsList(),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   _buildNonConflictingEventList(),
                 ],
               ),

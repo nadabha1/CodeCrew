@@ -5,7 +5,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onItemTapped;
   final int unreadNotifications; // 🛑 Compteur dynamique de notifications
 
-  CustomBottomNavigationBar({
+  const CustomBottomNavigationBar({super.key, 
     required this.selectedIndex,
     required this.onItemTapped,
     required this.unreadNotifications, // 🛑 Reçoit le compteur en paramètre

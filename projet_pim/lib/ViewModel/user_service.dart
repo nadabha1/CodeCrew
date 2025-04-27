@@ -345,7 +345,7 @@ class UserService {
       Navigator.pop(context, json.decode(response.body));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text("Erreur lors de la création de la conversation")),
       );
     }

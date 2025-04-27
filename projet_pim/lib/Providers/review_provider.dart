@@ -39,7 +39,7 @@ class ReviewProvider with ChangeNotifier {
     } catch (e) {
       print("Error in addReview: $e");
       // Relance l’erreur pour qu’elle soit captée dans le `onSubmit`
-      throw e;
+      rethrow;
     }
   }
 }

@@ -30,7 +30,7 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json, String userId) {
-    LatLng parsedLocation = LatLng(0, 0);
+    LatLng parsedLocation = const LatLng(0, 0);
 
     if (json['location'] != null) {
       if (json['location'] is String) {

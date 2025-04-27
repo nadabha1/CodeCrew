@@ -20,8 +20,7 @@ class HomeScreen extends StatefulWidget {
   final String userId;
   final String token;
 
-  const HomeScreen({required this.userId, required this.token, Key? key})
-      : super(key: key);
+  const HomeScreen({required this.userId, required this.token, super.key});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -38,10 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoadingUsers = true;
   String? _userId;
   String? _token;
-  List<String> _selectedCategories = [];
+  final List<String> _selectedCategories = [];
   bool isShowingFallbackUsers = false;
 
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, dynamic>> categories = [
     {'icon': Icons.restaurant, 'name': 'Food', 'color': Colors.red},
@@ -72,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
-          DrawerHeader(
+          const DrawerHeader(
             decoration: BoxDecoration(
               color: Color(0xFFDBD9FE),
             ),
@@ -90,8 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('Mes evenements'),
+            leading: const Icon(Icons.person),
+            title: const Text('Mes evenements'),
              onTap: () {
               Navigator.push(
                   context,
@@ -102,8 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.chat),
-            title: Text('Events'),
+            leading: const Icon(Icons.chat),
+            title: const Text('Events'),
             onTap: () {
               Navigator.push(
                   context,
@@ -113,8 +112,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.calendar_month),
-            title: Text('Recommandations'),
+            leading: const Icon(Icons.calendar_month),
+            title: const Text('Recommandations'),
             onTap: () {
               Navigator.push(
                 context,
@@ -123,8 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.flight_takeoff),
-            title: Text('Plan Your Trip'),
+            leading: const Icon(Icons.flight_takeoff),
+            title: const Text('Plan Your Trip'),
             onTap: () {
               Navigator.push(
                 context,
@@ -135,8 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.cloud),
-            title: Text('Météo'),
+            leading: const Icon(Icons.cloud),
+            title: const Text('Météo'),
             onTap: () {
               Navigator.push(
                 context,
@@ -147,8 +146,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.logout),
-            title: Text('Déconnexion'),
+            leading: const Icon(Icons.logout),
+            title: const Text('Déconnexion'),
             onTap: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
@@ -306,7 +305,7 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
       print("❌ Error parsing location: $e");
     }
     print("⚠️ Invalid location format. Returning default coordinates.");
-    return LatLng(0, 0); // Default value
+    return const LatLng(0, 0); // Default value
   }
 
   Widget _buildUserCard(dynamic user) {
@@ -315,7 +314,7 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
       future: _getLocationName(user), // Appeler ta logique asynchrone ici
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator(); // Affiche un indicateur de chargement pendant l'attente
+          return const CircularProgressIndicator(); // Affiche un indicateur de chargement pendant l'attente
         }
 
         if (snapshot.hasError) {
@@ -340,9 +339,9 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 5,
-            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Padding(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -350,35 +349,35 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
                     backgroundImage: user['profileImageUrl'] != null &&
                             user['profileImageUrl'].isNotEmpty
                         ? NetworkImage(user['profileImageUrl'])
-                        : AssetImage('assets/default_profile.png')
+                        : const AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(user['name'],
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(locationName, // Afficher la localisation récupérée
                             style: TextStyle(color: Colors.grey[600])),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Wrap(
                           spacing: 6,
                           children: (user['tags'] ?? []).map<Widget>((tag) {
                             return Chip(
                               label: Text(tag),
-                              backgroundColor: Color(0xFFE5E5F7),
-                              labelStyle: TextStyle(fontSize: 12),
+                              backgroundColor: const Color(0xFFE5E5F7),
+                              labelStyle: const TextStyle(fontSize: 12),
                             );
                           }).toList(),
                         ),
                         Row(
                           children: [
-                            Icon(Icons.star, color: Colors.orange, size: 16),
-                            SizedBox(width: 4),
+                            const Icon(Icons.star, color: Colors.orange, size: 16),
+                            const SizedBox(width: 4),
                             Text(
                                 '${user['rating'] ?? 0} (${user['reviewsCount'] ?? 0} avis)'),
                           ],
@@ -434,11 +433,11 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
 
     return Scaffold(
       key: _scaffoldKey, // Ajout ici
-      backgroundColor: Color(0xFFF7F4FC),
+      backgroundColor: const Color(0xFFF7F4FC),
       drawer: _buildDrawer(), // Ajout ici
       body: SafeArea(
         child: eventProvider.isLoading || isLoadingUsers
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,7 +450,7 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
                         onSubmitted: onSearch,
                         decoration: InputDecoration(
                           hintText: 'Rechercher un utilisateur...',
-                          prefixIcon: Icon(Icons.search),
+                          prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(
@@ -516,8 +515,8 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
                               _applySmartFilter();
                             });
                           },
-                          icon: Icon(Icons.refresh, color: Colors.black87),
-                          label: Text("Réinitialiser les filtres",
+                          icon: const Icon(Icons.refresh, color: Colors.black87),
+                          label: const Text("Réinitialiser les filtres",
                               style: TextStyle(color: Colors.black87)),
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.grey[200],
@@ -535,8 +534,8 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
                               fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
                     users.isEmpty && !isLoadingUsers
-    ? Padding(
-        padding: const EdgeInsets.all(20.0),
+    ? const Padding(
+        padding: EdgeInsets.all(20.0),
         child: Center(
           child: Text(
             "Aucun utilisateur trouvé.",
@@ -560,8 +559,8 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
         color: Color(0xFFDBD9FE),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
@@ -575,7 +574,7 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: Icon(Icons.menu, color: Colors.white, size: 28),
+                icon: const Icon(Icons.menu, color: Colors.white, size: 28),
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
               Row(
@@ -615,7 +614,7 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
                                 bottom: 15,
                                 child: Text(
                                   "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white),
@@ -623,7 +622,7 @@ print("🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategor
                               ),
                             ],
                           )
-                        : Text("N/A °C",
+                        : const Text("N/A °C",
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

@@ -13,7 +13,7 @@ import 'dart:io' show Platform;
 class Details extends StatefulWidget {
   final Place place;
 
-  const Details({required this.place, Key? key}) : super(key: key);
+  const Details({required this.place, super.key});
 
   @override
   _DetailsState createState() => _DetailsState();
@@ -67,7 +67,7 @@ class _DetailsState extends State<Details> {
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString("jwt_token");
 
-    if (userId == null || token == null) {
+    if (token == null) {
       throw 'No userId or token found';
     }
 
@@ -144,8 +144,7 @@ class _DetailsState extends State<Details> {
                 ),
               ],
             ),
-            if (widget.place.categories != null &&
-                widget.place.categories.isNotEmpty)
+            if (widget.place.categories.isNotEmpty)
               Wrap(
                 spacing: 8.0,
                 children: widget.place.categories.map((category) {
@@ -170,7 +169,7 @@ class _DetailsState extends State<Details> {
               height: 250,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 10,
@@ -187,7 +186,7 @@ class _DetailsState extends State<Details> {
                   TileLayer(
                     urlTemplate:
                         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    subdomains: ['a', 'b', 'c'],
+                    subdomains: const ['a', 'b', 'c'],
                   ),
                   MarkerLayer(
                     markers: [

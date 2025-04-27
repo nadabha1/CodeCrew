@@ -13,7 +13,7 @@ class GroupChatScreen extends StatefulWidget {
   final EventProvider eventProvider;
 
 
-  const GroupChatScreen({
+  const GroupChatScreen({super.key, 
     required this.conversationId,
     required this.groupName,
       required this.eventProvider,
@@ -41,7 +41,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+    socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });
@@ -137,7 +137,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         backgroundColor: Colors.blue,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/whatsapp.jpeg'),
             fit: BoxFit.cover,
@@ -164,9 +164,9 @@ if (message['type'] == 'shared_event') {
     future: widget.eventProvider.getEventById(message['event']),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
-        return Center(child: CircularProgressIndicator());
+        return const Center(child: CircularProgressIndicator());
       }
-      if (!snapshot.hasData) return Text("Événement introuvable");
+      if (!snapshot.hasData) return const Text("Événement introuvable");
 
       return EventCardMessage(
         event: snapshot.data!,
@@ -182,8 +182,8 @@ if (message['type'] == 'shared_event') {
                     alignment:
                         isMe ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
-                      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      padding: EdgeInsets.all(8),
+                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      padding: const EdgeInsets.all(8),
                       constraints: BoxConstraints(
                           maxWidth: MediaQuery.of(context).size.width * 0.7),
                       decoration: BoxDecoration(
@@ -213,7 +213,7 @@ if (message['type'] == 'shared_event') {
                             ),
                           Text(
                             message['content'],
-                            style: TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.black),
                           ),
                         ],
                       ),
@@ -241,11 +241,11 @@ if (message['type'] == 'shared_event') {
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   FloatingActionButton(
                     onPressed: sendMessage,
                     backgroundColor: Colors.orangeAccent,
-                    child: Icon(Icons.send, color: Colors.white),
+                    child: const Icon(Icons.send, color: Colors.white),
                   ),
                 ],
               ),

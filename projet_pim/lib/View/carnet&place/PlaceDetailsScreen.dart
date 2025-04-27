@@ -14,7 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 class PlaceDetailsScreen extends StatefulWidget {
   final Place place;
 
-  const PlaceDetailsScreen({required this.place, Key? key}) : super(key: key);
+  const PlaceDetailsScreen({required this.place, super.key});
 
   @override
   _PlaceDetailsScreenState createState() => _PlaceDetailsScreenState();
@@ -60,7 +60,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
     if (token == null || userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Connectez-vous pour gérer les favoris.")),
+        const SnackBar(content: Text("Connectez-vous pour gérer les favoris.")),
       );
       return;
     }
@@ -71,12 +71,12 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
             .removePlaceFromFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Retiré des favoris")));
+            .showSnackBar(const SnackBar(content: Text("Retiré des favoris")));
       } else {
         await UserService().addPlaceToFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = true);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Ajouté aux favoris !")));
+            .showSnackBar(const SnackBar(content: Text("Ajouté aux favoris !")));
       }
     } catch (e) {
       print("Erreur favoris: $e");
@@ -112,7 +112,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(content: Text('Ajout de l’avis...')),
+        builder: (context) => const AlertDialog(content: Text('Ajout de l’avis...')),
       );
 
       await _reviewService.addReview(widget.place.id, review);
@@ -122,11 +122,11 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Succès'),
-          content: Text('Avis ajouté avec succès !'),
+          title: const Text('Succès'),
+          content: const Text('Avis ajouté avec succès !'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context), child: Text('OK'))
+                onPressed: () => Navigator.pop(context), child: const Text('OK'))
           ],
         ),
       );
@@ -135,11 +135,11 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Erreur'),
-          content: Text('Vous avez déjà ajouté un avis.'),
+          title: const Text('Erreur'),
+          content: const Text('Vous avez déjà ajouté un avis.'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context), child: Text('OK'))
+                onPressed: () => Navigator.pop(context), child: const Text('OK'))
           ],
         ),
       );
@@ -163,7 +163,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -175,7 +175,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   itemCount: widget.place.images.length,
                   itemBuilder: (context, index) {
                     return Padding(
-                      padding: EdgeInsets.only(right: 10),
+                      padding: const EdgeInsets.only(right: 10),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.network(
@@ -195,13 +195,13 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 child:
                     Center(child: Icon(Icons.photo, color: Colors.grey[500])),
               ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             Text(widget.place.name,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             Text(widget.place.description,
-                style: TextStyle(fontSize: 16, color: Colors.black54)),
-            SizedBox(height: 20),
+                style: const TextStyle(fontSize: 16, color: Colors.black54)),
+            const SizedBox(height: 20),
             Container(
               height: 250,
               decoration:
@@ -216,7 +216,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   TileLayer(
                       urlTemplate:
                           "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: ['a', 'b', 'c']),
+                      subdomains: const ['a', 'b', 'c']),
                   MarkerLayer(
                     markers: [
                       Marker(
@@ -224,7 +224,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                             widget.place.longitude ?? 0.0),
                         width: 40,
                         height: 40,
-                        child: Icon(Icons.location_on,
+                        child: const Icon(Icons.location_on,
                             color: Colors.red, size: 40),
                       )
                     ],
@@ -232,7 +232,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 if (widget.place.latitude != null &&
@@ -241,9 +241,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       widget.place.latitude!, widget.place.longitude!);
                 }
               },
-              child: Text("Ouvrir dans Google Maps"),
+              child: const Text("Ouvrir dans Google Maps"),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Toggle reviews section with a smoother transition
             Row(
               children: [
@@ -381,7 +381,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Avis déjà ajouté'),
-                      content: Text(
+                      content: const Text(
                           'Vous avez déjà ajouté un avis pour ce lieu. Vous ne pouvez pas en ajouter un autre.'),
                       actions: [
                         TextButton(
