@@ -42,8 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool showMatches = false; // false = show People, true = show Matches
   List<dynamic> matches = [];
   bool isLoadingMatches = true; // par défaut en cours de chargement
-  
-
 
   TextEditingController _searchController = TextEditingController();
 
@@ -69,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
     _loadWeather();
-    _preloadMatches(); 
+    _preloadMatches();
   }
 
   Widget _buildDrawer() {
@@ -123,7 +121,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => CalendarEventsScreen()),
+                MaterialPageRoute(
+                    builder: (context) => CalendarEventsScreen(
+                        userId: widget.userId, token: _token!)),
               );
             },
           ),
@@ -166,31 +166,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
- Future<List<dynamic>> _fetchMatches() async {
-  try {
-    final userService = UserService();
-    final matches = await userService.matchUser(widget.userId);
-    return matches ?? []; // 👈 return the list
-  } catch (e) {
-    print('Error fetching matches: $e');
-    return [];
+  Future<List<dynamic>> _fetchMatches() async {
+    try {
+      final userService = UserService();
+      final matches = await userService.matchUser(widget.userId);
+      return matches ?? []; // 👈 return the list
+    } catch (e) {
+      print('Error fetching matches: $e');
+      return [];
+    }
   }
- }
 
-   Future<void> _preloadMatches() async {
-  try {
-    final fetchedMatches = await _fetchMatches();
-    matches = fetchedMatches;
-  } catch (e) {
-    print('Erreur lors du chargement des matches: $e');
-  } finally {
-    setState(() {
-      isLoadingMatches = false;
-    });
+  Future<void> _preloadMatches() async {
+    try {
+      final fetchedMatches = await _fetchMatches();
+      matches = fetchedMatches;
+    } catch (e) {
+      print('Erreur lors du chargement des matches: $e');
+    } finally {
+      setState(() {
+        isLoadingMatches = false;
+      });
+    }
   }
-}
-
-
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -199,14 +197,14 @@ class _HomeScreenState extends State<HomeScreen> {
     provider = Provider.of<CarnetProvider>(context, listen: false);
     eventProvider = Provider.of<EventProvider>(context, listen: false);
     await Future.wait([
-    provider!.fetchCarnetsExcludingUser(widget.userId),
-    provider!.fetchUnlockedPlaces(widget.userId),
-    eventProvider!.fetchAllEvents(),
-    eventProvider!.fetchSpecificEvents(widget.userId),
-    fetchUsers(),
-    //_fetchMatches(),
-    _preloadMatches(),]);
-
+      provider!.fetchCarnetsExcludingUser(widget.userId),
+      provider!.fetchUnlockedPlaces(widget.userId),
+      eventProvider!.fetchAllEvents(),
+      eventProvider!.fetchSpecificEvents(widget.userId),
+      fetchUsers(),
+      //_fetchMatches(),
+      _preloadMatches(),
+    ]);
   }
 
   void _loadWeather() async {
@@ -587,8 +585,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    showMatches = true;
-                                   
+                                    showMatches = false;
                                   });
                                 },
                                 child: Container(
@@ -618,7 +615,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onTap: () {
                                   setState(() {
                                     showMatches = true;
-                                   
                                   });
                                 },
                                 child: Container(
@@ -648,40 +644,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     if (showMatches)
-  isLoadingMatches
-      ? Center(child: CircularProgressIndicator())
-      : matches.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Center(
-                child: Text(
-                  "Aucun match trouvé.",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            )
-          : ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: matches.length,
-              itemBuilder: (context, index) {
-                final match = matches[index];
-                return Card(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 5,
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: AssetImage('assets/default_profile.png'),
-                    ),
-                    title: Text(match['name']),
-                    subtitle: Text('Score: ${match['score'].toStringAsFixed(2)} ⭐'),
-                  ),
-                );
-              },
-            )
-
+                      isLoadingMatches
+                          ? Center(child: CircularProgressIndicator())
+                          : matches.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Center(
+                                    child: Text(
+                                      "Aucun match trouvé.",
+                                      style: TextStyle(
+                                          fontSize: 16, color: Colors.grey),
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: matches.length,
+                                  itemBuilder: (context, index) {
+                                    final match = matches[index];
+                                    return Card(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16)),
+                                      elevation: 5,
+                                      margin: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 10),
+                                      child: ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundImage: AssetImage(
+                                              'assets/default_profile.png'),
+                                        ),
+                                        title: Text(match['name']),
+                                        subtitle: Text(
+                                            'Score: ${match['score'].toStringAsFixed(2)} ⭐'),
+                                      ),
+                                    );
+                                  },
+                                )
                     else
                       users.isEmpty && !isLoadingUsers
                           ? Padding(
