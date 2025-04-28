@@ -1,8 +1,7 @@
-/*import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class TripCalendarScreen extends StatefulWidget {
   final List<Map<String, dynamic>> itinerary;
@@ -334,4 +333,4 @@ class _LegendBadge extends StatelessWidget {
       ],
     );
   }
-}*/
+}

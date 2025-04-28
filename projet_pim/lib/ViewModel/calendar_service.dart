@@ -141,7 +141,7 @@ class CalendarService {
     }
   }
 
-    Future<void> sendUserAvailabilityToBackend(
+  Future<void> sendUserAvailabilityToBackend(
       String userId, String token, List<Map<String, String>> slots) async {
     final url = Uri.parse('${ApiConstants.baseUrl}/calendar/save-availability');
     final response = await http.post(

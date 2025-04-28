@@ -10,11 +10,11 @@ import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // Import the intl package for date formatting
+import 'package:intl/intl.dart';
 
 class NotificationScreen extends StatefulWidget {
   final String userId;
-  const NotificationScreen({super.key, required this.userId});
+  NotificationScreen({required this.userId});
 
   @override
   _NotificationScreenState createState() => _NotificationScreenState();
@@ -28,13 +28,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
   String? _userId;
   String? _token;
 
-  // 🟢 Icons for each notification type
   final Map<String, IconData> notificationIcons = {
     'FOLLOW': Icons.person_add,
     'NEW_EVENT_All': Icons.event,
     'COMMENT': Icons.comment,
     'LIKE': Icons.thumb_up,
     'MESSAGE': Icons.message,
+    'NEW_Event': Icons.calendar_today, // 🛠 Add this for trip reminder
   };
 
   @override
@@ -82,71 +82,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _handleNotificationTap(
       String notificationId, Map<String, dynamic> notification) async {
     try {
-      print("🟢 Notification ID: $notificationId");
-      print("🟢 Notification Type: ${notification['type']}");
       await _notificationService.markAsRead(notificationId);
 
-      if (notification['type'].trim() == 'NEW_EVENT_All') {
+      if (notification['type'] == 'NEW_EVENT_All') {
         final eventId = notification['data']?['eventId'] ?? '';
-        print("🟢 Event ID found: $eventId");
-
         if (eventId.isNotEmpty) {
           final event = await _fetchEventDetails(eventId);
           final isJoined = await _isUserJoined(eventId);
 
-          print("🟢 User has joined: $isJoined");
-
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              title: Text("New Event: ${event.title}"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(event.description),
-                  const SizedBox(height: 10),
-                  Text("Location: ${event.location}"),
-                  Text("Date: ${event.startDate.toLocal()}".split(' ')[0]),
-                ],
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EventDetailsScreen(
+                event: event,
+                userId: _userId!,
+                token: _token!,
+                eventProvider: _eventProvider,
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Close"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    if (!isJoined) {
-                      _showJoinConfirmationDialog(event);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EventDetailsScreen(
-                            event: event,
-                            userId: _userId!,
-                            token: _token!,
-                            eventProvider: _eventProvider,
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: Text(isJoined
-                      ? "See more"
-                      : "Join - ${event.joinPrice} Coins"),
-                ),
-              ],
             ),
           );
         }
       } else if (notification['type'] == 'FOLLOW') {
         final followerId = notification['data']?['followerId'] ?? '';
-        print("🟢 Follower ID: $followerId");
-
         if (followerId.isNotEmpty) {
           Navigator.push(
             context,
@@ -154,13 +111,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
               builder: (context) => TravelerProfileScreen(
                 travelerId: followerId,
                 loggedInUserId: widget.userId,
-                token: '$_token',
+                token: _token!,
               ),
             ),
           );
         }
-      }
-      if (notification['type'] == 'MESSAGE') {
+      } else if (notification['type'] == 'MESSAGE') {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -173,44 +129,37 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         );
       } else if (notification['type'] == 'NEW_Event') {
-        final eventId = notification['data']?['eventId'] ?? '';
-        print("🟢 Event ID received: $eventId");
+        // 🟢 Trip reminder notification clicked
+        final tripId = notification['data']?['tripId'] ?? '';
+        final destination = notification['message']
+            .toString()
+            .split('to ')
+            .last
+            .split(' starts')
+            .first;
 
-        if (eventId.isNotEmpty) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FutureBuilder<Event>(
-                future: _fetchEventDetails(eventId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
-                    );
-                  } else if (snapshot.hasError) {
-                    print("🔴 Error fetching event: ${snapshot.error}");
-                    return const Scaffold(
-                      body: Center(child: Text("Error loading event")),
-                    );
-                  } else if (snapshot.hasData) {
-                    return EventDetailsScreen(
-                      event: snapshot.data!,
-                      userId: _userId!,
-                      token: _token!,
-                      eventProvider: _eventProvider,
-                    );
-                  } else {
-                    return const Scaffold(
-                      body: Center(child: Text("Event not found")),
-                    );
-                  }
-                },
-              ),
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text('Trip Reminder'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Get ready for your trip!'),
+                const SizedBox(height: 8),
+                Text('Destination: $destination',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
             ),
-          );
-        } else {
-          print("🔴 No event ID found.");
-        }
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     } catch (e) {
       print('🔴 Error handling notification: $e');
@@ -229,56 +178,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  void _showJoinConfirmationDialog(Event event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Join the event'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Do you want to join the event "${event.title}"?'),
-              const SizedBox(height: 10),
-              Text(
-                'Join cost: ${event.joinPrice} coins',
-                style: const TextStyle(
-                    color: Colors.orange, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              onPressed: () async {
-                Navigator.pop(context);
-                await _eventProvider.joinEvent(widget.userId, event.id);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EventDetailsScreen(
-                      event: event,
-                      userId: _userId!,
-                      token: _token!,
-                      eventProvider: _eventProvider,
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Confirm'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<Event> _fetchEventDetails(String eventId) async {
     final response =
         await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
@@ -287,14 +186,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
       final eventData = data['data'] ?? data;
       return Event.fromJson(eventData, _userId!);
     } else {
-      print("🔴 Failed to fetch event details: ${response.body}");
       throw Exception('Error fetching event details');
     }
   }
 
   String formatDate(String dateString) {
     final dateTime = DateTime.parse(dateString);
-    return DateFormat('HH:mm').format(dateTime); // Format as 21:03
+    return DateFormat('HH:mm').format(dateTime);
   }
 
   @override
@@ -313,7 +211,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         Icons.notifications;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 5, horizontal: 10),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
@@ -322,14 +221,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             notification['_id'], notification),
                         leading: Icon(iconType, color: Colors.blue),
                         title: Text(notification['message'],
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
-                          formatDate(notification[
-                              'createdAt']), // Format the date to show only time like '21:03'
+                          formatDate(notification['createdAt']),
                           style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: !notification['isRead']
-                            ? const Icon(Icons.circle, color: Colors.blue, size: 10)
+                            ? const Icon(Icons.circle,
+                                color: Colors.blue, size: 10)
                             : null,
                       ),
                     );
