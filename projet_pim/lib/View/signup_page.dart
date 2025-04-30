@@ -84,7 +84,7 @@ class _SignUpPageState extends State<SignUpPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Prendre une photo'),
+              title: const Text('Take a photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -96,7 +96,7 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choisir depuis la galerie'),
+              title: const Text('Choose from gallery'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -119,9 +119,9 @@ class _SignUpPageState extends State<SignUpPage> {
         confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Veuillez remplir tous les champs!",
+          content: Text("Please fill in all fields!",
               style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.orange,
+          backgroundColor: Color.fromARGB(255, 230, 0, 0),
         ),
       );
       return;
@@ -130,9 +130,9 @@ class _SignUpPageState extends State<SignUpPage> {
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Les mots de passe ne correspondent pas!",
+          content: Text("Passwords do not match!",
               style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
+          backgroundColor: Color.fromARGB(255, 230, 0, 0),
         ),
       );
       return;
@@ -149,7 +149,7 @@ class _SignUpPageState extends State<SignUpPage> {
     // Affichage d'un SnackBar temporaire pendant le traitement
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Traitement de votre demande..."),
+        content: Text("Processing your request..."),
         duration: Duration(seconds: 2),
       ),
     );
@@ -171,7 +171,7 @@ class _SignUpPageState extends State<SignUpPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Inscription réussie! Veuillez vérifier votre email.",
+          content: Text("Registration successful! Please check your email.",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
@@ -180,7 +180,7 @@ class _SignUpPageState extends State<SignUpPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("L'inscription a échoué. Veuillez réessayer.",
+          content: Text("Registration failed. Please try again.",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
@@ -190,7 +190,8 @@ class _SignUpPageState extends State<SignUpPage> {
 
   // Démarrer la vérification périodique de l'email toutes les 5 secondes
   void _startVerificationCheck() {
-    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    _verificationTimer =
+        Timer.periodic(const Duration(seconds: 5), (timer) async {
       await _checkVerificationStatus();
     });
   }
@@ -207,7 +208,7 @@ class _SignUpPageState extends State<SignUpPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Email vérifié avec succès! Redirection...",
+          content: Text("Email verified successfully! Redirecting...",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
@@ -275,7 +276,7 @@ class _SignUpPageState extends State<SignUpPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Impossible de récupérer la localisation!"),
+          content: Text("Unable to retrieve location!"),
           backgroundColor: Colors.red,
         ),
       );
@@ -364,7 +365,8 @@ class _SignUpPageState extends State<SignUpPage> {
                             ? NetworkImage(_profileImageUrl!)
                             : null,
                         child: _profileImageUrl == null
-                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                            ? const Icon(Icons.person,
+                                size: 50, color: Colors.white)
                             : null,
                       ),
                       Positioned(
@@ -375,7 +377,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           child: Container(
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.blueAccent,
+                              color: Color(0xFF161055),
                             ),
                             padding: const EdgeInsets.all(6),
                             child: const Icon(
@@ -393,7 +395,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 const SizedBox(height: 20),
                 TextField(
                   controller: nameController,
-                  decoration: _buildInputDecoration("Nom"),
+                  decoration: _buildInputDecoration("Name"),
                 ),
                 const SizedBox(height: 20),
                 TextField(
@@ -405,7 +407,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Utiliser ma localisation automatique"),
+                    const Text("Use my location"),
                     Switch(
                       value: _useAutoLocation,
                       onChanged: (value) {
@@ -414,27 +416,51 @@ class _SignUpPageState extends State<SignUpPage> {
                           if (value) _getLocation();
                         });
                       },
+                      activeColor:
+                          const Color(0xFFE8EAF6), // couleur du curseur activé
+                      activeTrackColor: const Color(
+                          0xFF161055), // couleur de la piste activée
+                      inactiveThumbColor: Colors.grey, // curseur désactivé
+                      inactiveTrackColor: Colors.black26, // piste désactivée
                     ),
                   ],
                 ),
-                TextField(
-                  controller: locationController,
-                  decoration: _buildInputDecoration("Localisation"),
-                  readOnly: true,
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextField(
+                        controller: locationController,
+                        decoration: _buildInputDecoration("Location"),
+                        readOnly: true,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.map, color: Colors.white),
+                      label: const Text("Map",
+                          style: TextStyle(color: Colors.white)),
+                      onPressed: _openMapToSelectLocation,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF161055),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.map),
-                  label: const Text("Sélectionner sur la carte"),
-                  onPressed: _openMapToSelectLocation,
-                ),
+
                 const SizedBox(height: 20),
 
                 TextField(
                   controller: passwordController,
                   obscureText: _isPasswordObscured,
                   decoration: _buildPasswordDecoration(
-                      "Mot de passe", _isPasswordObscured, () {
+                      "Password", _isPasswordObscured, () {
                     setState(() {
                       _isPasswordObscured = !_isPasswordObscured;
                     });
@@ -445,8 +471,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   controller: confirmPasswordController,
                   obscureText: _isConfirmPasswordObscured,
                   decoration: _buildPasswordDecoration(
-                      "Confirmer le mot de passe", _isConfirmPasswordObscured,
-                      () {
+                      "Confirm password", _isConfirmPasswordObscured, () {
                     setState(() {
                       _isConfirmPasswordObscured = !_isConfirmPasswordObscured;
                     });
@@ -461,7 +486,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             CircularProgressIndicator(),
                             SizedBox(height: 10),
                             Text(
-                              "Veuillez vérifier votre email pour continuer",
+                              "Please check your email to continue",
                               style: TextStyle(
                                   color: Colors.red,
                                   fontWeight: FontWeight.bold),
@@ -473,7 +498,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         onPressed: () => _registerUser(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              const Color(0xFF2C2C54), // Bouton bleu marine
+                              const Color(0xFF161055), // Bouton bleu marine
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -481,7 +506,12 @@ class _SignUpPageState extends State<SignUpPage> {
                           textStyle: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        child: const Center(child: Text("S'inscrire")),
+                        child: const Center(
+                          child: Text(
+                            "Signup",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ),
                 const SizedBox(height: 20),
                 Center(
@@ -489,7 +519,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     onTap: () =>
                         Navigator.pushReplacementNamed(context, "/login"),
                     child: const Text(
-                      "Vous avez déjà un compte ? Connectez-vous",
+                      "Already have an account? Log in",
                       style: TextStyle(
                         color: Colors.blue,
                         fontSize: 16,

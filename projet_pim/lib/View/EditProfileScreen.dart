@@ -108,7 +108,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Prendre une photo'),
+              title: const Text('Take a photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -120,7 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choisir depuis la galerie'),
+              title: const Text('Choose from gallery'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -141,7 +141,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (isLoading) return;
     setState(() => isLoading = true);
 
-    debugPrint("🔄 Mise à jour du profil...");
+    debugPrint("🔄 Updating profile...");
     print("🔄 Updating Profile...");
     print("📤 Sending Data:");
     print("   - User ID: ${widget.userId}");
@@ -204,7 +204,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Impossible de récupérer la localisation!"),
+          content: Text("Unable to retrieve location!"),
           backgroundColor: Colors.red,
         ),
       );
@@ -239,14 +239,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       print("Erreur de conversion: $e");
     }
-    return "Localisation inconnue";
+    return "Unknown location";
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Modifier le profil'),
+        title: const Text('Edit profile'),
         backgroundColor: const Color(0xFFDBD9FE),
       ),
       body: Padding(
@@ -278,13 +278,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: jobController,
-              decoration: const InputDecoration(labelText: 'Métier'),
+              decoration: const InputDecoration(labelText: 'Job'),
             ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Utiliser ma localisation automatique"),
+                const Text("Use my location"),
                 Switch(
                   value: _useAutoLocation,
                   onChanged: (value) {
@@ -293,19 +293,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       if (value) _getLocation();
                     });
                   },
+                  activeColor:
+                      const Color(0xFFE8EAF6), // couleur du curseur activé
+                  activeTrackColor:
+                      const Color(0xFF161055), // couleur de la piste activée
+                  inactiveThumbColor: Colors.grey, // curseur désactivé
+                  inactiveTrackColor: Colors.black26, // piste désactivée
                 ),
               ],
             ),
-            TextField(
-              controller: locationController,
-              decoration: const InputDecoration(labelText: "Localisation"),
-              readOnly: true,
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.map),
-              label: const Text("Sélectionner sur la carte"),
-              onPressed: _openMapToSelectLocation,
+            Row(
+              children: [
+                // TextField qui prend le maximum d’espace possible
+                Expanded(
+                  child: TextField(
+                    controller: locationController,
+                    decoration: const InputDecoration(labelText: "Location"),
+                    readOnly: true,
+                  ),
+                ),
+                const SizedBox(
+                    width: 10), // un petit espace entre le champ et le bouton
+                // Le bouton pour sélectionner sur la carte
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.map),
+                  label: const Text("Map"),
+                  onPressed: _openMapToSelectLocation,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             TextField(
@@ -324,7 +345,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               child: isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Enregistrer'),
+                  : const Text('Save'),
             ),
           ],
         ),

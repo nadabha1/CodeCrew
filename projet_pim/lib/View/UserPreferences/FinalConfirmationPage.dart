@@ -23,7 +23,8 @@ class FinalConfirmationPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const LinearProgressIndicator(value: 1.0, color: Colors.green),
+            const SizedBox(height: 30),
+            const LinearProgressIndicator(value: 1.0, color: Color(0xFFD4F98F)),
             const SizedBox(height: 20),
             const Text(
               "🎉 Ready to Connect?",
@@ -61,13 +62,32 @@ class FinalConfirmationPage extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink[100]),
-                  child: const Text("Previous"),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    backgroundColor: const Color(0xFFF3C7F9),
+                  ),
+                  child: const Text(
+                    "Previous",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () => _finishOnboarding(context, fromSignup),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                  child: const Text("Finish"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 70, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    backgroundColor: const Color(0xFFEF89FC),
+                  ),
+                  child: const Text(
+                    "Finish",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -124,8 +144,8 @@ class FinalConfirmationPage extends StatelessWidget {
         leading: Icon(icon, color: Colors.orange, size: 30),
         title: Text(title,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle:
-            Text(value, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+        subtitle: Text(value,
+            style: const TextStyle(fontSize: 14, color: Colors.black54)),
       ),
     );
   }

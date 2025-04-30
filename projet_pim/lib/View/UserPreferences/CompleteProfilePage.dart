@@ -4,12 +4,13 @@ class CompleteProfilePage extends StatefulWidget {
   final String userId;
   final String token;
 
-  const CompleteProfilePage({required this.userId, required this.token, Key? key}) : super(key: key);
+  const CompleteProfilePage(
+      {required this.userId, required this.token, Key? key})
+      : super(key: key);
 
   @override
   _CompleteProfilePageState createState() => _CompleteProfilePageState();
 }
-
 
 class _CompleteProfilePageState extends State<CompleteProfilePage> {
   String? selectedGender;
@@ -25,7 +26,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     print('Events: $selectedEventPreferences');
     print('Social: $selectedSocialPreference');
     print('Time: $selectedPreferredTime');
-    
+
     // TODO: call your API to save the profile
   }
 
@@ -42,7 +43,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 🎯 Gender Selection
-            Text('Select Gender', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Select Gender',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Row(
               children: [
                 ChoiceChip(
@@ -61,10 +63,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             SizedBox(height: 20),
 
             // 🎯 Activity Selection
-            Text('Favorite Activities', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Favorite Activities',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Wrap(
               spacing: 8,
-              children: ['Hiking', 'Swimming', 'Reading', 'Traveling'].map((activity) {
+              children: ['Hiking', 'Swimming', 'Reading', 'Traveling']
+                  .map((activity) {
                 return FilterChip(
                   label: Text(activity),
                   selected: selectedActivities.contains(activity),
@@ -83,7 +87,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             SizedBox(height: 20),
 
             // 🎯 Event Preference
-            Text('Event Preferences', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Event Preferences',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Wrap(
               spacing: 8,
               children: ['Music', 'Sports', 'Art', 'Tech'].map((event) {
@@ -105,28 +110,34 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             SizedBox(height: 20),
 
             // 🎯 Social Interaction Preference
-            Text('Social Preference', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Social Preference',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Column(
-              children: ['Small Groups', 'Large Events', 'One-on-One'].map((social) {
+              children:
+                  ['Small Groups', 'Large Events', 'One-on-One'].map((social) {
                 return RadioListTile<String>(
                   title: Text(social),
                   value: social,
                   groupValue: selectedSocialPreference,
-                  onChanged: (value) => setState(() => selectedSocialPreference = value),
+                  onChanged: (value) =>
+                      setState(() => selectedSocialPreference = value),
                 );
               }).toList(),
             ),
             SizedBox(height: 20),
 
             // 🎯 Preferred Event Time
-            Text('Preferred Event Time', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Preferred Event Time',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Column(
-              children: ['Morning', 'Afternoon', 'Evening', 'Night'].map((time) {
+              children:
+                  ['Morning', 'Afternoon', 'Evening', 'Night'].map((time) {
                 return RadioListTile<String>(
                   title: Text(time),
                   value: time,
                   groupValue: selectedPreferredTime,
-                  onChanged: (value) => setState(() => selectedPreferredTime = value),
+                  onChanged: (value) =>
+                      setState(() => selectedPreferredTime = value),
                 );
               }).toList(),
             ),
