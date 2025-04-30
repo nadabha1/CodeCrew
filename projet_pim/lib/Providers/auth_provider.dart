@@ -27,7 +27,7 @@ class AuthProvider with ChangeNotifier {
   String? _profileImageUrl;
   String? get profileImageUrl => _profileImageUrl;
   final String baseUrl =
-      "${ApiConstants.baseUrl}/auth"; // Remplace par ton URL de base
+      "${ApiConstants.baseUrl}"; // Remplace par ton URL de base
 
   bool _isOtpVerified = false;
   bool get isOtpVerified => _isOtpVerified;
@@ -319,9 +319,13 @@ class AuthProvider with ChangeNotifier {
         );
       } else {
         final errorResponse = jsonDecode(response.body);
+        debugPrint("❌ Error response: $errorResponse");
         final errorMessage =
             errorResponse['error'] ?? 'Failed to send OTP. Please try again.';
+                    _showMessage(context, errorMessage);
+
         throw Exception(errorMessage);
+
       }
     } catch (e) {
       _isLoading = false;

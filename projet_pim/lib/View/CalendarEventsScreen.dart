@@ -63,6 +63,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   }
 
   void _resetFilters() {
+    if (!mounted) return;
     setState(() {
       _searchController.clear();
       _selectedDay = null;
@@ -76,6 +77,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     String? _token = prefs.getString("jwt_token");
 
     if (_userId != null && _token != null && _isValidUserId(_userId)) {
+      if (!mounted) return;
       setState(() {
         userId = _userId;
         token = _token;
@@ -86,6 +88,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       await _fetchNonConflictingEvents();
     } else {
       print("Invalid userId or Token not available");
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -112,7 +115,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
-
+    if (!mounted) return;
     setState(() {
       _currentLocation = LatLng(position.latitude, position.longitude);
     });
@@ -159,6 +162,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
         );
 
         if (eventsResult.isSuccess && eventsResult.data != null) {
+          if (!mounted) return;
           setState(() {
             _events = List.from(eventsResult.data!);
             _freeSlots = _getFreeSlots(_events);
@@ -189,6 +193,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     try {
       if (userId != null) {
         await _eventProvider.getNonConflictingEvents(userId!);
+        if (!mounted) return;
         setState(() {
           _nonConflictingEvents =
               _eventProvider.events.cast<CustomEvent.Event>();
@@ -303,6 +308,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                   .toList();
             },
             onDaySelected: (selectedDay, focusedDay) {
+              if (!mounted) return;
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
@@ -722,9 +728,11 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   }
 
   Future<void> _refreshData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     await _getCalendarEvents();
     await _fetchNonConflictingEvents();
+    if (!mounted) return;
     setState(() => isLoading = false);
   }
 
@@ -735,6 +743,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       focusedDay: _focusedDay,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
       onDaySelected: (selectedDay, focusedDay) {
+        if (!mounted) return;
         setState(() {
           _selectedDay = selectedDay;
           _focusedDay = focusedDay;
@@ -761,6 +770,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   }
 
   void _filterByDate(DateTime date) {
+    if (!mounted) return;
     setState(() {
       _filteredEvents = _event.where((event) {
         return event.startDate.year == date.year &&
@@ -772,6 +782,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
 
   _filterEvents(String query) async {
     final lowerQuery = query.toLowerCase();
+    if (!mounted) return;
     setState(() {
       _filteredEvents = _event.where((event) {
         final titleMatch = event.title.toLowerCase().contains(lowerQuery);
@@ -799,6 +810,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           _event =
               data.map((json) => Event.fromJson(json, widget.userId)).toList();
@@ -807,11 +819,13 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
           _isLoading = false;
         });
       } else {
+        if (!mounted) return;
         setState(() => _isLoading = false);
         print('🔴 Erreur: ${response.body}');
       }
     } catch (e) {
       print('🔴 Exception: $e');
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
