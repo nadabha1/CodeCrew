@@ -240,6 +240,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   await Provider.of<ReviewProvider>(context, listen: false)
                       .editReview(widget.place.id, updatedReview);
                   Navigator.pop(context);
+                  await _fetchReviews(); // Refresh the reviews after editing
                 } catch (e) {
                   Navigator.pop(context);
                   showDialog(
@@ -421,77 +422,70 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
             ),
             const SizedBox(height: 10),
             if (_isReviewVisible)
-              Consumer<ReviewProvider>(
-                builder: (context, reviewProvider, child) {
-                  if (reviewProvider.isLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              _isLoadingReviews
+                  ? const Center(child: CircularProgressIndicator())
+                  : _reviews.isEmpty
+                      ? const Center(child: Text('No reviews available.'))
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _reviews.length,
+                          itemBuilder: (context, index) {
+                            final review = _reviews[index];
 
-                  if (reviewProvider.reviews.isEmpty) {
-                    return const Center(child: Text('No reviews available.'));
-                  }
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: reviewProvider.reviews.length,
-                    itemBuilder: (context, index) {
-                      final review = reviewProvider.reviews[index];
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 5,
-                        child: ListTile(
-                          title: FutureBuilder<String>(
-                            future: _getUserName(review.userId),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const CircularProgressIndicator();
-                              }
-                              if (snapshot.hasError) {
-                                return Text('Error: ${snapshot.error}');
-                              }
-                              return Text(snapshot.data ?? 'Unknown user');
-                            },
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < review.rating
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    color: Colors.amber,
-                                    size: 20,
-                                  ),
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              elevation: 5,
+                              child: ListTile(
+                                title: FutureBuilder<String>(
+                                  future: _getUserName(review.userId),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const CircularProgressIndicator();
+                                    }
+                                    if (snapshot.hasError) {
+                                      return Text('Error: ${snapshot.error}');
+                                    }
+                                    return Text(
+                                        snapshot.data ?? 'Unknown user');
+                                  },
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: List.generate(
+                                        5,
+                                        (i) => Icon(
+                                          i < review.rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          color: Colors.amber,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(review.comment),
+                                    if (_currentUserId == review.userId)
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton(
+                                          onPressed: () {
+                                            _showEditReviewDialog(review);
+                                          },
+                                          child: const Text("Edit"),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 5),
-                              Text(review.comment),
-                              if (_currentUserId == review.userId)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {
-                                      _showEditReviewDialog(review);
-                                    },
-                                    child: const Text("Edit"),
-                                  ),
-                                ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             const SizedBox(height: 20),
             AddReviewForm(
               placeId: widget.place.id,
