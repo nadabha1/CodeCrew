@@ -48,7 +48,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       final reviews = await _reviewService.getAllReviews(widget.place.id);
       setState(() => _reviews = reviews);
     } catch (e) {
-      print("Erreur lors du chargement des avis: $e");
+      print("Error loading reviews: $e");
     } finally {
       setState(() => _isLoadingReviews = false); // 🔴 manquait ici
     }
@@ -76,7 +76,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
     if (token == null || userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Connectez-vous pour gérer les favoris.")),
+        const SnackBar(content: Text("Log in to manage favorites.")),
       );
       return;
     }
@@ -86,16 +86,16 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         await UserService()
             .removePlaceFromFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Retiré des favoris")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Remove from favorites")));
       } else {
         await UserService().addPlaceToFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Ajouté aux favoris !")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Added to favorites!")));
       }
     } catch (e) {
-      print("Erreur favoris: $e");
+      print("Favorites error: $e");
     }
   }
 
@@ -109,7 +109,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       final favorites = await UserService().getUserFavorites(userId, token);
       setState(() => _isFavorite = favorites.contains(widget.place.id));
     } catch (e) {
-      print("Erreur favoris: $e");
+      print("Favorites error: $e");
     }
   }
 
@@ -132,7 +132,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) =>
-            const AlertDialog(content: Text('Ajout de l’avis...')),
+            const AlertDialog(content: Text('Adding the review...')),
       );
 
       await _reviewService.addReview(widget.place.id, review);
@@ -142,8 +142,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Succès'),
-          content: const Text('Avis ajouté avec succès !'),
+          title: const Text('Success'),
+          content: const Text('Review successfully added !'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -156,8 +156,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Erreur'),
-          content: const Text('Vous avez déjà ajouté un avis.'),
+          title: const Text('Error'),
+          content: const Text('You have already added a review.'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -191,7 +191,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Modifier votre avis"),
+          title: const Text("Edit your review"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -218,19 +218,18 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
               ),
               TextField(
                 controller: commentController,
-                decoration:
-                    const InputDecoration(labelText: "Votre commentaire"),
+                decoration: const InputDecoration(labelText: "Your comment"),
                 maxLines: 3,
               ),
             ],
           ),
           actions: [
             TextButton(
-              child: const Text("Annuler"),
+              child: const Text("Cancel"),
               onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
-              child: const Text("Enregistrer"),
+              child: const Text("Save"),
               onPressed: () async {
                 final updatedReview = review.copyWith(
                   rating: updatedRating,
@@ -246,8 +245,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
-                      title: Text("Erreur"),
-                      content: Text("Impossible de modifier l'avis."),
+                      title: Text("Error"),
+                      content: Text("Unable to edit review."),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -395,7 +394,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       widget.place.latitude!, widget.place.longitude!);
                 }
               },
-              child: const Text("Ouvrir dans Google Maps"),
+              child: const Text("Open in Google Maps"),
             ),
             const SizedBox(height: 20),
             // Toggle reviews section with a smoother transition
@@ -415,9 +414,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   },
                 ),
                 Text(
-                  _isReviewVisible
-                      ? "Masquer les commentaires"
-                      : "Afficher les commentaires",
+                  _isReviewVisible ? "Hide comments" : "Show comments",
                   style: const TextStyle(fontSize: 18),
                 ),
               ],
@@ -431,7 +428,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   }
 
                   if (reviewProvider.reviews.isEmpty) {
-                    return const Center(child: Text('Aucun avis disponible.'));
+                    return const Center(child: Text('No reviews available.'));
                   }
 
                   return ListView.builder(
@@ -455,10 +452,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                                 return const CircularProgressIndicator();
                               }
                               if (snapshot.hasError) {
-                                return Text('Erreur: ${snapshot.error}');
+                                return Text('Error: ${snapshot.error}');
                               }
-                              return Text(
-                                  snapshot.data ?? 'Utilisateur inconnu');
+                              return Text(snapshot.data ?? 'Unknown user');
                             },
                           ),
                           subtitle: Column(
@@ -485,7 +481,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                                     onPressed: () {
                                       _showEditReviewDialog(review);
                                     },
-                                    child: const Text("Modifier"),
+                                    child: const Text("Edit"),
                                   ),
                                 ),
                             ],
@@ -506,7 +502,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     context: context,
                     barrierDismissible: false, // Empêche de fermer le dialogue
                     builder: (context) => const AlertDialog(
-                      content: Text('Ajout de l’avis en cours...'),
+                      content: Text('Adding the review...'),
                     ),
                   );
 
@@ -522,8 +518,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Succès'),
-                      content: const Text('Avis ajouté avec succès !'),
+                      title: const Text('Success'),
+                      content: const Text('Review added successfully!'),
                       actions: [
                         TextButton(
                           onPressed: () {
@@ -545,9 +541,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Avis déjà ajouté'),
+                      title: const Text('Review already added'),
                       content: const Text(
-                          'Vous avez déjà ajouté un avis pour ce lieu. Vous ne pouvez pas en ajouter un autre.'),
+                          'You have already added a review for this place. You cannot add another one.'),
                       actions: [
                         TextButton(
                           onPressed: () {

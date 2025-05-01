@@ -28,7 +28,8 @@ class UserProfileScreen extends StatefulWidget {
   final String userId;
   final String token;
 
-  const UserProfileScreen({required this.userId, required this.token, super.key});
+  const UserProfileScreen(
+      {required this.userId, required this.token, super.key});
 
   @override
   _UserProfileScreenState createState() => _UserProfileScreenState();
@@ -491,54 +492,63 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Carnet d’adresses',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          onSelected: (value) {
-                            String carnetId =
-                                userCarnet.isNotEmpty ? userCarnet[0].id : '';
-                            switch (value) {
-                              case 'details':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CarnetDetailsPage(
-                                      carnet: userCarnet[0],
-                                    ),
+                    userCarnet.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.0),
+                            child: Text(
+                              "You haven't created an address book yet.",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Address book',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  String carnetId = userCarnet.isNotEmpty
+                                      ? userCarnet[0].id
+                                      : '';
+                                  switch (value) {
+                                    case 'details':
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              CarnetDetailsPage(
+                                            carnet: userCarnet[0],
+                                          ),
+                                        ),
+                                      ).then((_) {
+                                        fetchUser(); // Refresh data after return
+                                      });
+                                      break;
+
+                                    case 'supprimer':
+                                      _confirmerSuppression(
+                                          context, carnetId, widget.userId);
+                                      break;
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'details',
+                                    child: Text('View address book details'),
                                   ),
-                                ).then((_) {
-                                  fetchUser(); // Rafraîchir les données après le retour
-                                });
-
-                                break;
-
-                              case 'supprimer':
-                                _confirmerSuppression(
-                                    context, carnetId, widget.userId);
-                                break;
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'details',
-                              child: Text('Voir les détails du carnet'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'supprimer',
-                              child: Text('Supprimer le carnet'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                                  const PopupMenuItem(
+                                    value: 'supprimer',
+                                    child: Text('Delete address book'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
 
                     const SizedBox(height: 16),
 
@@ -591,7 +601,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             )
                           : const Center(
                               child: Text(
-                                "Aucune place disponible",
+                                "No places available",
                                 style:
                                     TextStyle(fontSize: 16, color: Colors.grey),
                               ),
@@ -634,7 +644,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     // 📌 Section Événements
                     const SizedBox(height: 32),
                     const Text(
-                      'Événements',
+                      'Events',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -647,7 +657,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     eventProvider.events.isEmpty
                         ? const Center(
                             child: Text(
-                              "Aucun événement disponible",
+                              "No events available",
                               style:
                                   TextStyle(fontSize: 16, color: Colors.grey),
                             ),
@@ -686,8 +696,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                       contentPadding: EdgeInsets.zero,
                                       leading: const CircleAvatar(
                                         radius: 24,
-                                        backgroundColor: Color.fromARGB(
-                                            255, 212, 196, 255),
+                                        backgroundColor:
+                                            Color.fromARGB(255, 212, 196, 255),
                                         child: Icon(Icons.event,
                                             color: Colors.white),
                                       ),
@@ -732,17 +742,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               );
                             }).toList(),
                           ),
-
-                    const SizedBox(height: 32),
-                    const Text(
-                      'Publications',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _PublicationCard(),
                   ],
                 ),
               ),
@@ -768,13 +767,13 @@ class AddressCard extends StatelessWidget {
           if (placemarks.isNotEmpty) {
             return "${placemarks.first.locality}, ${placemarks.first.country}";
           }
-          return "Lieu inconnu";
+          return "Location unknown";
         });
       }
     } catch (e) {
       print("❌ Error fetching place address: $e");
     }
-    return "Lieu inconnu"; // Default value
+    return "Location unknown"; // Default value
   }
 
   @override
@@ -844,14 +843,14 @@ class AddressCard extends StatelessWidget {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Text(
-                                "Chargement...",
+                                "Loading...",
                                 style: TextStyle(
                                     color: Colors.white70, fontSize: 14),
                               );
                             }
                             if (snapshot.hasError) {
                               return const Text(
-                                "Erreur de localisation",
+                                "Location error",
                                 style:
                                     TextStyle(color: Colors.red, fontSize: 14),
                               );

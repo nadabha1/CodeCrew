@@ -22,7 +22,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
     if (newTitle.isEmpty) return;
 
     try {
-      print("🔄 Envoi de la mise à jour du carnet...");
+      print("🔄 Sending the logbook update...");
       await Provider.of<CarnetProvider>(context, listen: false)
           .updateCarnet(widget.carnet.id, newTitle);
 
@@ -30,14 +30,14 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
         carnetTitle = newTitle;
       });
 
-      print("✅ Mise à jour réussie !");
+      print("✅ Update successful!");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Carnet mis à jour avec succès")),
       );
     } catch (e) {
-      print("❌ Erreur updateCarnet: $e");
+      print("❌ updateNotebook error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur lors de la mise à jour du carnet")),
+        const SnackBar(content: Text("Error updating the notebook")),
       );
     }
   }
@@ -54,19 +54,19 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Modifier le nom du Carnet",
+        title: const Text("Change the name of the Notebook",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(
-            hintText: "Nouveau nom",
+            hintText: "New name",
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () {
@@ -76,7 +76,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
               }
               Navigator.pop(context);
             },
-            child: const Text("Enregistrer"),
+            child: const Text("Save"),
           ),
         ],
       ),
@@ -88,16 +88,17 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
       bool shouldDelete = await showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: Text('Supprimer ${place.name}?'),
-              content: const Text('Êtes-vous sûr de vouloir supprimer cet endroit?'),
+              title: Text('DELETE ${place.name}?'),
+              content:
+                  const Text('Are you sure you want to delete this location?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Annuler'),
+                  child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Supprimer'),
+                  child: const Text('DELETE'),
                 ),
               ],
             ),
@@ -106,7 +107,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
 
       if (shouldDelete) {
         const jwtToken = 'YOUR_JWT_TOKEN'; // À récupérer dynamiquement
-        print("🛠 Suppression de ${place.name} avec ID: ${place.id}");
+        print("🛠 Removal of ${place.name} with ID: ${place.id}");
 
         await Provider.of<CarnetProvider>(context, listen: false)
             .deletePlace(widget.carnet.id, place.id, jwtToken);
@@ -115,13 +116,13 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           widget.carnet.places.removeWhere((p) => p.id == place.id);
         });
 
-        print("✅ ${place.name} supprimé avec succès");
+        print("✅ ${place.name} successfully deleted");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${place.name} supprimé avec succès')),
+          SnackBar(content: Text('${place.name} successfully deleted')),
         );
       }
     } catch (e, stacktrace) {
-      print("❌ Erreur lors de la suppression de ${place.name}: $e");
+      print("❌ Error deleting${place.name}: $e");
       print(stacktrace);
     }
   }
@@ -131,7 +132,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(carnetTitle),
-        backgroundColor: const Color(0xFFDBD9FE),
+        backgroundColor: const Color(0xFFD1C4E9),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -142,12 +143,9 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFDBD9FE),
-              Color.fromARGB(255, 233, 185, 241)
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [Color(0xFFD1C4E9), Color(0xFFEDE7F6)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: Padding(
