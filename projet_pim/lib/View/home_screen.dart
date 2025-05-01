@@ -164,7 +164,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(
                     builder: (_) => WeatherScreen(
-                        userId: widget.userId, weatherData: weatherData ?? {})),
+                          userId: widget.userId,
+                        )),
               );
             },
           ),
@@ -756,7 +757,6 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(
                 builder: (context) => WeatherScreen(
                   userId: widget.userId,
-                  weatherData: weatherData ?? {},
                 ),
               ),
             ),
