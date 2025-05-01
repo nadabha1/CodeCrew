@@ -5,10 +5,13 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
+import 'package:projet_pim/View/NotificationScreen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
+import 'package:projet_pim/ViewModel/notification_service.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,12 +39,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> allUsers = [];
   bool isLoadingUsers = true;
   String? _userId;
+    int _unreadNotifications = 0;
   String? _token;
   List<String> _selectedCategories = [];
   bool isShowingFallbackUsers = false;
   bool showMatches = false; // false = show People, true = show Matches
   List<dynamic> matches = [];
   bool isLoadingMatches = true; // par défaut en cours de chargement
+    final NotificationService _notificationService = NotificationService();
 
   TextEditingController _searchController = TextEditingController();
 
@@ -64,11 +69,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadData();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
     _loadWeather();
     _preloadMatches();
   }
+  @override
+void dispose() {
+  super.dispose();
+}
+
+@override
+void didPopNext() {
+  // ✅ Quand on revient sur cette page
+  _fetchUnreadNotifications();
+}
 
   Widget _buildDrawer() {
     return Drawer(
@@ -189,6 +205,15 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+  Future<void> _fetchUnreadNotifications() async {
+    if (_userId != null) {
+      final count =
+          await _notificationService.getUnreadNotificationsCount(_userId!);
+      setState(() {
+        _unreadNotifications = count;
+      });
+    }
+  }
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -204,6 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
       fetchUsers(),
       //_fetchMatches(),
       _preloadMatches(),
+      _fetchUnreadNotifications(),
     ]);
   }
 
@@ -709,82 +735,120 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Color(0xFFDBD9FE),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
+  return Container(
+    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+    decoration: BoxDecoration(
+      color: Color(0xFFDBD9FE),
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(30),
+        bottomRight: Radius.circular(30),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: Icon(Icons.menu, color: Colors.white, size: 28),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // ✅ Météo à gauche
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WeatherScreen(
+                userId: widget.userId,
+                weatherData: weatherData ?? {},
               ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.push(
+            ),
+          ),
+          child: weatherData != null
+              ? Row(
+                  children: [
+                    Image.network(
+                      "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
+                    SizedBox(width: 5),
+                    Text(
+                      "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  "N/A °C",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+        ),
+
+        // ✅ Notifications + Profil à droite
+        Row(
+          children: [
+            Stack(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.notifications, color: Colors.white, size: 28),
+                  onPressed: () {
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => WeatherScreen(
-                              userId: widget.userId,
-                              weatherData: weatherData ?? {})),
+                        builder: (context) => NotificationScreen(userId: widget.userId),
+                      ),
+                    );
+                  },
+                ),
+                // 🔴 Marqueur rouge si notifications non lues
+                if (_unreadNotifications > 0) 
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$_unreadNotifications',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
-                    child: weatherData != null
-                        ? Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color: Colors.grey.withOpacity(0.3),
-                                        blurRadius: 4,
-                                        spreadRadius: 1),
-                                  ],
-                                ),
-                                child: ClipOval(
-                                  child: Image.network(
-                                    "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 15,
-                                child: Text(
-                                  "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text("N/A °C",
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54)),
                   ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+              ],
+            ),
+            SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.person, color: Colors.white, size: 28),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserProfileScreen(
+                      userId: widget.userId,
+                      token: widget.token,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 }

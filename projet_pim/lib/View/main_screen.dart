@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/NotificationScreen.dart';
+import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
 import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:projet_pim/ViewModel/notification_service.dart';
@@ -45,12 +47,13 @@ class _MainScreenState extends State<MainScreen> {
       } else {
         _fetchUnreadNotifications();
         _pages = [
-          HomeScreen(userId: _userId!, token: _token!),
-          ExploreScreen(userId: _userId!),
-          ConversationListScreen(),
-          NotificationScreen(userId: _userId!),
-          UserProfileScreen(userId: _userId!, token: _token!),
-        ];
+  HomeScreen(userId: _userId!, token: _token!),
+  ExploreScreen(userId: _userId!),
+  TripPlanningScreen(userId: _userId!), // <-- AJOUTER ici
+  CalendarEventsScreen(userId: _userId!, token: _token!),
+  ConversationListScreen(),
+];
+
       }
     });
   }
@@ -85,6 +88,7 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
         unreadNotifications: _unreadNotifications,
+        userId: _userId!,
       ),
     );
   }

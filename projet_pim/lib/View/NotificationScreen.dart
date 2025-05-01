@@ -43,6 +43,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _loadUserSession();
     _fetchInitialNotifications();
     _setupWebSocket();
+    
   }
 
   Future<void> _loadUserSession() async {
@@ -83,6 +84,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       String notificationId, Map<String, dynamic> notification) async {
     try {
       await _notificationService.markAsRead(notificationId);
+          _fetchInitialNotifications();
 
       if (notification['type'] == 'NEW_EVENT_All') {
         final eventId = notification['data']?['eventId'] ?? '';
