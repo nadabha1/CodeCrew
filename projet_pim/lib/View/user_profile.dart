@@ -4,6 +4,7 @@ import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
+import 'package:projet_pim/View/Event/my_events_screen.dart';
 import 'package:projet_pim/View/carnet&place/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
@@ -133,12 +134,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Supprimer le carnet'),
-          content: const Text('Voulez-vous vraiment supprimer ce carnet ?'),
+          title: const Text('Delete notebook'),
+          content: const Text('Do you really want to delete this notebook?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
@@ -146,13 +147,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   await CarnetService().deleteCarnet(
                       carnetId, userId); // 🔥 Appel avec 2 paramètres
                   Navigator.of(context).pop(); // Fermer la boîte de dialogue
-                  print("✅ Carnet supprimé avec succès !");
+                  print("✅Notebook successfully deleted!");
                 } catch (e) {
-                  print("❌ Erreur lors de la suppression : $e");
+                  print("❌ Error while deleting: $e");
                 }
               },
-              child:
-                  const Text('Supprimer', style: TextStyle(color: Colors.red)),
+              child: const Text('DELETE', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -168,7 +168,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (location.latitude == 0.0 && location.longitude == 0.0) {
         print(
             "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
-        return "Lieu inconnu";
+        return "Unknown Location";
       }
 
       List<Placemark> placemarks =
@@ -178,10 +178,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Placemark place = placemarks.first;
 
         // Extraire les informations utiles
-        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
-        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
-        String region = place.administrativeArea ?? "Région inconnue";
-        String country = place.country ?? "Pays inconnu";
+        String street = place.thoroughfare ?? place.street ?? "Unknown street";
+        String city = place.locality ?? place.subLocality ?? "Unknown city";
+        String region = place.administrativeArea ?? "Unknown region";
+        String country = place.country ?? "Unknown country";
 
         // Construire une adresse détaillée
         String formattedAddress = "$street, $city, $region, $country";
@@ -192,10 +192,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         print("⚠️ No placemarks found for the given coordinates.");
       }
     } catch (e) {
-      print("❌ Erreur lors du géocodage : $e");
+      print("❌ Error while geocoding : $e");
     }
 
-    return "Lieu inconnu";
+    return "Unknown Location ";
   }
 
   LatLng _parseLocation(dynamic location) {
@@ -237,7 +237,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       print("❌ Error fetching location name: $e");
     }
-    return "Lieu inconnu"; // Default value
+    return "Unknown Location"; // Default value
   }
 
   Widget buildStarRating(double rating) {
@@ -262,14 +262,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(180),
+        preferredSize: const Size.fromHeight(250),
         child: ClipRRect(
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(30),
             bottomRight: Radius.circular(30),
           ),
           child: AppBar(
-            backgroundColor: const Color.fromRGBO(219, 217, 254, 1),
+            backgroundColor: const Color(0xFFDBD9FE),
             elevation: 0,
             flexibleSpace: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -287,21 +287,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               as ImageProvider,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 30),
                   Text(
-                    userData?['name'] ?? 'Nom inconnu',
+                    userData?['name'] ?? 'Unknown Name',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 10),
                   Text(
-                    userData?['bio'] ?? 'bio non spécifié',
+                    userData?['bio'] ?? 'bio not specified',
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 16,
                     ),
                   ),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -314,7 +316,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           width: 4), // Espace entre l'icône et le texte
                       Text(
                         userData?['job'] ??
-                            'Métier non spécifié', // Texte du métier
+                            'Job not specified', // Texte du métier
                         style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 16,
@@ -322,6 +324,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -337,7 +340,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Text(
-                              "Chargement...",
+                              "Loading...",
                               style: TextStyle(
                                   color: Colors.black54, fontSize: 14),
                             );
@@ -352,7 +355,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           }
                           print("📍 Location displayed: ${snapshot.data}");
                           return Text(
-                            snapshot.data ?? "Lieu inconnu",
+                            snapshot.data ?? "Unknown Location ",
                             style: const TextStyle(
                                 color: Colors.black54, fontSize: 14),
                           );
@@ -364,14 +367,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             actions: [
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  const SizedBox(width: 20),
+
                   // Container pour le fond
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 2,
-                        vertical: 1), // Ajoute du padding autour du contenu
+                        vertical: 5), // Ajoute du padding autour du contenu
                     decoration: BoxDecoration(
                       color: const Color.fromARGB(
                           255, 250, 195, 166), // Couleur de fond orange
@@ -402,7 +408,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 270),
+                  const SizedBox(width: 220),
                   // Bouton pour consulter les favoris
                   IconButton(
                     icon:
@@ -443,7 +449,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -483,11 +489,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             );
                           },
                         ),
-                        const SizedBox(width: 20),
+                        /* const SizedBox(width: 20),
                         _StatItem(
                           count: userData?['likes']?.toString() ?? '0',
                           label: 'Likes',
-                        ),
+                        ),*/
                       ],
                     ),
 
@@ -560,7 +566,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  userCarnet[0].title ?? "Titre non spécifié",
+                                  userCarnet[0].title ?? "Title not specified",
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -642,14 +648,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ),
                     // 📌 Section Événements
+                    // 📌 Section Événements
                     const SizedBox(height: 32),
                     const Text(
                       'Events',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color:
-                            Color.fromARGB(255, 0, 0, 0), // Color for the title
+                        color: Color.fromARGB(255, 0, 0, 0),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -663,84 +669,125 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ),
                           )
                         : Column(
-                            children: eventProvider.events.map((event) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                child: Card(
-                                  elevation: 10,
-                                  shadowColor: Colors.deepPurpleAccent
-                                      .withOpacity(0.3), // More subtle shadow
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        16), // More rounded corners
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(
-                                        16), // Padding around the content
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          const Color.fromARGB(
-                                              255, 191, 168, 252),
-                                          const Color.fromARGB(
-                                                  255, 164, 125, 171)
-                                              .withOpacity(0.7)
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: const CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor:
-                                            Color.fromARGB(255, 212, 196, 255),
-                                        child: Icon(Icons.event,
-                                            color: Colors.white),
-                                      ),
-                                      title: Text(
-                                        event.title,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: Colors.white),
-                                      ),
-                                      subtitle: Text(
-                                        event.description,
-                                        style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 14),
-                                      ),
-                                      trailing: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.arrow_forward_ios,
-                                              size: 16, color: Colors.white),
-                                        ],
-                                      ),
-                                      onTap: () {
-                                        // Navigate to event details
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                EventDetailsScreen(
-                                              event: event,
-                                              userId: widget.userId,
-                                              eventProvider: eventProvider,
-                                              token: widget.token,
+                            children: [
+                              ...eventProvider.events
+                                  .take(3)
+                                  .map((event) => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                        child: Card(
+                                          elevation: 10,
+                                          shadowColor: Colors.deepPurpleAccent
+                                              .withOpacity(0.3),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: Color(
+                                                    0xFF161055), // 🟣 bordure violet foncé
+                                                width:
+                                                    2, // épaisseur du contour
+                                              ),
+                                            ),
+                                            child: ListTile(
+                                              contentPadding: EdgeInsets.zero,
+                                              leading: const CircleAvatar(
+                                                radius: 24,
+                                                backgroundColor: Color.fromARGB(
+                                                    255, 212, 196, 255),
+                                                child: Icon(Icons.diversity_1,
+                                                    color: Colors.white),
+                                              ),
+                                              title: Text(
+                                                event.title,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: Color(0xFF161055),
+                                                ),
+                                              ),
+                                              subtitle: Text(
+                                                event.description,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF161055),
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              trailing: const Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 16,
+                                                color: Color(0xFF161055),
+                                              ),
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        EventDetailsScreen(
+                                                      event: event,
+                                                      userId: widget.userId,
+                                                      eventProvider:
+                                                          eventProvider,
+                                                      token: widget.token,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
                                             ),
                                           ),
-                                        );
-                                      },
+                                        ),
+                                      ))
+                                  .toList(),
+
+                              const SizedBox(height: 16),
+
+                              // 🔽 Bouton View all stylé
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 12),
+                                    backgroundColor: const Color.fromARGB(
+                                        255, 248, 214, 253),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    elevation: 6,
+                                    shadowColor: const Color(0xFFC599CD)
+                                        .withOpacity(0.3),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => MyEventsScreen(
+                                          userId: widget.userId,
+                                          token: widget.token,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.arrow_forward,
+                                      color: Color.fromARGB(255, 78, 1, 96)),
+                                  label: const Text(
+                                    "View all",
+                                    style: TextStyle(
+                                      color: Color.fromARGB(255, 78, 1, 96),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
                                     ),
                                   ),
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                            ],
                           ),
                   ],
                 ),
@@ -856,7 +903,7 @@ class AddressCard extends StatelessWidget {
                               );
                             }
                             return Text(
-                              snapshot.data ?? "Lieu inconnu",
+                              snapshot.data ?? "Unknown Location",
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 14),
                             );
@@ -899,54 +946,6 @@ class _StatItem extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(label),
-        ],
-      ),
-    );
-  }
-}
-
-class _PublicationCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFDBD9FE),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.group, size: 40),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Peer Group Meetup',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  "Let’s open up to the thing that matters among the people",
-                  style: TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFE7B32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: const Text('Join Now'),
-          ),
         ],
       ),
     );

@@ -276,17 +276,57 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar:
+          true, // Permet à l'image de s'étendre sous l'AppBar
       appBar: AppBar(
-        title: Text(widget.event.title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 0, 0, 0),
-            )),
-        backgroundColor: const Color(0xFFEDE7F6),
+        backgroundColor: Colors.transparent, // Fond transparent
+        elevation: 0, // Supprime l'ombre de l'AppBar
         actions: [
-          if (widget.event.creatorId == widget.userId)
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.orange),
+          // Actions dans l'AppBar
+          IconButton(
+            icon: const Icon(Icons.camera_alt, color: Colors.white),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Souhaites-tu partager ce souvenir ?'),
+                  actions: [
+                    TextButton(
+                      child: const Text('Privé 🔒'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _uploadAndGenerateReel(isShared: false);
+                      },
+                    ),
+                    TextButton(
+                      child: const Text('Public 🌍'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _uploadAndGenerateReel(isShared: true);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+            tooltip: 'Créer un souvenir',
+          ),
+          IconButton(
+            icon: const Icon(Icons.chat, color: Colors.white),
+            onPressed: _showShareInConversationDialog,
+            tooltip: 'Partager dans une conversation',
+          ),
+          IconButton(
+            icon: const Icon(Icons.send, color: Colors.white),
+            onPressed: shareEventToMessenger,
+            tooltip: 'Partager sur Messenger',
+          ),
+        ],
+      ),
+      floatingActionButton: widget.event.creatorId == widget.userId
+          ? FloatingActionButton(
+              backgroundColor: const Color(0x03FFF3C7F9),
+              child: const Icon(Icons.edit),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -301,305 +341,230 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   ),
                 );
               },
-            ),
-        ],
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFEDE7F6),
-              Color(0xFFD1C4E9),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            )
+          : null, // Only show the floating action button for the event creator
+      body: Stack(
+        children: [
+          // Image background at the top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: widget.event.imagePath != null
+                ? Image.network(
+                    widget.event.imagePath!,
+                    fit: BoxFit.cover,
+                    height: 500,
+                    width: double.infinity,
+                  )
+                : Image.asset(
+                    'assets/default_event_image.jpg', // Image par défaut si aucune image d'événement
+                    fit: BoxFit.cover,
+                    height: 200,
+                    width: double.infinity,
+                  ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(
-            children: [
-              Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
-                elevation: 5,
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          // Contenu avec padding et liste des détails
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ListView(
+              children: [
+                const SizedBox(height: 16),
+                Card(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  elevation: 5,
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.event.title,
+                            style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black)),
+                        const SizedBox(height: 10),
+                        Text(widget.event.description,
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.grey[800])),
+                        const SizedBox(height: 15),
+                        _buildLocationDetailRow(
+                            "${widget.event.location.latitude},${widget.event.location.longitude}"),
+                        const SizedBox(height: 15),
+                        _buildDetailRow(
+                          Icons.event,
+                          "Start",
+                          _formatDate(widget.event.startDate),
+                          iconColor: const Color(0xFF4CAF50),
+                        ),
+                        const SizedBox(height: 6),
+                        _buildDetailRow(
+                          Icons.event_available,
+                          "End",
+                          _formatDate(widget.event.endDate),
+                          iconColor: const Color(0xFF81C784),
+                        ),
+                        _buildDetailRow(Icons.people, "Participants",
+                            "${widget.event.participants.length} Registered",
+                            iconColor: const Color(0xFF29B6F6)),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 250,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: FlutterMap(
+                    options: MapOptions(
+                      center: LatLng(widget.event.location.latitude ?? 0.0,
+                          widget.event.location.longitude ?? 0.0),
+                      zoom: 15.0,
+                    ),
                     children: [
-                      Text(widget.event.title,
-                          style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black)),
-                      const SizedBox(height: 10),
-                      Text(widget.event.description,
-                          style:
-                              TextStyle(fontSize: 16, color: Colors.grey[800])),
-                      const SizedBox(height: 15),
-                      _buildLocationDetailRow(
-                          "${widget.event.location.latitude},${widget.event.location.longitude}"),
-                      const SizedBox(height: 15),
-                      _buildDetailRow(
-                        Icons.event,
-                        "Début",
-                        _formatDate(widget.event.startDate),
-                        iconColor: const Color(0xFF4CAF50),
+                      TileLayer(
+                        urlTemplate:
+                            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        subdomains: const ['a', 'b', 'c'],
                       ),
-                      const SizedBox(height: 6),
-                      _buildDetailRow(
-                        Icons.event_available,
-                        "Fin",
-                        _formatDate(widget.event.endDate),
-                        iconColor: const Color(0xFF81C784),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: LatLng(widget.event.location.latitude ?? 0.0,
+                                widget.event.location.longitude ?? 0.0),
+                            width: 40.0,
+                            height: 40.0,
+                            child: const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        ],
                       ),
-                      _buildDetailRow(Icons.people, "Participants",
-                          "${widget.event.participants.length} inscrits",
-                          iconColor: const Color(0xFF29B6F6)),
                     ],
                   ),
                 ),
-              ),
-              Container(
-                height: 250,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: FlutterMap(
-                  options: MapOptions(
-                    center: LatLng(widget.event.location.latitude ?? 0.0,
-                        widget.event.location.longitude ?? 0.0),
-                    zoom: 15.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: const ['a', 'b', 'c'],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: LatLng(widget.event.location.latitude ?? 0.0,
-                              widget.event.location.longitude ?? 0.0),
-                          width: 40.0,
-                          height: 40.0,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  {
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
                     _openInGoogleMaps(widget.event.location.latitude,
                         widget.event.location.longitude);
-                  }
-                },
-                child: const Text("Ouvrir dans Google Maps"),
-              ),
-              const SizedBox(height: 20),
-              const Text("Participants",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4E4E4E))),
-              const SizedBox(height: 10),
-              isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : widget.event.participants.isEmpty
-                      ? Text("Aucun participant pour l’instant.",
-                          style: TextStyle(color: Colors.grey[700]))
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: widget.event.participants.length,
-                          itemBuilder: (context, index) {
-                            final participant =
-                                widget.event.participants[index];
-                            final userId = participant['_id'];
-                            var user = participantDetails[userId];
-                            bool isCurrentUser = userId == widget.userId;
-
-                            return GestureDetector(
-                              onTap: () {
-                                if (isCurrentUser) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const MainScreen(initialIndex: 4),
-                                    ),
-                                  );
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TravelerProfileScreen(
-                                        travelerId: userId,
-                                        loggedInUserId: widget.userId,
-                                        token: widget.token,
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundImage:
-                                        user?["profileImage"] != null
-                                            ? NetworkImage(user["profileImage"])
-                                            : const AssetImage(
-                                                    "assets/default_avatar.png")
-                                                as ImageProvider,
-                                  ),
-                                  title: Text(
-                                    "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  subtitle:
-                                      Text(user?["email"] ?? "Email inconnu"),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-              const SizedBox(height: 20),
-              if (widget.event.participants.contains(widget.userId))
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupChatScreen(
-                          eventProvider: EventProvider(userId: widget.userId),
-                          conversationId: widget.event.conversationId,
-                          groupName: widget.event.title,
-                          userId: widget.userId,
-                        ),
-                      ),
-                    );
                   },
-                  icon: const Icon(Icons.chat, color: Colors.white),
-                  label: const Text("Rejoindre le Chat"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 221, 170, 228),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  child: const Text("Open in Google Maps"),
                 ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  _showShareInConversationDialog();
-                },
-                icon: const Icon(Icons.share, color: Colors.white),
-                label: const Text("Partager dans une conversation"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: shareEventToMessenger,
-                icon: const Icon(Icons.send),
-                label: const Text("Partager sur Messenger"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                ),
-              ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.camera_alt),
-                label: const Text("Créer un souvenir"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Souhaites-tu partager ce souvenir ?'),
-                      actions: [
-                        TextButton(
-                          child: const Text('Privé 🔒'),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _uploadAndGenerateReel(
-                                isShared: false); // 🚀 upload privé
-                          },
-                        ),
-                        TextButton(
-                          child: const Text('Public 🌍'),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _uploadAndGenerateReel(
-                                isShared: true); // 🚀 upload public
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-/*if(_reelExists)
-  ElevatedButton.icon(
-  icon: const Icon(Icons.movie),
-  label: const Text("🎬 Voir souvenir"),
-  onPressed: () {
-    final reelUrl = '${ApiConstants.baseUrl}/reels/${widget.event.id}.mp4';
-    print("🎥 Requête vers : $reelUrl");
+                const SizedBox(height: 20),
+                const Text("Participants",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4E4E4E))),
+                const SizedBox(height: 10),
+                isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : widget.event.participants.isEmpty
+                        ? Text("Aucun participant pour l’instant.",
+                            style: TextStyle(color: Colors.grey[700]))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: widget.event.participants.length,
+                            itemBuilder: (context, index) {
+                              final participant =
+                                  widget.event.participants[index];
+                              final userId = participant['_id'];
+                              var user = participantDetails[userId];
+                              bool isCurrentUser = userId == widget.userId;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VideoPlayerScreen(videoUrl: reelUrl),
-      ),
-    );
-  },
-),*/
-              if (_reelExists)
-                ElevatedButton.icon(
-                  onPressed: _openStoryView,
-                  icon: const Icon(Icons.movie),
-                  label: const Text("🎬 Voir souvenirs"),
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                ),
-              if (!_reelExists)
-                const Center(
-                  child: Text(
-                    "Pas encore de souvenirs 🎬",
-                    style: TextStyle(color: Colors.grey),
+                              return GestureDetector(
+                                onTap: () {
+                                  if (isCurrentUser) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const MainScreen(initialIndex: 4),
+                                      ),
+                                    );
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            TravelerProfileScreen(
+                                          travelerId: userId,
+                                          loggedInUserId: widget.userId,
+                                          token: widget.token,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: user?["profileImage"] !=
+                                              null
+                                          ? NetworkImage(user["profileImage"])
+                                          : const AssetImage(
+                                                  "assets/default_avatar.png")
+                                              as ImageProvider,
+                                    ),
+                                    title: Text(
+                                      "${user?["name"] ?? "Inconnu"} ${isCurrentUser ? "(moi)" : ""}",
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    subtitle:
+                                        Text(user?["email"] ?? "Email inconnu"),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                const SizedBox(height: 20),
+                if (widget.event.participants.contains(widget.userId))
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GroupChatScreen(
+                            eventProvider: EventProvider(userId: widget.userId),
+                            conversationId: widget.event.conversationId,
+                            groupName: widget.event.title,
+                            userId: widget.userId,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat, color: Colors.white),
+                    label: const Text("Join the Chat"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 221, 170, 228),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -745,7 +710,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         if (snapshot.hasData) {
           return _buildDetailRow(
             Icons.location_on,
-            "Lieu",
+            "Location",
             snapshot.data!,
             iconColor: const Color(0xFFFF8A65),
           );

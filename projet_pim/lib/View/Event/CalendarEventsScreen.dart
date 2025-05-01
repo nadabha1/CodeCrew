@@ -17,6 +17,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Add this import
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class CalendarEventsScreen extends StatefulWidget {
   final String userId;
@@ -123,20 +124,37 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
 
   Future<void> _requestPermission() async {
     try {
+      // Demander le full access calendrier (Android 14+)
+      var status = await Permission.calendarFullAccess.status;
+      if (!status.isGranted) {
+        status = await Permission.calendarFullAccess.request();
+        if (!status.isGranted) {
+          print('Permission calendrier non accordée (calendarFullAccess)');
+          return;
+        }
+      }
+
+      // Ensuite, vérifier via device_calendar
       var hasPermissions = await _deviceCalendarPlugin.hasPermissions();
+      print(
+          "hasPermissions result: ${hasPermissions.isSuccess}, ${hasPermissions.data}");
+
       if (!hasPermissions.isSuccess || hasPermissions.data == false) {
         var permissionResponse =
             await _deviceCalendarPlugin.requestPermissions();
+        print(
+            "requestPermissions result: ${permissionResponse.isSuccess}, ${permissionResponse.data}");
+
         if (permissionResponse.isSuccess && permissionResponse.data!) {
           _getCalendarEvents();
         } else {
-          print('Permission not granted');
+          print('Permission non accordée via device_calendar');
         }
       } else {
         _getCalendarEvents();
       }
     } catch (e) {
-      print('Error requesting permission: $e');
+      print('Erreur lors de la demande de permission: $e');
     }
   }
 
@@ -256,40 +274,39 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     final start = DateTime.parse(slot['start']!).toLocal();
     final dayName = _getDayName(start.weekday);
     final partOfDay = _getPartOfDay(start);
-    return 'Vous êtes libre le $dayName $partOfDay ? Voici $eventCount événements intéressants à proximité.';
+    return 'Are you free on $dayName $partOfDay ?  Here are  $eventCount interesting events nearby.';
   }
 
   String _getDayName(int weekday) {
     const days = [
-      'lundi',
-      'mardi',
-      'mercredi',
-      'jeudi',
-      'vendredi',
-      'samedi',
-      'dimanche'
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
     ];
     return days[weekday - 1];
   }
 
   String _getPartOfDay(DateTime time) {
     final hour = time.hour;
-    if (hour < 12) return 'matin';
-    if (hour < 18) return 'après-midi';
-    return 'soir';
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
   }
 
   Widget _buildDeviceEventsList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('     📅 Votre calendrier de la semaine ',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        /*Text('  Your weekly schedule ',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),*/
         Container(
           height: 150, // Ajustez la hauteur en fonction de votre besoin
           width: double.infinity,
-          padding:
-              EdgeInsets.all(10), // Ajoutez un padding autour du calendrier
+          padding: EdgeInsets.all(8), // Ajoutez un padding autour du calendrier
           child: TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
@@ -392,7 +409,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                         children: [
                           // Titre de l'événement avec un style plus attractif
                           Text(
-                            event.title ?? 'Sans titre',
+                            event.title ?? 'no title',
                             style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -469,7 +486,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
               height: 150, // Hauteur personnalisée pour ce BottomSheet
               child: Center(
                 child: Text(
-                  'Aucun événement pour cette journée.',
+                  'No events for this day.',
                   textAlign: TextAlign.center, // Centrer le texte
                   style: TextStyle(
                     fontSize: 18,
@@ -508,61 +525,53 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
         },
         child: Card(
           elevation: 6,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Color(0xFF161055), width: 1.5),
+          ),
           clipBehavior: Clip.antiAlias,
           child: Container(
             width: 400,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 210, 172, 201),
-                  Color.fromARGB(204, 150, 128, 212),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+            color: Colors.white,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  event.title ?? 'Sans titre',
+                  event.title ?? 'no title',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Color(0xFF161055),
                   ),
                 ),
                 SizedBox(height: 8),
                 if (event.description != null && event.description!.isNotEmpty)
                   Text(
                     event.description!,
-                    style: TextStyle(fontSize: 14, color: Colors.white70),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF161055)),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 SizedBox(height: 14),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                    Icon(Icons.calendar_today,
+                        color: Color(0xFF161055), size: 16),
                     SizedBox(width: 6),
                     Text(
                       dateText,
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: Color(0xFF161055)),
                     ),
                     Spacer(),
-                    Icon(Icons.access_time, color: Colors.white70, size: 16),
+                    Icon(Icons.access_time, color: Color(0xFF161055), size: 16),
                     SizedBox(width: 4),
                     Text(
                       "$duration min",
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: Color(0xFF161055)),
                     ),
                   ],
                 ),
-                SizedBox(height: 10),
-                // Tu peux rajouter l'affichage du lieu ici plus tard
               ],
             ),
           ),
@@ -681,7 +690,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     if (eventsInSlots.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Text("Aucun événement dans vos créneaux libres ce jour-là.",
+        child: Text("No events in your free time slots on this day",
             style: TextStyle(fontSize: 16, color: Colors.grey)),
       );
     }
@@ -835,19 +844,19 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Rejoindre l'événement ?"),
-          content: Text("Prix de participation : ${event.joinPrice} coins"),
+          title: Text("Join the event?"),
+          content: Text("Participation Fee: ${event.joinPrice} coins"),
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text("Annuler")),
+                child: Text("Cancel")),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _eventProvider.joinEvent(widget.userId, event.id);
                 await _fetchAllEvents();
               },
-              child: Text("Confirmer"),
+              child: Text("Confirm"),
             ),
           ],
         );
@@ -870,33 +879,50 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   Widget _buildStyledEventCard(Event event) {
     bool isParticipating = event.isParticipating;
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 10),
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Color(0xFF161055), width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        width: 400,
+        color: Colors.white,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(event.title,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              event.title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF161055),
+              ),
+            ),
             SizedBox(height: 6),
-            Text(event.description,
-                maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(
+              event.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Color(0xFF161055)),
+            ),
             SizedBox(height: 10),
             Row(children: [
-              Icon(Icons.calendar_today, size: 14),
+              Icon(Icons.calendar_today, size: 14, color: Color(0xFF161055)),
               SizedBox(width: 6),
-              Text(event.startDate.toString().split(" ")[0],
-                  style: TextStyle(fontSize: 12)),
+              Text(
+                event.startDate.toString().split(" ")[0],
+                style: TextStyle(fontSize: 12, color: Color(0xFF161055)),
+              ),
             ]),
             SizedBox(height: 4),
             Row(children: [
-              Icon(Icons.location_on, size: 14),
+              Icon(Icons.location_on, size: 14, color: Color(0xFF161055)),
               SizedBox(width: 6),
               Text(
                 '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: 12, color: Color(0xFF161055)),
               ),
             ]),
             SizedBox(height: 10),
@@ -922,14 +948,15 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isParticipating ? Colors.green : Colors.deepOrange,
+                    backgroundColor: isParticipating
+                        ? Color(0xFF9680D4)
+                        : Color.fromARGB(198, 243, 199, 249),
+                    foregroundColor: Colors.white,
                   ),
-                  child:
-                      Text(isParticipating ? "Rejoindre le Chat" : "Rejoindre"),
+                  child: Text(isParticipating ? "Join Chat" : "Rejoindre"),
                 ),
                 IconButton(
-                  icon: Icon(Icons.more_horiz),
+                  icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -965,13 +992,13 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       backgroundColor: Color(0xFFF7F4FC),
       appBar: AppBar(
         backgroundColor: Color(0xFFDBD9FE),
-        title: Text("Tous les événements"),
+        title: Text("All Events"),
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: "Calendrier"),
-            Tab(text: "Tous les événements"),
+            Tab(text: "Calendar"),
+            Tab(text: "All Events"),
           ],
         ),
       ),
@@ -982,38 +1009,58 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
               children: [
                 // Affichage du calendrier et des événements dans l'onglet "Calendrier"
                 Scaffold(
-                  appBar: AppBar(
-                    title: Text('Calendar Events'),
-                    actions: [
-                      IconButton(
-                        icon: Icon(Icons.refresh),
-                        onPressed:
-                            _refreshData, // Fonction de rafraîchissement des données
+                  body: Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Your Weekly Schedule', // Texte en haut
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.refresh),
+                                  onPressed:
+                                      _refreshData, // Fonction de rafraîchissement des données
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.my_location),
+                                  onPressed:
+                                      _getUserLocation, // Fonction pour obtenir la localisation de l'utilisateur
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.my_location),
-                        onPressed:
-                            _getUserLocation, // Fonction pour obtenir la localisation de l'utilisateur
-                      ),
+                      // Affichage du contenu de la page
+                      _isLoading
+                          ? Center(child: CircularProgressIndicator())
+                          : SingleChildScrollView(
+                              padding: EdgeInsets.all(10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildDeviceEventsList(),
+                                  // Liste des événements de l'appareil
+                                  _buildFreeSlotMessages(),
+                                  // Messages concernant les créneaux horaires libres
+                                  SizedBox(height: 20),
+                                  // _buildFreeSlotsList(), // Liste des créneaux horaires libres (optionnel)
+                                  SizedBox(height: 20),
+                                  // _buildNonConflictingEventList(), // Liste des événements sans conflits (optionnel)
+                                ],
+                              ),
+                            ),
                     ],
                   ),
-                  body: _isLoading
-                      ? Center(child: CircularProgressIndicator())
-                      : SingleChildScrollView(
-                          padding: EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildDeviceEventsList(), // Liste des événements de l'appareil
-                              _buildFreeSlotMessages(), // Messages concernant les créneaux horaires libres
-
-                              SizedBox(height: 20),
-                              // _buildFreeSlotsList(), // Liste des créneaux horaires libres (optionnel)
-                              SizedBox(height: 20),
-                              // _buildNonConflictingEventList(), // Liste des événements sans conflits (optionnel)
-                            ],
-                          ),
-                        ),
                 ),
 
                 // Affichage des événements dans l'onglet "Tous les événements"
@@ -1028,7 +1075,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                         onChanged: _filterEvents,
                         onSubmitted: onSearch,
                         decoration: InputDecoration(
-                          hintText: 'Rechercher par titre ou participant...',
+                          hintText: 'Search by title or participant...',
                           prefixIcon: Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.white,
@@ -1049,7 +1096,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                           child: TextButton.icon(
                             onPressed: _resetFilters,
                             icon: Icon(Icons.refresh, color: Colors.deepPurple),
-                            label: Text("Réinitialiser",
+                            label: Text("Reset",
                                 style: TextStyle(color: Colors.deepPurple)),
                           ),
                         ),
@@ -1059,13 +1106,16 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                         child: ListView(
                           children: [
                             if (recentEvents.isNotEmpty) ...[
-                              Text("\u{1F4C5} Événements récents",
-                                  style: sectionStyle),
+                              Text(" Recent events",
+                                  style: sectionStyle.copyWith(
+                                      color: Color(0xFF161055))),
                               ...recentEvents.map(_buildStyledEventCard),
                               Divider(thickness: 1.5),
                             ],
                             if (upcomingEvents.isNotEmpty) ...[
-                              Text("\u{1F680} À venir", style: sectionStyle),
+                              Text("Upcoming",
+                                  style: sectionStyle.copyWith(
+                                      color: Color(0xFF161055))),
                               ...upcomingEvents.map(_buildStyledEventCard),
                             ]
                           ],

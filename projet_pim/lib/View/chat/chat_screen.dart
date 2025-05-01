@@ -78,7 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
         orElse: () => null,
       );
       setState(() {
-        otherUserName = other?['name'] ?? "Utilisateur";
+        otherUserName = other?['name'] ?? "User";
       });
     }
   }
@@ -127,7 +127,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageController.clear();
       fetchMessages();
     } else {
-      print("❌ Erreur d'envoi: ${response.body}");
+      print("❌ Error sending: ${response.body}");
     }
   }
 
@@ -136,10 +136,10 @@ class _ChatScreenState extends State<ChatScreen> {
       future: widget.eventProvider.getEventById(eventId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Text("Chargement...");
+          return Text("Loading...");
         }
         if (!snapshot.hasData) {
-          return Text("Événement introuvable");
+          return Text("Event not found");
         }
 
         final event = snapshot.data!;
@@ -169,10 +169,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   SizedBox(height: 4),
                   Text(
-                      "📍 Lieu : ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
+                      "📍 Location: ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
                   Text(
-                      "📅 Début : ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
-                  Text("🔗 Rejoins : chat/${event.id}"),
+                      "📅 Start: ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
+                  Text("🔗 Join: chat/${event.id}"),
                 ],
               ),
             ),
@@ -186,7 +186,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final status = await Permission.microphone.request();
     if (status != PermissionStatus.granted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission micro refusée')),
+        SnackBar(content: Text('Microphone permission denied')),
       );
       return;
     }
@@ -221,7 +221,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (response.statusCode == 201) {
       fetchMessages();
     } else {
-      print("Erreur d'envoi audio: $respStr");
+      print("Audio send error: $respStr");
     }
   }
 
@@ -284,7 +284,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(otherUserName ?? "Discussion"),
+        title: Text(otherUserName ?? "Conversation"),
         backgroundColor: const Color(0xFFFFCDB1),
         actions: [
           IconButton(
@@ -344,8 +344,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                           onTap: () {
                                             final channelName = msg['content']
                                                 .toString()
-                                                .substring(
-                                                    5); // enlever 'call:'
+                                                .substring(5); // remove 'call:'
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -359,7 +358,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             );
                                           },
                                           child: Text(
-                                            "📞 Rejoindre l'appel",
+                                            "📞 Join the call",
                                             style: TextStyle(
                                               color: Colors.blue,
                                               decoration:
@@ -380,37 +379,46 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           Divider(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
+            padding: EdgeInsets.all(8),
             child: Row(
               children: [
+                IconButton(
+                  onPressed: () async {
+                    if (isRecording) {
+                      await stopRecording();
+                    } else {
+                      await startRecording();
+                    }
+                  },
+                  icon: Icon(
+                    isRecording ? Icons.stop : Icons.mic,
+                    color: Colors.deepPurple,
+                  ),
+                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: "Écrire un message...",
-                      filled: true,
-                      fillColor: Colors.grey[200],
+                      hintText: "Enter a message",
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
                 ),
-                SizedBox(width: 6),
                 IconButton(
+                  onPressed: () {
+                    final text = _messageController.text.trim();
+                    if (text.isNotEmpty) {
+                      sendMessage(text: text);
+                    }
+                  },
                   icon: Icon(Icons.send, color: Colors.deepPurple),
-                  onPressed: () =>
-                      sendMessage(text: _messageController.text.trim()),
-                ),
-                IconButton(
-                  icon: Icon(isRecording ? Icons.stop : Icons.mic,
-                      color: Colors.redAccent),
-                  onPressed: isRecording ? stopRecording : startRecording,
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

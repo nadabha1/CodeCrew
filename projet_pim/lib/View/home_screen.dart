@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
-import 'package:projet_pim/View/CalendarEventsScreen.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
 import 'package:projet_pim/View/NotificationScreen.dart';
@@ -39,14 +39,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> allUsers = [];
   bool isLoadingUsers = true;
   String? _userId;
-    int _unreadNotifications = 0;
+  int _unreadNotifications = 0;
   String? _token;
   List<String> _selectedCategories = [];
   bool isShowingFallbackUsers = false;
   bool showMatches = false; // false = show People, true = show Matches
   List<dynamic> matches = [];
   bool isLoadingMatches = true; // par défaut en cours de chargement
-    final NotificationService _notificationService = NotificationService();
+  final NotificationService _notificationService = NotificationService();
 
   TextEditingController _searchController = TextEditingController();
 
@@ -75,16 +75,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadWeather();
     _preloadMatches();
   }
-  @override
-void dispose() {
-  super.dispose();
-}
 
-@override
-void didPopNext() {
-  // ✅ Quand on revient sur cette page
-  _fetchUnreadNotifications();
-}
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // ✅ Quand on revient sur cette page
+    _fetchUnreadNotifications();
+  }
 
   Widget _buildDrawer() {
     return Drawer(
@@ -205,6 +206,7 @@ void didPopNext() {
       });
     }
   }
+
   Future<void> _fetchUnreadNotifications() async {
     if (_userId != null) {
       final count =
@@ -512,7 +514,7 @@ void didPopNext() {
                         controller: _searchController,
                         onSubmitted: onSearch,
                         decoration: InputDecoration(
-                          hintText: 'Rechercher un utilisateur...',
+                          hintText: 'Search for a user...',
                           prefixIcon: Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.white,
@@ -579,7 +581,7 @@ void didPopNext() {
                             });
                           },
                           icon: Icon(Icons.refresh, color: Colors.black87),
-                          label: Text("Réinitialiser les filtres",
+                          label: Text("Reset filters",
                               style: TextStyle(color: Colors.black87)),
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.grey[200],
@@ -677,7 +679,7 @@ void didPopNext() {
                                   padding: const EdgeInsets.all(20.0),
                                   child: Center(
                                     child: Text(
-                                      "Aucun match trouvé.",
+                                      "No match found.",
                                       style: TextStyle(
                                           fontSize: 16, color: Colors.grey),
                                     ),
@@ -714,7 +716,7 @@ void didPopNext() {
                               padding: const EdgeInsets.all(20.0),
                               child: Center(
                                 child: Text(
-                                  "Aucun utilisateur trouvé.",
+                                  "No user found.",
                                   style: TextStyle(
                                       fontSize: 16, color: Colors.grey),
                                 ),
@@ -735,120 +737,121 @@ void didPopNext() {
   }
 
   Widget _buildHeader() {
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-    decoration: BoxDecoration(
-      color: Color(0xFFDBD9FE),
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(30),
-        bottomRight: Radius.circular(30),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: Color(0xFFDBD9FE),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
       ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // ✅ Météo à gauche
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WeatherScreen(
-                userId: widget.userId,
-                weatherData: weatherData ?? {},
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // ✅ Météo à gauche
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WeatherScreen(
+                  userId: widget.userId,
+                  weatherData: weatherData ?? {},
+                ),
               ),
             ),
+            child: weatherData != null
+                ? Row(
+                    children: [
+                      Image.network(
+                        "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    "N/A °C",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
           ),
-          child: weatherData != null
-              ? Row(
-                  children: [
-                    Image.network(
-                      "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                )
-              : Text(
-                  "N/A °C",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-        ),
 
-        // ✅ Notifications + Profil à droite
-        Row(
-          children: [
-            Stack(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.notifications, color: Colors.white, size: 28),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NotificationScreen(userId: widget.userId),
-                      ),
-                    );
-                  },
-                ),
-                // 🔴 Marqueur rouge si notifications non lues
-                if (_unreadNotifications > 0) 
-                  Positioned(
-                    right: 6,
-                    top: 6,
-                    child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$_unreadNotifications',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+          // ✅ Notifications + Profil à droite
+          Row(
+            children: [
+              Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications,
+                        color: Colors.white, size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              NotificationScreen(userId: widget.userId),
+                        ),
+                      );
+                    },
+                  ),
+                  // 🔴 Marqueur rouge si notifications non lues
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '$_unreadNotifications',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            SizedBox(width: 8),
-            IconButton(
-              icon: Icon(Icons.person, color: Colors.white, size: 28),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UserProfileScreen(
-                      userId: widget.userId,
-                      token: widget.token,
+                ],
+              ),
+              SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.person, color: Colors.white, size: 28),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileScreen(
+                        userId: widget.userId,
+                        token: widget.token,
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

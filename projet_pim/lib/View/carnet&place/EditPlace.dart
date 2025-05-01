@@ -290,7 +290,7 @@ class _EditPlaceState extends State<EditPlace> {
               // Affichage des images
               const SizedBox(height: 8),
               const Text(
-                "Images",
+                "Pictures",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(

@@ -30,16 +30,17 @@ class _NewGroupConversationScreenState
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString("user_id");
-    String? token = prefs.getString("jwt_token");
+    final storedUserId = prefs.getString("user_id");
+    final storedToken = prefs.getString("jwt_token");
 
-    if (userId != null && token != null) {
+    if (storedUserId != null && storedToken != null) {
+      print("User ID and Token retrieved from SharedPreferences.");
       setState(() {
-        userId = userId;
-        token = token;
+        userId = storedUserId;
+        token = storedToken;
       });
-      // Now call getFollowing to fetch followed users
-      await getFollowing(userId!); // Pass the userId to getFollowing
+      await getFollowing(
+          storedUserId); // You can keep storedUserId as it is not null
     } else {
       print("User ID or Token is not available");
       setState(() {
@@ -51,21 +52,26 @@ class _NewGroupConversationScreenState
   // Call getFollowing via UserService
   Future<void> getFollowing(String userId) async {
     try {
-      // Récupérer la liste des utilisateurs suivis
+      print("Fetching the following users for userId: $userId");
+      // Get the list of followed users
       UserService userService = UserService();
       List<String> following = await userService.getFollowing(userId);
+      print("Following users from the backend: $following");
 
-      // Appeler la fonction pour récupérer les détails des utilisateurs suivis
+      if (following.isEmpty) {
+        print("No users followed.");
+      }
+
+      // Call function to get details of followed users
       List<Map<String, dynamic>> fetchedUsers =
           await getUserById(following, token!);
 
       setState(() {
-        users =
-            fetchedUsers; // Mettre à jour la liste des utilisateurs avec les données récupérées
+        users = fetchedUsers; // Update the list of users with the fetched data
         isLoading = false;
       });
     } catch (e) {
-      print("Erreur lors de la récupération des utilisateurs suivis: $e");
+      print("Error fetching followed users: $e");
       setState(() {
         isLoading = false;
       });
@@ -78,28 +84,32 @@ class _NewGroupConversationScreenState
 
     for (String userId in userIds) {
       try {
+        print("Fetching details for userId: $userId");
         final user = await UserService().getUserById(userId, token);
         if (user.containsKey('_id')) {
-          fetchedUsers.add(user); // Ajouter l'utilisateur dans la liste
+          print("User details retrieved: $user");
+          fetchedUsers.add(user); // Add user to the list
         }
       } catch (e) {
-        print(
-            "Erreur lors de la récupération des détails de l'utilisateur $userId: $e");
+        print("Error fetching details for user $userId: $e");
       }
     }
 
     return fetchedUsers;
   }
 
-  // Fonction pour créer une conversation de groupe
+  // Function to create a group conversation
   Future<void> createGroupConversation() async {
     if (groupNameController.text.isEmpty || selectedUserIds.isEmpty) {
+      print("Group name or members are missing.");
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Nom de groupe ou membres manquants.")));
+          const SnackBar(content: Text("Group name or members missing.")));
       return;
     }
 
     final allParticipantIds = [userId!, ...selectedUserIds];
+    print("Creating group conversation with participants: $allParticipantIds");
+
     final response = await http.post(
       Uri.parse('${ApiConstants.baseUrl}/conversations/group'),
       headers: {"Content-Type": "application/json"},
@@ -110,18 +120,19 @@ class _NewGroupConversationScreenState
     );
 
     if (response.statusCode == 201 || response.statusCode == 200) {
+      print("Group conversation created successfully.");
       Navigator.pop(context, true);
     } else {
-      print(response.body);
+      print("Failed to create group conversation: ${response.body}");
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Erreur lors de la création du groupe.")));
+          const SnackBar(content: Text("Error creating the group.")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Créer un groupe")),
+      appBar: AppBar(title: const Text("Create a Group")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -130,7 +141,7 @@ class _NewGroupConversationScreenState
                 children: [
                   TextField(
                     controller: groupNameController,
-                    decoration: const InputDecoration(labelText: "Nom du groupe"),
+                    decoration: const InputDecoration(labelText: "Group Name"),
                   ),
                   const SizedBox(height: 20),
                   Expanded(
@@ -169,7 +180,7 @@ class _NewGroupConversationScreenState
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFC8C4FF),
                     ),
-                    child: Text("Créer le groupe"),
+                    child: Text("Create Group"),
                   )
                 ],
               ),

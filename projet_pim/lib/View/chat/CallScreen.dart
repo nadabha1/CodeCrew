@@ -23,8 +23,8 @@ class CallScreen extends StatefulWidget {
 
 class _CallScreenState extends State<CallScreen> {
   static const String appId =
-      '6d5a203e2d024f2c92c9e9f44bc37390'; // Remplace ici !
-  late final RtcEngine _engine; // 👈 ici on crée une instance privée
+      '6d5a203e2d024f2c92c9e9f44bc37390'; // Replace with your real appId
+  late final RtcEngine _engine; // 👈 private instance created here
   int? _remoteUid;
   bool _isJoined = false;
 
@@ -43,15 +43,14 @@ class _CallScreenState extends State<CallScreen> {
 
       if (response.statusCode == 200) {
         final token = response.body;
-        debugPrint('🪪 Token récupéré: $token');
+        debugPrint('🪪 Token retrieved: $token');
         return token;
       } else {
-        debugPrint(
-            '⚠️ Impossible de récupérer le token, status: ${response.statusCode}');
+        debugPrint('⚠️ Unable to fetch token, status: ${response.statusCode}');
         return "";
       }
     } catch (e) {
-      debugPrint('⚠️ Erreur lors de la récupération du token: $e');
+      debugPrint('⚠️ Error fetching token: $e');
       return "";
     }
   }
@@ -60,7 +59,7 @@ class _CallScreenState extends State<CallScreen> {
     _engine = createAgoraRtcEngine();
     await _engine.initialize(
       const RtcEngineContext(
-        appId: appId, // ton vrai appId
+        appId: appId, // your real appId
         channelProfile: ChannelProfileType.channelProfileCommunication,
       ),
     );
@@ -91,7 +90,7 @@ class _CallScreenState extends State<CallScreen> {
       ),
     );
 
-    // 👉 NOUVEAU : récupérer le token avant de rejoindre le channel
+    // 👉 NEW: fetch token before joining the channel
     final token = await _fetchToken(widget.channelName);
 
     await _engine.joinChannel(
@@ -103,15 +102,15 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   void sendChannelLink() async {
-    final message = '📞 Rejoins-moi sur l\'appel : ${widget.channelName}';
+    final message = '📞 Join me on the call: ${widget.channelName}';
 
     await http.post(
       Uri.parse('${ApiConstants.baseUrl}/messages'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "conversationId":
-            widget.conversationId, // il te faut passer le conversationId
-        "senderId": widget.userId, // il te faut aussi l'userId
+            widget.conversationId, // need to pass the conversationId
+        "senderId": widget.userId, // need to pass the userId as well
         "content": message,
         "type": "call_invite",
       }),
@@ -136,7 +135,7 @@ class _CallScreenState extends State<CallScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Appel en cours'),
+        title: const Text('Ongoing Call'),
       ),
       body: Center(
         child: !_isJoined
@@ -145,10 +144,9 @@ class _CallScreenState extends State<CallScreen> {
                 stream: remoteUserStream,
                 builder: (context, snapshot) {
                   if (snapshot.data == null) {
-                    return const Text(
-                        'Connecté. En attente d\'un autre utilisateur...');
+                    return const Text('Connected. Waiting for another user...');
                   } else {
-                    return const Text('l utilisateur a rejoint l\'appel ! 🎉');
+                    return const Text('User has joined the call! 🎉');
                   }
                 },
               ),

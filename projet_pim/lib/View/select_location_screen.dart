@@ -71,7 +71,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sélectionnez un emplacement")),
+      appBar: AppBar(title: const Text("Select a location")),
       body: Column(
         children: [
           Padding(
@@ -79,7 +79,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: "Rechercher un lieu...",
+                hintText: "Search for a location...",
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: () =>
@@ -136,7 +136,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
             Navigator.pop(context, _selectedLocation);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Veuillez sélectionner un emplacement")),
+              const SnackBar(content: Text("Please select a location")),
             );
           }
         },
