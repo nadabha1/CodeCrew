@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
@@ -47,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> matches = [];
   bool isLoadingMatches = true; // par défaut en cours de chargement
   final NotificationService _notificationService = NotificationService();
-
+  bool isLoading = true;
   TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, dynamic>> categories = [
@@ -72,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
-    _loadWeather();
+    _getCurrentLocation();
     _preloadMatches();
   }
 
@@ -236,13 +237,50 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  void _loadWeather() async {
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifiez si les services de localisation sont activés
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Si les services de localisation ne sont pas activés, afficher une erreur
+      print('Les services de localisation ne sont pas activés');
+      return;
+    }
+
+    // Vérifiez les permissions de localisation
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // Si la permission est refusée, demandez-la
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Si l'utilisateur refuse encore la permission
+        print('La permission d\'accès à la localisation est refusée');
+        return;
+      }
+    }
+
+    // Si la permission est autorisée, récupérez la position actuelle
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _loadWeather(position.latitude, position.longitude);
+  }
+
+  void _loadWeather(double latitude, double longitude) async {
     try {
-      final data = await _weatherService.fetchWeather("Tunis");
+      final data =
+          await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
       setState(() {
         weatherData = data;
+        isLoading = false;
       });
-    } catch (_) {}
+    } catch (e) {
+      print("Erreur de chargement de la météo : $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> fetchUsers() async {

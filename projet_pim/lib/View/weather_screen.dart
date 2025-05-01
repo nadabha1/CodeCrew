@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
@@ -38,7 +39,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Future<void> _initializeScreen() async {
     await _loadUserData();
     if (userId != null) {
-      _loadWeather();
+      _getCurrentLocation();
     }
   }
 
@@ -60,7 +61,52 @@ class _WeatherScreenState extends State<WeatherScreen> {
     }
   }
 
-  // Fonction pour charger la météo et les lieux en fonction de la météo
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifiez si les services de localisation sont activés
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Si les services de localisation ne sont pas activés, afficher une erreur
+      print('Les services de localisation ne sont pas activés');
+      return;
+    }
+
+    // Vérifiez les permissions de localisation
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // Si la permission est refusée, demandez-la
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Si l'utilisateur refuse encore la permission
+        print('La permission d\'accès à la localisation est refusée');
+        return;
+      }
+    }
+
+    // Si la permission est autorisée, récupérez la position actuelle
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _loadWeather(position.latitude, position.longitude);
+  }
+
+  void _loadWeather(double latitude, double longitude) async {
+    try {
+      final data =
+          await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
+      setState(() {
+        weatherData = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Erreur de chargement de la météo : $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+  /*// Fonction pour charger la météo et les lieux en fonction de la météo
   void _loadWeather() async {
     try {
       final data = await _weatherService.fetchWeather("Tunis");
@@ -74,7 +120,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     } catch (e) {
       print("Erreur : $e");
     }
-  }
+  }*/
 
   // Fonction pour charger les lieux en fonction de la météo
   void _loadPlacesBasedOnWeather(String weatherCondition) async {
