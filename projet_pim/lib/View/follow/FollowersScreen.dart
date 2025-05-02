@@ -7,7 +7,8 @@ class FollowersScreen extends StatefulWidget {
   final List<String> userIds;
   final String token;
 
-  const FollowersScreen({required this.userIds, required this.token, super.key});
+  const FollowersScreen(
+      {required this.userIds, required this.token, super.key});
 
   @override
   _FollowersScreenState createState() => _FollowersScreenState();
@@ -32,11 +33,11 @@ class _FollowersScreenState extends State<FollowersScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString("user_id");
+    String? storedUserId = prefs.getString("user_id");
 
-    if (userId != null) {
+    if (storedUserId != null) {
       setState(() {
-        userId = userId;
+        userId = storedUserId;
       });
     } else {
       print("User ID is not available");

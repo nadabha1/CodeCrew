@@ -648,7 +648,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ),
                     // 📌 Section Événements
-                    // 📌 Section Événements
                     const SizedBox(height: 32),
                     const Text(
                       'Events',
@@ -661,11 +660,41 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(height: 16),
 
                     eventProvider.events.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No events available",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.grey),
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "No events available",
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 16.0, bottom: 32),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: FloatingActionButton(
+                                      backgroundColor: const Color.fromARGB(
+                                          255, 248, 214, 253),
+                                      child: const Icon(Icons.add),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                MyEventsScreen(
+                                              userId: widget.userId,
+                                              token: widget.token,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           )
                         : Column(

@@ -67,7 +67,6 @@ dependencies:
   syncfusion_flutter_calendar: ^28.1.38
   device_calendar: ^4.0.0
 
-
 dependency_overrides:
   # Overriding timezone to match the syncfusion and device_calendar requirements
   timezone: ^0.10.0

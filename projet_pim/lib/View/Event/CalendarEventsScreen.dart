@@ -953,7 +953,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                         : Color.fromARGB(198, 243, 199, 249),
                     foregroundColor: Colors.white,
                   ),
-                  child: Text(isParticipating ? "Join Chat" : "Rejoindre"),
+                  child: Text(isParticipating ? "Join Chat" : "Join Event"),
                 ),
                 IconButton(
                   icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
