@@ -41,6 +41,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   FlutterSoundPlayer _player = FlutterSoundPlayer();
   bool isPlaying = false;
   String? currentlyPlayingUrl;
+
   @override
   void initState() {
     super.initState();
@@ -67,13 +68,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     socket.connect();
 
     socket.onConnect((_) {
-      print("✅ Connexion WebSocket réussie !");
+      print("✅ WebSocket connected!");
       socket.emit('joinRoom', widget.conversationId);
     });
 
     socket.off('receiveMessage');
     socket.on('receiveMessage', (data) {
-      print("📩 Message reçu côté client: $data");
+      print("📩 Message received on client: $data");
       setState(() {
         if (!messages.any((msg) => msg['_id'] == data['_id'])) {
           messages.add(data);
@@ -81,7 +82,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       });
     });
 
-    socket.onDisconnect((_) => print("❌ Connexion WebSocket fermée."));
+    socket.onDisconnect((_) => print("❌ WebSocket disconnected."));
 
     fetchMessages();
   }
@@ -95,18 +96,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         messages = jsonData.cast<Map<String, dynamic>>();
       });
     } else {
-      print("❌ Erreur lors de la récupération des messages : ${response.body}");
+      print("❌ Error fetching messages: ${response.body}");
     }
   }
 
   void sendMessage({required String text}) async {
     if (_isSending || text.isEmpty) {
-      print("⚠️ Message vide ou envoi déjà en cours !");
+      print("⚠️ Empty message or already sending!");
       return;
     }
 
     _isSending = true;
-    print("🛑 Bouton pressé, envoi du message...");
+    print("🛑 Button pressed, sending message...");
 
     final message = {
       'conversationId': widget.conversationId,
@@ -124,16 +125,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        print("✅ Message envoyé avec succès : ${response.body}");
+        print("✅ Message sent successfully: ${response.body}");
         final newMessage = jsonDecode(response.body);
         setState(() {
           messages.add(newMessage);
         });
       } else {
-        print("❌ Erreur lors de l'envoi du message : ${response.body}");
+        print("❌ Error sending message: ${response.body}");
       }
     } catch (e) {
-      print("❌ Erreur réseau lors de l'envoi du message : $e");
+      print("❌ Network error sending message: $e");
     } finally {
       _isSending = false;
     }
@@ -155,7 +156,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final status = await Permission.microphone.request();
     if (status != PermissionStatus.granted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission micro refusée')),
+        SnackBar(content: Text('Microphone permission denied')),
       );
       return;
     }
@@ -190,7 +191,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (response.statusCode == 201) {
       fetchMessages();
     } else {
-      print("Erreur d'envoi audio: $respStr");
+      print("Audio send error: $respStr");
     }
   }
 
@@ -268,12 +269,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         ],
       ),
       body: Container(
-        /*decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/whatsapp.jpeg'),
-            fit: BoxFit.cover,
-          ),
-        ),*/
         child: Column(
           children: [
             Expanded(
@@ -282,14 +277,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 itemBuilder: (context, index) {
                   final message = messages[index];
                   final isMe = (message['sender'] is String)
-                      ? message['sender'] == _userId // Si sender est une chaîne
-                      : message['sender']['_id'] ==
-                          _userId; // Si sender est un objet
+                      ? message['sender'] == _userId
+                      : message['sender']['_id'] == _userId;
 
                   final senderName = (message['sender'] is String)
-                      ? 'Utilisateur inconnu' // Si sender est juste un ID, pas de nom
-                      : message['sender']['name'] ??
-                          'Utilisateur inconnu'; // Si sender est un objet
+                      ? 'Unknown User'
+                      : message['sender']['name'] ?? 'Unknown User';
 
                   return Align(
                     alignment:
@@ -331,7 +324,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             _buildAudioPlayer(message['content'], isMe)
                           else if (message['content'] != null &&
                               message['content'].toString().startsWith('call:'))
-                            // Handle clickable "call:" link
                             GestureDetector(
                               onTap: () {
                                 final channelName = message['content']
@@ -349,7 +341,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                 );
                               },
                               child: Text(
-                                "📞 Rejoindre l'appel",
+                                "📞 Join the call",
                                 style: TextStyle(
                                   color: Colors.blue,
                                   decoration: TextDecoration.underline,

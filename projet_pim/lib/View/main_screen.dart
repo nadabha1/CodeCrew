@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:projet_pim/View/CalendarEventsScreen.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/NotificationScreen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
@@ -47,13 +47,12 @@ class _MainScreenState extends State<MainScreen> {
       } else {
         _fetchUnreadNotifications();
         _pages = [
-  HomeScreen(userId: _userId!, token: _token!),
-  ExploreScreen(userId: _userId!),
-  TripPlanningScreen(userId: _userId!), // <-- AJOUTER ici
-  CalendarEventsScreen(userId: _userId!, token: _token!),
-  ConversationListScreen(),
-];
-
+          HomeScreen(userId: _userId!, token: _token!),
+          ExploreScreen(userId: _userId!),
+          TripPlanningScreen(userId: _userId!), // <-- AJOUTER ici
+          CalendarEventsScreen(userId: _userId!, token: _token!),
+          ConversationListScreen(),
+        ];
       }
     });
   }

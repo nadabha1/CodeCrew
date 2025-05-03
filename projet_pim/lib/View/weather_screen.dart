@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
@@ -12,11 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class WeatherScreen extends StatefulWidget {
   final String userId;
-  final Map<String, dynamic> weatherData;
-  const WeatherScreen({super.key, 
-    required this.userId,
-    required this.weatherData,
-  });
+  const WeatherScreen({required this.userId});
 
   @override
   _WeatherScreenState createState() => _WeatherScreenState();
@@ -42,19 +39,19 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Future<void> _initializeScreen() async {
     await _loadUserData();
     if (userId != null) {
-      _loadWeather();
+      _getCurrentLocation();
     }
   }
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString("user_id");
-    String? token = prefs.getString("jwt_token");
+    String? _userId = prefs.getString("user_id");
+    String? _token = prefs.getString("jwt_token");
 
-    if (userId != null && token != null) {
+    if (_userId != null && _token != null) {
       setState(() {
-        userId = userId;
-        token = token;
+        userId = _userId;
+        token = _token;
       });
     } else {
       print("User ID or Token is not available");
@@ -64,7 +61,52 @@ class _WeatherScreenState extends State<WeatherScreen> {
     }
   }
 
-  // Fonction pour charger la météo et les lieux en fonction de la météo
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifiez si les services de localisation sont activés
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Si les services de localisation ne sont pas activés, afficher une erreur
+      print('Les services de localisation ne sont pas activés');
+      return;
+    }
+
+    // Vérifiez les permissions de localisation
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // Si la permission est refusée, demandez-la
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Si l'utilisateur refuse encore la permission
+        print('La permission d\'accès à la localisation est refusée');
+        return;
+      }
+    }
+
+    // Si la permission est autorisée, récupérez la position actuelle
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _loadWeather(position.latitude, position.longitude);
+  }
+
+  void _loadWeather(double latitude, double longitude) async {
+    try {
+      final data =
+          await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
+      setState(() {
+        weatherData = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Erreur de chargement de la météo : $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+  /*// Fonction pour charger la météo et les lieux en fonction de la météo
   void _loadWeather() async {
     try {
       final data = await _weatherService.fetchWeather("Tunis");
@@ -78,7 +120,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     } catch (e) {
       print("Erreur : $e");
     }
-  }
+  }*/
 
   // Fonction pour charger les lieux en fonction de la météo
   void _loadPlacesBasedOnWeather(String weatherCondition) async {
@@ -158,20 +200,20 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Payment Confirmation"),
+          title: Text("Payment Confirmation"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Do you want to unlock '$placeName'?"),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text("Price to unlock: $placePrice coins"),
             ],
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancel"),
+              child: Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
@@ -219,7 +261,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       'Unable to unlock. Missing required information.');
                 }
               },
-              child: const Text("Confirm"),
+              child: Text("Confirm"),
             ),
           ],
         );
@@ -232,12 +274,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Error"),
+          title: Text("Error"),
           content: Text(message),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
+              child: Text("OK"),
             ),
           ],
         );
@@ -250,12 +292,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Success!"),
+          title: Text("Success!"),
           content: Text("You have successfully unlocked $placeName!"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
+              child: Text("OK"),
             ),
           ],
         );
@@ -268,10 +310,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Column(
       children: [
         Icon(icon, color: Colors.blueAccent, size: 40),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(label, style: TextStyle(fontSize: 16, color: Colors.grey[700])),
         Text(value,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black)),
@@ -292,11 +334,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        SizedBox(
+          height: 20,
+        ),
+        Text(
           "Lieux à visiter selon la météo",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -304,21 +349,24 @@ class _WeatherScreenState extends State<WeatherScreen> {
               bool isUnlocked = carnetProvider.isPlaceUnlocked(place.id);
 
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
                 elevation: 5,
                 child: Container(
-                  width: 200, // Width of the card
-                  padding: const EdgeInsets.all(10),
+                  width: 200,
+                  height: 320, // Hauteur fixe pour toutes les cartes
+                  padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     color: const Color.fromARGB(234, 249, 225, 225),
                   ),
                   child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween, // Répartition uniforme
                     children: [
-                      // Displaying image with blur effect if not unlocked
+                      // Image avec flou si non débloquée
                       if (place.images.isNotEmpty)
                         Stack(
                           children: [
@@ -332,7 +380,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
-                                        return const Icon(Icons.broken_image,
+                                        return Icon(Icons.broken_image,
                                             size: 50, color: Colors.grey);
                                       },
                                     )
@@ -346,7 +394,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) {
-                                          return const Icon(Icons.broken_image,
+                                          return Icon(Icons.broken_image,
                                               size: 50, color: Colors.grey);
                                         },
                                       ),
@@ -365,17 +413,17 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           ],
                         )
                       else
-                        const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                      const SizedBox(height: 10),
-                      // Displaying place name
+                        Icon(Icons.broken_image, size: 50, color: Colors.grey),
+
+                      // Nom du lieu
                       Text(
                         place.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
-                      // Additional information (short description or location)
+
+                      // Description ou message par défaut
                       Text(
                         place.description ?? 'No description available',
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -383,8 +431,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
-                      // Show button based on place unlocked state
+
+                      // Bouton : voir ou déverrouiller
                       ElevatedButton(
                         onPressed: isUnlocked
                             ? () {
@@ -404,17 +452,17 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                   place,
                                 );
                               },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isUnlocked
-                              ? const Color(0xFF9E9E9E)
-                              : const Color(0xFFD4F98F),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
                         child:
                             Text(isUnlocked ? "Voir détails" : "Déverrouiller"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isUnlocked
+                              ? Color(0xFF9E9E9E)
+                              : Color(0xFFD4F98F),
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                       )
                     ],
                   ),
@@ -422,7 +470,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               );
             }).toList(),
           ),
-        ),
+        )
       ],
     );
   }
@@ -432,12 +480,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFCEFEF),
       appBar: AppBar(
-        title: const Text("Météo d'aujourd'hui"),
+        title: Text("Météo d'aujourd'hui"),
         backgroundColor: const Color(0xFFDBD9FE),
         elevation: 0,
       ),
       body: weatherData == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -449,17 +497,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       children: [
                         Text(
                           "${weatherData!['name']}, ${weatherData!['sys']['country']}",
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87),
                         ),
+                        SizedBox(height: 10),
                         Image.network(
                           "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
                           width: 120,
                           height: 120,
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10),
                         Text(
                           "${weatherData!['weather'][0]['description']}",
                           style:
@@ -468,7 +517,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // Détails de la météo
                     Card(
@@ -482,41 +531,41 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           children: [
                             Text(
                               "${weatherData!['main']['temp']}°C",
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 50,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF161055)),
+                                  color: const Color(0xFF161055)),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10),
                             Text(
                               "Température ressentie : ${weatherData!['main']['feels_like']}°C",
                               style: TextStyle(
                                   fontSize: 18, color: Colors.grey[600]),
                             ),
-                            const Divider(),
+                            Divider(),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 Column(
                                   children: [
-                                    const Text("Min",
+                                    Text("Min",
                                         style: TextStyle(
                                             fontSize: 16, color: Colors.grey)),
                                     Text(
                                         "${weatherData!['main']['temp_min']}°C",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                                 Column(
                                   children: [
-                                    const Text("Max",
+                                    Text("Max",
                                         style: TextStyle(
                                             fontSize: 16, color: Colors.grey)),
                                     Text(
                                         "${weatherData!['main']['temp_max']}°C",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
                                   ],
@@ -528,7 +577,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // Autres infos météo (Humidité, Vent)
                     Row(
@@ -541,7 +590,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // Infos sur le lever et coucher du soleil
                     Card(
@@ -556,27 +605,27 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           children: [
                             Column(
                               children: [
-                                const Icon(Icons.wb_sunny,
+                                Icon(Icons.wb_sunny,
                                     color: Colors.orange, size: 35),
-                                const Text("Lever du soleil",
+                                Text("Lever du soleil",
                                     style: TextStyle(
                                         fontSize: 16, color: Colors.grey)),
                                 Text(
                                     _formatTime(weatherData!['sys']['sunrise']),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold)),
                               ],
                             ),
                             Column(
                               children: [
-                                const Icon(Icons.nightlight_round,
+                                Icon(Icons.nightlight_round,
                                     color: Colors.blueAccent, size: 35),
-                                const Text("Coucher du soleil",
+                                Text("Coucher du soleil",
                                     style: TextStyle(
                                         fontSize: 16, color: Colors.grey)),
                                 Text(_formatTime(weatherData!['sys']['sunset']),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold)),
                               ],

@@ -344,7 +344,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                labelText: 'Rechercher un lieu',
+                labelText: 'Search location',
                 border: OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
@@ -437,7 +437,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 7, horizontal: 7),
-                  backgroundColor: const Color.fromARGB(255, 255, 174, 107),
+                  backgroundColor: const Color.fromARGB(207, 242, 182, 250),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),

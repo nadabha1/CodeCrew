@@ -46,7 +46,7 @@ class _EditPlaceState extends State<EditPlace> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Prendre une photo'),
+              title: const Text('Take a photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -58,7 +58,7 @@ class _EditPlaceState extends State<EditPlace> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choisir depuis la galerie'),
+              title: const Text('Choose from gallery'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -170,7 +170,7 @@ class _EditPlaceState extends State<EditPlace> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Modifier le lieu"),
+        title: const Text("Edit location"),
         backgroundColor: const Color(0xFFDBD9FE),
       ),
       body: Padding(
@@ -226,16 +226,16 @@ class _EditPlaceState extends State<EditPlace> {
               ),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: "Nom"),
+                decoration: const InputDecoration(labelText: "Name"),
                 validator: (value) =>
-                    value!.isEmpty ? "Veuillez entrer un nom" : null,
+                    value!.isEmpty ? "Please enter a name" : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(labelText: "Description"),
                 validator: (value) =>
-                    value!.isEmpty ? "Veuillez entrer une description" : null,
+                    value!.isEmpty ? "Please enter a description" : null,
               ),
               const SizedBox(height: 8),
 
@@ -290,7 +290,7 @@ class _EditPlaceState extends State<EditPlace> {
               // Affichage des images
               const SizedBox(height: 8),
               const Text(
-                "Images enregistrées",
+                "Pictures",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(
@@ -355,7 +355,7 @@ class _EditPlaceState extends State<EditPlace> {
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFE7B32)),
-                child: const Text("Enregistrer"),
+                child: const Text("Save"),
               ),
             ],
           ),

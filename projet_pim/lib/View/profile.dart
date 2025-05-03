@@ -30,7 +30,8 @@ class TravelerProfileScreen extends StatefulWidget {
   _TravelerProfileScreenState createState() => _TravelerProfileScreenState();
 }
 
-class _TravelerProfileScreenState extends State<TravelerProfileScreen> with SingleTickerProviderStateMixin {
+class _TravelerProfileScreenState extends State<TravelerProfileScreen>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic>? travelerData;
   late Future<List<Carnet>> travelerCarnets =
       Future.value([]); // Initialize as empty list
@@ -42,12 +43,11 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> with Sing
   CarnetProvider? carnetProvider;
   late TabController _tabController;
 
-
   @override
   void initState() {
     super.initState();
     carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
-  _tabController = TabController(length: 3, vsync: this); // ← ajouter ça !
+    _tabController = TabController(length: 3, vsync: this); // ← ajouter ça !
     fetchTravelerProfile();
     fetchFollowerData();
   }
@@ -179,12 +179,21 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> with Sing
   }
 
   void _showErrorDialog(String message) {
+    String displayMessage;
+    if (message.contains("Not enough coins")) {
+      displayMessage = "You don't have enough coins to unlock this place.";
+    } else if (message.contains("Failed to unlock place")) {
+      displayMessage = "You don't have enough coins to unlock this place.";
+    } else {
+      displayMessage = message;
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Erreur"),
-          content: Text(message),
+          title: const Text("Oops! You're Short on Coins"),
+          content: Text(displayMessage),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -334,227 +343,278 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen> with Sing
     );
   }
 
-Widget _buildCarnetSection() {
-  final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
+  Widget _buildCarnetSection() {
+    final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
 
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FutureBuilder<List<Carnet>>(
-          future: travelerCarnets,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FutureBuilder<List<Carnet>>(
+            future: travelerCarnets,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (snapshot.hasError) {
-              return const Center(child: Text('Erreur de chargement des carnets'));
-            }
+              if (snapshot.hasError) {
+                return const Center(
+                    child: Text('Erreur de chargement des carnets'));
+              }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("Aucun carnet disponible."));
-            }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text("Aucun carnet disponible."));
+              }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: snapshot.data!.map((carnet) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Carnet d'Adresses : ${carnet.title}",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!.map((carnet) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Carnet d'Adresses : ${carnet.title}",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: carnet.places.map((place) {
-                          bool isUnlocked = carnetProvider.isPlaceUnlocked(place.id);
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: carnet.places.map((place) {
+                            bool isUnlocked =
+                                carnetProvider.isPlaceUnlocked(place.id);
 
-                          return Container(
-                            width: 180,
-                            margin: const EdgeInsets.only(right: 12),
-                            child: Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              elevation: 4,
-                              child: Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      height: 120,
-                                      child: Stack(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(10),
-                                            child: isUnlocked
-                                                ? Image.network(
-                                                    place.images.isNotEmpty ? place.images.first : '',
-                                                    width: double.infinity,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) {
-                                                      return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
-                                                    },
-                                                  )
-                                                : ImageFiltered(
-                                                    imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                                    child: Image.network(
-                                                      place.images.isNotEmpty ? place.images.first : '',
+                            return Container(
+                              width: 180,
+                              margin: const EdgeInsets.only(right: 12),
+                              child: Card(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                elevation: 4,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        height: 120,
+                                        child: Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: isUnlocked
+                                                  ? Image.network(
+                                                      place.images.isNotEmpty
+                                                          ? place.images.first
+                                                          : '',
                                                       width: double.infinity,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
+                                                        return const Icon(
+                                                            Icons.broken_image,
+                                                            size: 50,
+                                                            color: Colors.grey);
                                                       },
+                                                    )
+                                                  : ImageFiltered(
+                                                      imageFilter:
+                                                          ImageFilter.blur(
+                                                              sigmaX: 5,
+                                                              sigmaY: 5),
+                                                      child: Image.network(
+                                                        place.images.isNotEmpty
+                                                            ? place.images.first
+                                                            : '',
+                                                        width: double.infinity,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
+                                                          return const Icon(
+                                                              Icons
+                                                                  .broken_image,
+                                                              size: 50,
+                                                              color:
+                                                                  Colors.grey);
+                                                        },
+                                                      ),
                                                     ),
-                                                  ),
-                                          ),
-                                          if (!isUnlocked)
-                                            const Positioned.fill(
-                                              child: Center(
-                                                child: Icon(Icons.lock, color: Colors.white, size: 40),
-                                              ),
                                             ),
+                                            if (!isUnlocked)
+                                              const Positioned.fill(
+                                                child: Center(
+                                                  child: Icon(Icons.lock,
+                                                      color: Colors.white,
+                                                      size: 40),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        place.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      if (place.categories.isNotEmpty)
+                                        Wrap(
+                                          spacing: 6.0,
+                                          runSpacing: 4.0,
+                                          children:
+                                              place.categories.map((category) {
+                                            return Chip(
+                                              label: Text(
+                                                category,
+                                                style: const TextStyle(
+                                                    fontSize: 10),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 0),
+                                              backgroundColor:
+                                                  Colors.deepPurple[100],
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            );
+                                          }).toList(),
+                                        ),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          buildStarRating(place.averageRating),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            place.averageRating
+                                                .toStringAsFixed(1),
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black54),
+                                          ),
                                         ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      place.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (place.categories.isNotEmpty)
-                                      Wrap(
-                                        spacing: 6.0,
-                                        runSpacing: 4.0,
-                                        children: place.categories.map((category) {
-                                          return Chip(
-                                            label: Text(
-                                              category,
-                                              style: const TextStyle(fontSize: 10),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                                            backgroundColor: Colors.deepPurple[100],
-                                            visualDensity: VisualDensity.compact,
-                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          );
-                                        }).toList(),
-                                      ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        buildStarRating(place.averageRating),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          place.averageRating.toStringAsFixed(1),
-                                          style: const TextStyle(fontSize: 14, color: Colors.black54),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    ElevatedButton(
-                                      onPressed: isUnlocked
-                                          ? () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => Builder(
-                                                    builder: (newContext) => ChangeNotifierProvider<ReviewProvider>(
-                                                      create: (_) => ReviewProvider(),
-                                                      child: PlaceDetailsScreen(place: place),
+                                      const SizedBox(height: 10),
+                                      ElevatedButton(
+                                        onPressed: isUnlocked
+                                            ? () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        Builder(
+                                                      builder: (newContext) =>
+                                                          ChangeNotifierProvider<
+                                                              ReviewProvider>(
+                                                        create: (_) =>
+                                                            ReviewProvider(),
+                                                        child:
+                                                            PlaceDetailsScreen(
+                                                                place: place),
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              );
-                                            }
-                                          : () async {
-                                              _showConfirmUnlockDialog(place.name, place.unlockCost, place);
-                                            },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isUnlocked
-                                            ? const Color(0xFF9E9E9E)
-                                            : const Color(0xFFD4F98F),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        textStyle: const TextStyle(fontSize: 12),
+                                                );
+                                              }
+                                            : () async {
+                                                _showConfirmUnlockDialog(
+                                                    place.name,
+                                                    place.unlockCost,
+                                                    place);
+                                              },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: isUnlocked
+                                              ? const Color(0xFF9E9E9E)
+                                              : const Color(0xFFD4F98F),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                          textStyle:
+                                              const TextStyle(fontSize: 12),
+                                        ),
+                                        child: Text(isUnlocked
+                                            ? "Voir Détails"
+                                            : "Déverrouiller (${place.unlockCost} coins)"),
                                       ),
-                                      child: Text(isUnlocked ? "Voir Détails" : "Déverrouiller (${place.unlockCost} coins)"),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                            );
+                          }).toList(),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                );
-              }).toList(),
-            );
-          },
-        ),
-      ],
-    ),
-  );
-}
+                      const SizedBox(height: 20),
+                    ],
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-Widget _buildInfoTab() {
-  return Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('Bio: ${travelerData?['bio'] ?? "Pas de bio"}'),
-        const SizedBox(height: 10),
-        Text('Localisation: ${travelerData?['location'] ?? "Inconnue"}'),
-      ],
-    ),
-  );
-}
-Widget _buildAdressesTab() {
-  return FutureBuilder<List<Carnet>>(
-    future: travelerCarnets,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (snapshot.hasError) {
-        return const Center(child: Text('Erreur de chargement'));
-      }
-      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-        return const Center(child: Text('Aucun carnet trouvé.'));
-      }
-      return ListView(
-        scrollDirection: Axis.vertical,
-        children: snapshot.data!.map((carnet) {
-          return ListTile(
-            title: Text(carnet.title),
-            subtitle: Text('${carnet.places.length} lieux'),
-          );
-        }).toList(),
-      );
-    },
-  );
-}
-Widget _buildAvisTab() {
-  return const Center(
-    child: Text('Aucun avis pour l\'instant.'),
-  );
-}
+  Widget _buildInfoTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Bio: ${travelerData?['bio'] ?? "Pas de bio"}'),
+          const SizedBox(height: 10),
+          Text('Localisation: ${travelerData?['location'] ?? "Inconnue"}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdressesTab() {
+    return FutureBuilder<List<Carnet>>(
+      future: travelerCarnets,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Erreur de chargement'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('Aucun carnet trouvé.'));
+        }
+        return ListView(
+          scrollDirection: Axis.vertical,
+          children: snapshot.data!.map((carnet) {
+            return ListTile(
+              title: Text(carnet.title),
+              subtitle: Text('${carnet.places.length} lieux'),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildAvisTab() {
+    return const Center(
+      child: Text('Aucun avis pour l\'instant.'),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -734,33 +794,33 @@ Widget _buildAvisTab() {
                       ],
                     ),
                   ),
-SingleChildScrollView(
-              child: Column(
-                children: [
-                  TabBar(
-                    controller: _tabController,
-                    labelColor: Colors.black,
-                    indicatorColor: Colors.deepPurple,
-                    tabs: const [
-                      Tab(text: 'Infos'),
-                      Tab(text: 'Adresses'),
-                      Tab(text: 'Avis'),
-                    ],
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.5,
-                    child: TabBarView(
-                      controller: _tabController,
+                  SingleChildScrollView(
+                    child: Column(
                       children: [
-                        _buildCarnetSection(),
-                        _buildAdressesTab(),
-                        _buildAvisTab(),
+                        TabBar(
+                          controller: _tabController,
+                          labelColor: Colors.black,
+                          indicatorColor: Colors.deepPurple,
+                          tabs: const [
+                            Tab(text: 'Infos'),
+                            Tab(text: 'Adresses'),
+                            Tab(text: 'Avis'),
+                          ],
+                        ),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildCarnetSection(),
+                              _buildAdressesTab(),
+                              _buildAvisTab(),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
                   // Section Carnet d'Adresses
                 ],
               ),
@@ -812,7 +872,8 @@ class LockedPlaceCard extends StatelessWidget {
   final Place place;
   final VoidCallback onUnlock;
 
-  const LockedPlaceCard({super.key, required this.place, required this.onUnlock});
+  const LockedPlaceCard(
+      {super.key, required this.place, required this.onUnlock});
 
   @override
   Widget build(BuildContext context) {
@@ -861,7 +922,8 @@ class _StatItem extends StatelessWidget {
       child: Column(
         children: [
           Text(count,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           Text(label, style: const TextStyle(color: Colors.black54)),
         ],
       ),

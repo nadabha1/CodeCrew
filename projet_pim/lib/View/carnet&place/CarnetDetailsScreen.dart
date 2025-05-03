@@ -4,7 +4,9 @@ import 'package:projet_pim/Model/review.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
+import 'package:projet_pim/View/user_profile.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CarnetDetailsPage extends StatefulWidget {
   final Carnet carnet;
@@ -17,12 +19,33 @@ class CarnetDetailsPage extends StatefulWidget {
 
 class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
   late String carnetTitle;
+  String? userId;
+  String? token;
+  bool isLoading = true;
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? _userId = prefs.getString("user_id");
+    String? _token = prefs.getString("jwt_token");
+
+    if (_userId != null && _token != null) {
+      setState(() {
+        userId = _userId;
+        token = _token;
+      });
+    } else {
+      print("User ID or Token is not available");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   void _updateCarnetTitle(String newTitle) async {
     if (newTitle.isEmpty) return;
 
     try {
-      print("🔄 Envoi de la mise à jour du carnet...");
+      print("🔄 Sending the logbook update...");
       await Provider.of<CarnetProvider>(context, listen: false)
           .updateCarnet(widget.carnet.id, newTitle);
 
@@ -30,14 +53,14 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
         carnetTitle = newTitle;
       });
 
-      print("✅ Mise à jour réussie !");
+      print("✅ Update successful!");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Carnet mis à jour avec succès")),
       );
     } catch (e) {
-      print("❌ Erreur updateCarnet: $e");
+      print("❌ updateNotebook error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur lors de la mise à jour du carnet")),
+        const SnackBar(content: Text("Error updating the notebook")),
       );
     }
   }
@@ -46,6 +69,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
   void initState() {
     super.initState();
     carnetTitle = widget.carnet.title;
+    _loadUserData(); // Charge les données utilisateur au démarrage
   }
 
   void _editCarnetTitle() {
@@ -54,19 +78,19 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Modifier le nom du Carnet",
+        title: const Text("Change the name of the Notebook",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(
-            hintText: "Nouveau nom",
+            hintText: "New name",
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () {
@@ -76,7 +100,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
               }
               Navigator.pop(context);
             },
-            child: const Text("Enregistrer"),
+            child: const Text("Save"),
           ),
         ],
       ),
@@ -88,16 +112,17 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
       bool shouldDelete = await showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: Text('Supprimer ${place.name}?'),
-              content: const Text('Êtes-vous sûr de vouloir supprimer cet endroit?'),
+              title: Text('DELETE ${place.name}?'),
+              content:
+                  const Text('Are you sure you want to delete this location?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Annuler'),
+                  child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Supprimer'),
+                  child: const Text('DELETE'),
                 ),
               ],
             ),
@@ -105,23 +130,27 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           false;
 
       if (shouldDelete) {
-        const jwtToken = 'YOUR_JWT_TOKEN'; // À récupérer dynamiquement
-        print("🛠 Suppression de ${place.name} avec ID: ${place.id}");
+        print(
+            "🛠 Attempting to delete place: ${place.name} with ID: ${place.id}");
+
+        // Recharge les carnets pour s'assurer que la liste est à jour
+        await Provider.of<CarnetProvider>(context, listen: false)
+            .fetchCarnets();
 
         await Provider.of<CarnetProvider>(context, listen: false)
-            .deletePlace(widget.carnet.id, place.id, jwtToken);
+            .deletePlace(widget.carnet.id, place.id, token!);
 
         setState(() {
           widget.carnet.places.removeWhere((p) => p.id == place.id);
         });
 
-        print("✅ ${place.name} supprimé avec succès");
+        print("✅ ${place.name} successfully deleted");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${place.name} supprimé avec succès')),
+          SnackBar(content: Text('${place.name} successfully deleted')),
         );
       }
     } catch (e, stacktrace) {
-      print("❌ Erreur lors de la suppression de ${place.name}: $e");
+      print("❌ Error deleting ${place.name}: $e");
       print(stacktrace);
     }
   }
@@ -131,7 +160,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(carnetTitle),
-        backgroundColor: const Color(0xFFDBD9FE),
+        backgroundColor: const Color(0xFFD1C4E9),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -142,12 +171,9 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFDBD9FE),
-              Color.fromARGB(255, 233, 185, 241)
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [Color(0xFFD1C4E9), Color(0xFFEDE7F6)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: Padding(

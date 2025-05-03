@@ -215,7 +215,7 @@ class _DetailsState extends State<Details> {
                   _openInGoogleMaps(place.latitude!, place.longitude!);
                 }
               },
-              child: const Text("Ouvrir dans Google Maps"),
+              child: const Text("Open in Google Maps"),
             ),
             const SizedBox(height: 20),
             // Toggle reviews section with a smoother transition
@@ -235,9 +235,7 @@ class _DetailsState extends State<Details> {
                   },
                 ),
                 Text(
-                  _isReviewVisible
-                      ? "Masquer les commentaires"
-                      : "Afficher les commentaires",
+                  _isReviewVisible ? "Hide comments" : "Show comments",
                   style: const TextStyle(fontSize: 18),
                 ),
               ],
@@ -251,7 +249,7 @@ class _DetailsState extends State<Details> {
                   }
 
                   if (reviewProvider.reviews.isEmpty) {
-                    return const Center(child: Text('Aucun avis disponible.'));
+                    return const Center(child: Text('No reviews available.'));
                   }
 
                   return ListView.builder(
@@ -275,10 +273,9 @@ class _DetailsState extends State<Details> {
                                 return const CircularProgressIndicator();
                               }
                               if (snapshot.hasError) {
-                                return Text('Erreur: ${snapshot.error}');
+                                return Text('Error: ${snapshot.error}');
                               }
-                              return Text(
-                                  snapshot.data ?? 'Utilisateur inconnu');
+                              return Text(snapshot.data ?? 'Unknown user');
                             },
                           ),
                           subtitle: Column(

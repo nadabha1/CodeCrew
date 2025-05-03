@@ -36,7 +36,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         .get(Uri.parse('${ApiConstants.baseUrl}/conversations/$_userId'));
 
     if (response.statusCode == 200) {
-      print(response.body); // ✅ Inspectez les données reçues
+      print(response.body); // ✅ Inspect the received data
       setState(() {
         conversations = json.decode(response.body);
         isLoading = false;
@@ -45,7 +45,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       setState(() {
         isLoading = false;
       });
-      throw Exception('Erreur lors du chargement des conversations');
+      throw Exception('Error loading conversations');
     }
   }
 
@@ -59,12 +59,12 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       if (otherParticipant != null &&
           otherParticipant is Map &&
           otherParticipant.containsKey('name')) {
-        return otherParticipant['name'] ?? 'Utilisateur inconnu';
+        return otherParticipant['name'] ?? 'Unknown User';
       }
     } catch (e) {
-      print("🚨 Erreur lors de la récupération du nom: $e");
+      print("🚨 Error retrieving name: $e");
     }
-    return 'Utilisateur inconnu';
+    return 'Unknown User';
   }
 
   @override
@@ -77,14 +77,13 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : conversations.isEmpty
-              ? const Center(child: Text("Aucune conversation."))
+              ? const Center(child: Text("No conversations."))
               : ListView.builder(
                   itemCount: conversations.length,
                   itemBuilder: (context, index) {
                     final conversation = conversations[index];
-                    final lastMessage = conversation['lastMessage']
-                            ?['content'] ??
-                        'Aucun message';
+                    final lastMessage =
+                        conversation['lastMessage']?['content'] ?? 'No message';
                     final List participants = conversation['participants'];
                     final isGroupChat = conversation['title'] != null &&
                         conversation['title'].isNotEmpty;
@@ -113,7 +112,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                       subtitle: Text(
                         lastMessage != null && lastMessage.isNotEmpty
                             ? lastMessage
-                            : 'Aucun message', // ✅ Affiche un message par défaut
+                            : 'No message', // ✅ Default message displayed
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -125,12 +124,10 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                                 ? GroupChatScreen(
                                     eventProvider:
                                         EventProvider(userId: _userId!),
-
                                     userId: _userId!,
-
                                     conversationId: conversation['_id'],
                                     groupName: conversation[
-                                        'title'], // ✅ Passe le titre du groupe
+                                        'title'], // ✅ Pass the group title
                                   )
                                 : ChatScreen(
                                     eventProvider:
@@ -155,7 +152,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         children: [
           SpeedDialChild(
             child: const Icon(Icons.chat),
-            label: 'Conversation privée',
+            label: 'Private Conversation',
             backgroundColor: Colors.deepPurple.shade100,
             onTap: () async {
               final result = await Navigator.push(
@@ -168,7 +165,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
           ),
           SpeedDialChild(
             child: const Icon(Icons.group),
-            label: 'Créer un groupe',
+            label: 'Create a Group',
             backgroundColor: Colors.deepPurple.shade100,
             onTap: () async {
               final result = await Navigator.push(

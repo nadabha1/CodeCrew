@@ -15,7 +15,8 @@ class AddPlaceScreenStep2 extends StatefulWidget {
   final double latitude;
   final double longitude;
 
-  const AddPlaceScreenStep2({super.key, 
+  const AddPlaceScreenStep2({
+    super.key,
     required this.carnetId,
     required this.placeName,
     required this.placeAddress,
@@ -77,7 +78,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Prendre une photo'),
+              title: const Text('Take a photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -89,7 +90,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choisir depuis la galerie'),
+              title: const Text('Choose from gallery'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -131,7 +132,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40), // ✅ Ajouter un espace au-dessus du nom
+              const SizedBox(
+                  height: 40), // ✅ Ajouter un espace au-dessus du nom
               Row(
                 children: [
                   Expanded(
@@ -200,7 +202,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               TextField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
-                  hintText: "Saisir",
+                  hintText: "Description",
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                   fillColor: Colors.white,
@@ -210,7 +212,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
               ),
               const SizedBox(height: 20),
               const Text(
-                "Photos de l'adresse",
+                "Photos of the address",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(
@@ -293,7 +295,8 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text("Valider", style: TextStyle(color: Colors.white)),
+                child:
+                    const Text("save", style: TextStyle(color: Colors.white)),
               ),
             ],
           ),

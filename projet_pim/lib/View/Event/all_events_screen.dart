@@ -125,7 +125,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
         });
       } else {
         setState(() => _isLoading = false);
-        print('🔴 Erreur: ${response.body}');
+        print('🔴 Error: ${response.body}');
       }
     } catch (e) {
       print('🔴 Exception: $e');
@@ -138,19 +138,19 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Rejoindre l'événement ?"),
-          content: Text("Prix de participation : ${event.joinPrice} coins"),
+          title: const Text("Join the event?"),
+          content: Text("Participation price: ${event.joinPrice} coins"),
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text("Annuler")),
+                child: const Text("Cancel")),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _eventProvider.joinEvent(widget.userId, event.id);
                 await _fetchAllEvents();
               },
-              child: const Text("Confirmer"),
+              child: const Text("Confirm"),
             ),
           ],
         );
@@ -229,8 +229,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                     backgroundColor:
                         isParticipating ? Colors.green : Colors.deepOrange,
                   ),
-                  child:
-                      Text(isParticipating ? "Rejoindre le Chat" : "Rejoindre"),
+                  child: Text(isParticipating ? "Join the Chat" : "Join"),
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz),
@@ -269,7 +268,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
       backgroundColor: const Color(0xFFF7F4FC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFDBD9FE),
-        title: const Text("Tous les événements"),
+        title: const Text("All Events"),
         elevation: 0,
       ),
       body: _isLoading
@@ -283,7 +282,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                     onChanged: _filterEvents,
                     onSubmitted: onSearch,
                     decoration: InputDecoration(
-                      hintText: 'Rechercher par titre ou participant...',
+                      hintText: 'Search by title or participant...',
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
                       fillColor: Colors.white,
@@ -293,7 +292,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                       ),
                     ),
                   ),
-                  _buildHorizontalCalendar(), // 👈 Ajoute ce widget
+                  _buildHorizontalCalendar(), // 👈 Add this widget
                   if (_selectedDay != null)
                     Align(
                       alignment: Alignment.centerRight,
@@ -301,7 +300,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                         onPressed: _resetFilters,
                         icon:
                             const Icon(Icons.refresh, color: Colors.deepPurple),
-                        label: const Text("Réinitialiser",
+                        label: const Text("Reset",
                             style: TextStyle(color: Colors.deepPurple)),
                       ),
                     ),
@@ -311,13 +310,12 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                     child: ListView(
                       children: [
                         if (recentEvents.isNotEmpty) ...[
-                          Text("\u{1F4C5} Événements récents",
-                              style: sectionStyle),
+                          Text("\u{1F4C5} Recent Events", style: sectionStyle),
                           ...recentEvents.map(_buildStyledEventCard),
                           const Divider(thickness: 1.5),
                         ],
                         if (upcomingEvents.isNotEmpty) ...[
-                          Text("\u{1F680} À venir", style: sectionStyle),
+                          Text("\u{1F680} Upcoming", style: sectionStyle),
                           ...upcomingEvents.map(_buildStyledEventCard),
                         ]
                       ],

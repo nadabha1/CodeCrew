@@ -13,14 +13,14 @@ class CreateCarnetScreen extends StatelessWidget {
     final carnetProvider = Provider.of<CarnetProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Créer un carnet")),
+      appBar: AppBar(title: const Text("Create a notebook")),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: "Titre du carnet"),
+              decoration: const InputDecoration(labelText: "Notebook title"),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -29,7 +29,7 @@ class CreateCarnetScreen extends StatelessWidget {
                     userId, _titleController.text);
                 Navigator.pop(context); // ✅ Return to home after creation
               },
-              child: const Text("Créer"),
+              child: const Text("Create"),
             ),
           ],
         ),

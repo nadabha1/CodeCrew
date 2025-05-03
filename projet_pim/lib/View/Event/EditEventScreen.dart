@@ -153,7 +153,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Veuillez remplir tous les champs correctement."),
+          content: Text("Please ensure all fields are filled out correctly."),
           backgroundColor: Colors.red,
         ),
       );
@@ -167,14 +167,14 @@ class _EditEventScreenState extends State<EditEventScreen> {
   Future<String> getAddressFromStringCoords(String coords) async {
     try {
       final parts = coords.split(',');
-      if (parts.length != 2) return "Coordonnées invalides";
+      if (parts.length != 2) return "Invalid coordinates";
 
       final lat = double.parse(parts[0]);
       final lng = double.parse(parts[1]);
       return await getAddressFromLatLng(lat, lng);
     } catch (e) {
       print("Erreur lors de la conversion des coordonnées : $e");
-      return "Adresse inconnue";
+      return "Unknown loaction";
     }
   }
 
@@ -188,7 +188,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
     } catch (e) {
       print("Erreur de conversion: $e");
     }
-    return "Localisation inconnue";
+    return "Unknown loaction";
   }
 
   // Fonction pour obtenir la localisation automatique et l'afficher dans le TextField
@@ -209,7 +209,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Impossible de récupérer la localisation!"),
+          content: Text("Unable to retrieve the location!"),
           backgroundColor: Colors.red,
         ),
       );
@@ -239,8 +239,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            const Text("Modifier l'événement", style: TextStyle(color: Colors.black)),
+        title: const Text("Edit Event", style: TextStyle(color: Colors.black)),
         backgroundColor: const Color(0xFFEDE7F6),
       ),
       body: Container(
@@ -255,7 +254,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
           padding: const EdgeInsets.all(16.0),
           child: ListView(
             children: [
-              _buildTextField(titleController, "Titre"),
+              _buildTextField(titleController, "Title"),
               const SizedBox(height: 16),
               _buildTextField(descriptionController, "Description",
                   maxLines: 3),
@@ -264,7 +263,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Utiliser ma localisation automatique"),
+                  const Text("Use my location"),
                   Switch(
                     value: _useAutoLocation,
                     onChanged: (value) {
@@ -273,29 +272,43 @@ class _EditEventScreenState extends State<EditEventScreen> {
                         if (value) _getLocation();
                       });
                     },
+                    activeColor:
+                        const Color(0xFFE8EAF6), // couleur du curseur activé
+                    activeTrackColor:
+                        const Color(0xFF161055), // couleur de la piste activée
+                    inactiveThumbColor: Colors.grey, // curseur désactivé
+                    inactiveTrackColor: const Color.fromARGB(
+                        66, 161, 161, 161), // piste désactivée
                   ),
                 ],
               ),
-              TextField(
-                controller: locationController,
-                decoration:
-                    const InputDecoration(labelText: "Localisation (adresse)"),
-                readOnly: true,
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.map),
-                label: const Text("Sélectionner sur la carte"),
-                onPressed: _openMapToSelectLocation,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 255, 166, 125),
-                  foregroundColor: Colors.white,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: locationController,
+                      decoration: const InputDecoration(
+                          labelText: "Location (address)"),
+                      readOnly: true,
+                    ),
+                  ),
+                  const SizedBox(
+                      width: 8), // Ajout d'un petit espace entre les éléments
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.map),
+                    label: const Text("Map"),
+                    onPressed: _openMapToSelectLocation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 220, 168, 227),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              _buildDateRow("Début", startDate, _selectStartDate),
+              _buildDateRow("start", startDate, _selectStartDate),
               const SizedBox(height: 16),
-              _buildDateRow("Fin", endDate, _selectEndDate),
+              _buildDateRow("end", endDate, _selectEndDate),
               const SizedBox(height: 32),
               _buildSaveButton(),
             ],
@@ -315,7 +328,8 @@ class _EditEventScreenState extends State<EditEventScreen> {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Colors.grey),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
       maxLines: maxLines,
     );
@@ -343,7 +357,8 @@ class _EditEventScreenState extends State<EditEventScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _formatDate(date),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -364,12 +379,12 @@ class _EditEventScreenState extends State<EditEventScreen> {
       child: ElevatedButton(
         onPressed: _saveChanges,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color.fromARGB(255, 220, 168, 227),
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child:
-            Text("Enregistrer", style: TextStyle(fontWeight: FontWeight.bold)),
+        child: Text("Save",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
       ),
     );
   }

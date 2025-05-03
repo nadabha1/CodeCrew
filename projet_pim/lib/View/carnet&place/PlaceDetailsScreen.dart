@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io' show Platform;
+import 'package:geocoding/geocoding.dart'; // Add this import for reverse geocoding
 
 class PlaceDetailsScreen extends StatefulWidget {
   final Place place;
@@ -29,11 +30,13 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   final ReviewService _reviewService = ReviewService();
   List<Review> _reviews = [];
   String? _currentUserId;
+  String? _placeLocationName; // Add this to store the place location name
 
   @override
   void initState() {
     super.initState();
     _initPage();
+    _fetchPlaceLocationName(); // Fetch the location name on initialization
   }
 
   Future<void> _initPage() async {
@@ -42,13 +45,39 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     await _checkIfFavorite(); // Ensuite les favoris
   }
 
+  Future<void> _fetchPlaceLocationName() async {
+    if (widget.place.latitude != null && widget.place.longitude != null) {
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          widget.place.latitude!,
+          widget.place.longitude!,
+        );
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks.first;
+          setState(() {
+            _placeLocationName = "${place.locality}, ${place.country}";
+          });
+        }
+      } catch (e) {
+        print("Error in reverse geocoding: $e");
+        setState(() {
+          _placeLocationName = "Unknown location";
+        });
+      }
+    } else {
+      setState(() {
+        _placeLocationName = "Coordinates not available";
+      });
+    }
+  }
+
   Future<void> _fetchReviews() async {
     setState(() => _isLoadingReviews = true);
     try {
       final reviews = await _reviewService.getAllReviews(widget.place.id);
       setState(() => _reviews = reviews);
     } catch (e) {
-      print("Erreur lors du chargement des avis: $e");
+      print("Error loading reviews: $e");
     } finally {
       setState(() => _isLoadingReviews = false); // 🔴 manquait ici
     }
@@ -76,7 +105,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
     if (token == null || userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Connectez-vous pour gérer les favoris.")),
+        const SnackBar(content: Text("Log in to manage favorites.")),
       );
       return;
     }
@@ -86,16 +115,16 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         await UserService()
             .removePlaceFromFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Retiré des favoris")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Remove from favorites")));
       } else {
         await UserService().addPlaceToFavorites(userId, widget.place.id, token);
         setState(() => _isFavorite = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Ajouté aux favoris !")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Added to favorites!")));
       }
     } catch (e) {
-      print("Erreur favoris: $e");
+      print("Favorites error: $e");
     }
   }
 
@@ -109,7 +138,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       final favorites = await UserService().getUserFavorites(userId, token);
       setState(() => _isFavorite = favorites.contains(widget.place.id));
     } catch (e) {
-      print("Erreur favoris: $e");
+      print("Favorites error: $e");
     }
   }
 
@@ -132,7 +161,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) =>
-            const AlertDialog(content: Text('Ajout de l’avis...')),
+            const AlertDialog(content: Text('Adding the review...')),
       );
 
       await _reviewService.addReview(widget.place.id, review);
@@ -142,8 +171,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Succès'),
-          content: const Text('Avis ajouté avec succès !'),
+          title: const Text('Success'),
+          content: const Text('Review successfully added !'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -156,8 +185,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Erreur'),
-          content: const Text('Vous avez déjà ajouté un avis.'),
+          title: const Text('Error'),
+          content: const Text('You have already added a review.'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -191,7 +220,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Modifier votre avis"),
+          title: const Text("Edit your review"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -218,19 +247,18 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
               ),
               TextField(
                 controller: commentController,
-                decoration:
-                    const InputDecoration(labelText: "Votre commentaire"),
+                decoration: const InputDecoration(labelText: "Your comment"),
                 maxLines: 3,
               ),
             ],
           ),
           actions: [
             TextButton(
-              child: const Text("Annuler"),
+              child: const Text("Cancel"),
               onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
-              child: const Text("Enregistrer"),
+              child: const Text("Save"),
               onPressed: () async {
                 final updatedReview = review.copyWith(
                   rating: updatedRating,
@@ -241,13 +269,14 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   await Provider.of<ReviewProvider>(context, listen: false)
                       .editReview(widget.place.id, updatedReview);
                   Navigator.pop(context);
+                  await _fetchReviews(); // Refresh the reviews after editing
                 } catch (e) {
                   Navigator.pop(context);
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
-                      title: Text("Erreur"),
-                      content: Text("Impossible de modifier l'avis."),
+                      title: Text("Error"),
+                      content: Text("Unable to edit review."),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -288,6 +317,20 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
           children: [
             Text(widget.place.name,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+
+            // Display the location name
+            if (_placeLocationName != null)
+              Row(
+                children: [
+                  Icon(Icons.location_on, color: Colors.red, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    _placeLocationName!,
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ],
+              ),
             SizedBox(height: 20),
 
             if (widget.place.images.isNotEmpty)
@@ -395,7 +438,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       widget.place.latitude!, widget.place.longitude!);
                 }
               },
-              child: const Text("Ouvrir dans Google Maps"),
+              child: const Text("Open in Google Maps"),
             ),
             const SizedBox(height: 20),
             // Toggle reviews section with a smoother transition
@@ -415,87 +458,77 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   },
                 ),
                 Text(
-                  _isReviewVisible
-                      ? "Masquer les commentaires"
-                      : "Afficher les commentaires",
+                  _isReviewVisible ? "Hide comments" : "Show comments",
                   style: const TextStyle(fontSize: 18),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             if (_isReviewVisible)
-              Consumer<ReviewProvider>(
-                builder: (context, reviewProvider, child) {
-                  if (reviewProvider.isLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              _isLoadingReviews
+                  ? const Center(child: CircularProgressIndicator())
+                  : _reviews.isEmpty
+                      ? const Center(child: Text('No reviews available.'))
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _reviews.length,
+                          itemBuilder: (context, index) {
+                            final review = _reviews[index];
 
-                  if (reviewProvider.reviews.isEmpty) {
-                    return const Center(child: Text('Aucun avis disponible.'));
-                  }
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: reviewProvider.reviews.length,
-                    itemBuilder: (context, index) {
-                      final review = reviewProvider.reviews[index];
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 5,
-                        child: ListTile(
-                          title: FutureBuilder<String>(
-                            future: _getUserName(review.userId),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const CircularProgressIndicator();
-                              }
-                              if (snapshot.hasError) {
-                                return Text('Erreur: ${snapshot.error}');
-                              }
-                              return Text(
-                                  snapshot.data ?? 'Utilisateur inconnu');
-                            },
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < review.rating
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    color: Colors.amber,
-                                    size: 20,
-                                  ),
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              elevation: 5,
+                              child: ListTile(
+                                title: FutureBuilder<String>(
+                                  future: _getUserName(review.userId),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const CircularProgressIndicator();
+                                    }
+                                    if (snapshot.hasError) {
+                                      return Text('Error: ${snapshot.error}');
+                                    }
+                                    return Text(
+                                        snapshot.data ?? 'Unknown user');
+                                  },
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: List.generate(
+                                        5,
+                                        (i) => Icon(
+                                          i < review.rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          color: Colors.amber,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(review.comment),
+                                    if (_currentUserId == review.userId)
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton(
+                                          onPressed: () {
+                                            _showEditReviewDialog(review);
+                                          },
+                                          child: const Text("Edit"),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 5),
-                              Text(review.comment),
-                              if (_currentUserId == review.userId)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {
-                                      _showEditReviewDialog(review);
-                                    },
-                                    child: const Text("Modifier"),
-                                  ),
-                                ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             const SizedBox(height: 20),
             AddReviewForm(
               placeId: widget.place.id,
@@ -506,7 +539,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     context: context,
                     barrierDismissible: false, // Empêche de fermer le dialogue
                     builder: (context) => const AlertDialog(
-                      content: Text('Ajout de l’avis en cours...'),
+                      content: Text('Adding the review...'),
                     ),
                   );
 
@@ -514,7 +547,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   await Provider.of<ReviewProvider>(context, listen: false)
                       .addReview(widget.place.id,
                           review); // Ensure this line works without returning a value
-
+                  _fetchReviews();
                   // Fermer le pop-up de chargement
                   Navigator.of(context).pop();
 
@@ -522,8 +555,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Succès'),
-                      content: const Text('Avis ajouté avec succès !'),
+                      title: const Text('Success'),
+                      content: const Text('Review added successfully!'),
                       actions: [
                         TextButton(
                           onPressed: () {
@@ -545,9 +578,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Avis déjà ajouté'),
+                      title: const Text('Review already added'),
                       content: const Text(
-                          'Vous avez déjà ajouté un avis pour ce lieu. Vous ne pouvez pas en ajouter un autre.'),
+                          'You have already added a review for this place. You cannot add another one.'),
                       actions: [
                         TextButton(
                           onPressed: () {

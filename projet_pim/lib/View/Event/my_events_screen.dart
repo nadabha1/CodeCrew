@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/select_location_screen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
@@ -119,7 +120,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
             children: <Widget>[
               CircularProgressIndicator(),
               SizedBox(width: 20),
-              Text('Génération de l\'image en cours...'),
+              Text('Image generation in progress...'),
             ],
           ),
         );
@@ -194,7 +195,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         });
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur de géolocalisation")),
+          SnackBar(content: Text("Geolocation error")),
         );
       }
     }
@@ -217,12 +218,12 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Créer un événement"),
+        title: Text("Create an event"),
         content: SingleChildScrollView(
           child: Column(
             children: [
               TextField(
-                decoration: InputDecoration(labelText: "Titre"),
+                decoration: InputDecoration(labelText: "Title"),
                 onChanged: (v) => title = v,
               ),
               TextField(
@@ -232,7 +233,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Utiliser ma localisation automatique"),
+                  Text("Use my location"),
                   Switch(
                     value: _useAutoLocation,
                     onChanged: (v) {
@@ -244,25 +245,36 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                   )
                 ],
               ),
-              TextField(
-                controller: locationController,
-                readOnly: true,
-                decoration:
-                    InputDecoration(labelText: "Localisation (adresse)"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: locationController,
+                      readOnly: true,
+                      decoration:
+                          InputDecoration(labelText: "Location (address)"),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.map),
+                    label: Text("Map"),
+                    onPressed: _openMap,
+                    style: ElevatedButton.styleFrom(
+                      padding:
+                          EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    ),
+                  ),
+                ],
               ),
-              ElevatedButton.icon(
-                icon: Icon(Icons.map),
-                label: Text("Choisir sur la carte"),
-                onPressed: _openMap,
-              ),
               TextField(
-                decoration: InputDecoration(labelText: "Prix de participation"),
+                decoration: InputDecoration(labelText: "Participation fee"),
                 keyboardType: TextInputType.number,
                 onChanged: (v) => joinPrice = int.tryParse(v) ?? 5,
               ),
               DropdownButtonFormField<String>(
                 value: selectedType,
-                decoration: InputDecoration(labelText: "Type d'événement"),
+                decoration: InputDecoration(labelText: "Event type"),
                 items: _eventTypes
                     .map((e) => DropdownMenuItem(
                           value: e,
@@ -290,7 +302,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                     }
                   }
                 },
-                child: Text("Choisir date et heure de début"),
+                child: Text("Choose start date and time"),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -311,14 +323,14 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                     }
                   }
                 },
-                child: Text("Choisir date et heure de fin"),
+                child: Text("Choose end date and time"),
               ),
             ],
           ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context), child: Text("Annuler")),
+              onPressed: () => Navigator.pop(context), child: Text("Cancel")),
           TextButton(
             onPressed: () async {
               if (title.isNotEmpty &&
@@ -377,12 +389,12 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                     widget.userId, widget.token); // Refresh list
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Remplissez tous les champs.")),
+                  SnackBar(content: Text("Please fill out all the fields.")),
                 );
               }
               Navigator.pop(context);
             },
-            child: Text("Créer"),
+            child: Text("Create"),
           ),
         ],
       ),
@@ -392,53 +404,66 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
   Widget _buildEventCard(Event event) {
     final hasImage = event.imagePath != null && event.imagePath!.isNotEmpty;
 
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      elevation: 4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (hasImage)
-            Image.network(
-              event.imagePath!,
-              height: 500,
-              width: double.infinity,
-              fit: BoxFit.cover,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EventDetailsScreen(
+              event: event,
+              userId: widget.userId,
+              token: widget.token,
+              eventProvider: eventProvider,
             ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(event.title,
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
-                Text(event.description),
-                SizedBox(height: 4),
-                FutureBuilder<String>(
-                  future: getAddressFromLatLng(
-                    event.location.latitude,
-                    event.location.longitude,
+          ),
+        );
+      },
+      child: Card(
+        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        elevation: 4,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (hasImage)
+              Image.network(
+                event.imagePath!,
+                height: 500,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event.title,
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 4),
+                  Text(event.description),
+                  SizedBox(height: 4),
+                  FutureBuilder<String>(
+                    future: getAddressFromLatLng(
+                      event.location.latitude,
+                      event.location.longitude,
+                    ),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return Text("Location error");
+                      } else if (snapshot.hasData) {
+                        return Text("📍 ${snapshot.data}");
+                      } else {
+                        return Text("📍 Unknown location");
+                      }
+                    },
                   ),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator();
-                    } else if (snapshot.hasError) {
-                      return Text("Erreur de localisation");
-                    } else if (snapshot.hasData) {
-                      return Text("📍 ${snapshot.data}");
-                    } else {
-                      return Text("📍 Adresse inconnue");
-                    }
-                  },
-                ),
-                SizedBox(height: 4),
-                Text(
-                    "📅 ${event.startDate.toLocal().toString().split(' ')[0]}"),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton(
+                  SizedBox(height: 4),
+                  Text(
+                      "📅 ${event.startDate.toLocal().toString().split(' ')[0]}"),
+                  SizedBox(height: 6),
+                  ElevatedButton(
                     onPressed: () {
                       if (event.isParticipating) {
                         Navigator.push(
@@ -457,13 +482,13 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                         eventProvider.joinEvent(widget.userId, event.id);
                       }
                     },
-                    child: Text(event.isParticipating ? "Chat" : "Rejoindre"),
+                    child: Text(event.isParticipating ? "Chat" : "Join"),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -474,11 +499,11 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Mes événements"),
+        title: Text("My Events"),
         backgroundColor: Color(0xFFDBD9FE),
       ),
       body: userEvents.isEmpty
-          ? Center(child: Text("Aucun événement pour l’instant."))
+          ? Center(child: Text("No events yet."))
           : ListView.builder(
               itemCount: userEvents.length,
               itemBuilder: (context, index) =>

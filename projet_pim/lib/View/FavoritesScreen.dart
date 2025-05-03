@@ -14,10 +14,10 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  List<Place> favorites = []; // Stocke les objets Place
+  List<Place> favorites = [];
   String? userId;
   String? token;
-  bool isLoading = true; // Indicateur de chargement
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -59,8 +59,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             Place place = Place.fromJson(placeDetails);
             placesDetails.add(place);
           } catch (e) {
-            print(
-                "❌ Erreur lors de la récupération des détails du lieu $placeId: $e");
+            print("❌ Error retrieving place details for $placeId: $e");
           }
         }
 
@@ -69,13 +68,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           isLoading = false;
         });
       } else {
-        print("La réponse n'est pas une liste.");
+        print("Response is not a list.");
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
-      print("❌ Erreur lors de la récupération des favoris: $e");
+      print("❌ Error fetching favorites: $e");
       setState(() {
         isLoading = false;
       });
@@ -86,16 +85,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mes Favoris"),
+        title: const Text("Favorites"),
         backgroundColor: const Color(0xFFD1C4E9),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFD1C4E9), // Couleur bas
-
-              Color(0xFFEDE7F6), // Couleur haut
+              Color(0xFFD1C4E9),
+              Color(0xFFEDE7F6),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -106,7 +104,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             : favorites.isEmpty
                 ? Center(
                     child: Text(
-                      "Vous n'avez pas encore de favoris",
+                      "You don't have any favorites yet",
                       style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                   )

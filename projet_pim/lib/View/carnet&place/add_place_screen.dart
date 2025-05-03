@@ -8,9 +8,9 @@ class AddPlaceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Ajouter un lieu")),
+      appBar: AppBar(title: const Text("Add a location")),
       body: Center(
-        child: Text("Ajout de lieu pour le carnet : $carnetId"),
+        child: Text("Adding location to notebook : $carnetId"),
       ),
     );
   }

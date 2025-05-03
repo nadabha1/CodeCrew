@@ -7,7 +7,8 @@ class AddReviewForm extends StatefulWidget {
   final String placeId; // Add placeId as a parameter
   final Function(Review) onSubmit;
 
-  const AddReviewForm({required this.onSubmit, required this.placeId, super.key});
+  const AddReviewForm(
+      {required this.onSubmit, required this.placeId, super.key});
 
   @override
   _AddReviewFormState createState() => _AddReviewFormState();
@@ -63,7 +64,7 @@ class _AddReviewFormState extends State<AddReviewForm> {
       children: [
         TextField(
           controller: _commentController,
-          decoration: const InputDecoration(labelText: 'Commentaire'),
+          decoration: const InputDecoration(labelText: 'Comment'),
           maxLines: 3,
         ),
         const SizedBox(height: 10),
@@ -87,7 +88,7 @@ class _AddReviewFormState extends State<AddReviewForm> {
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: _submitReview,
-          child: const Text('Ajouter un avis'),
+          child: const Text('Add a review'),
         ),
       ],
     );

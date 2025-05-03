@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/conversation.dart';
 import 'package:projet_pim/Providers/conversation_provider.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
@@ -70,3 +70,4 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 }
+*/

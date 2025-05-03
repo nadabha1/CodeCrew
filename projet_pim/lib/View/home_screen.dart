@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
-import 'package:projet_pim/View/CalendarEventsScreen.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
 import 'package:projet_pim/View/NotificationScreen.dart';
@@ -39,15 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> allUsers = [];
   bool isLoadingUsers = true;
   String? _userId;
-    int _unreadNotifications = 0;
+  int _unreadNotifications = 0;
   String? _token;
   List<String> _selectedCategories = [];
   bool isShowingFallbackUsers = false;
   bool showMatches = false; // false = show People, true = show Matches
   List<dynamic> matches = [];
   bool isLoadingMatches = true; // par défaut en cours de chargement
-    final NotificationService _notificationService = NotificationService();
-
+  final NotificationService _notificationService = NotificationService();
+  bool isLoading = true;
   TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, dynamic>> categories = [
@@ -72,19 +73,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
-    _loadWeather();
+    _getCurrentLocation();
     _preloadMatches();
   }
-  @override
-void dispose() {
-  super.dispose();
-}
 
-@override
-void didPopNext() {
-  // ✅ Quand on revient sur cette page
-  _fetchUnreadNotifications();
-}
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // ✅ Quand on revient sur cette page
+    _fetchUnreadNotifications();
+  }
 
   Widget _buildDrawer() {
     return Drawer(
@@ -163,7 +165,8 @@ void didPopNext() {
                 context,
                 MaterialPageRoute(
                     builder: (_) => WeatherScreen(
-                        userId: widget.userId, weatherData: weatherData ?? {})),
+                          userId: widget.userId,
+                        )),
               );
             },
           ),
@@ -205,6 +208,7 @@ void didPopNext() {
       });
     }
   }
+
   Future<void> _fetchUnreadNotifications() async {
     if (_userId != null) {
       final count =
@@ -233,13 +237,50 @@ void didPopNext() {
     ]);
   }
 
-  void _loadWeather() async {
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifiez si les services de localisation sont activés
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Si les services de localisation ne sont pas activés, afficher une erreur
+      print('Les services de localisation ne sont pas activés');
+      return;
+    }
+
+    // Vérifiez les permissions de localisation
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // Si la permission est refusée, demandez-la
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Si l'utilisateur refuse encore la permission
+        print('La permission d\'accès à la localisation est refusée');
+        return;
+      }
+    }
+
+    // Si la permission est autorisée, récupérez la position actuelle
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _loadWeather(position.latitude, position.longitude);
+  }
+
+  void _loadWeather(double latitude, double longitude) async {
     try {
-      final data = await _weatherService.fetchWeather("Tunis");
+      final data =
+          await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
       setState(() {
         weatherData = data;
+        isLoading = false;
       });
-    } catch (_) {}
+    } catch (e) {
+      print("Erreur de chargement de la météo : $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> fetchUsers() async {
@@ -512,7 +553,7 @@ void didPopNext() {
                         controller: _searchController,
                         onSubmitted: onSearch,
                         decoration: InputDecoration(
-                          hintText: 'Rechercher un utilisateur...',
+                          hintText: 'Search for a user...',
                           prefixIcon: Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.white,
@@ -579,7 +620,7 @@ void didPopNext() {
                             });
                           },
                           icon: Icon(Icons.refresh, color: Colors.black87),
-                          label: Text("Réinitialiser les filtres",
+                          label: Text("Reset filters",
                               style: TextStyle(color: Colors.black87)),
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.grey[200],
@@ -677,7 +718,7 @@ void didPopNext() {
                                   padding: const EdgeInsets.all(20.0),
                                   child: Center(
                                     child: Text(
-                                      "Aucun match trouvé.",
+                                      "No match found.",
                                       style: TextStyle(
                                           fontSize: 16, color: Colors.grey),
                                     ),
@@ -714,7 +755,7 @@ void didPopNext() {
                               padding: const EdgeInsets.all(20.0),
                               child: Center(
                                 child: Text(
-                                  "Aucun utilisateur trouvé.",
+                                  "No user found.",
                                   style: TextStyle(
                                       fontSize: 16, color: Colors.grey),
                                 ),
@@ -735,120 +776,120 @@ void didPopNext() {
   }
 
   Widget _buildHeader() {
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-    decoration: BoxDecoration(
-      color: Color(0xFFDBD9FE),
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(30),
-        bottomRight: Radius.circular(30),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: Color(0xFFDBD9FE),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
       ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // ✅ Météo à gauche
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WeatherScreen(
-                userId: widget.userId,
-                weatherData: weatherData ?? {},
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // ✅ Météo à gauche
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WeatherScreen(
+                  userId: widget.userId,
+                ),
               ),
             ),
+            child: weatherData != null
+                ? Row(
+                    children: [
+                      Image.network(
+                        "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    "N/A °C",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
           ),
-          child: weatherData != null
-              ? Row(
-                  children: [
-                    Image.network(
-                      "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                )
-              : Text(
-                  "N/A °C",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-        ),
 
-        // ✅ Notifications + Profil à droite
-        Row(
-          children: [
-            Stack(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.notifications, color: Colors.white, size: 28),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NotificationScreen(userId: widget.userId),
-                      ),
-                    );
-                  },
-                ),
-                // 🔴 Marqueur rouge si notifications non lues
-                if (_unreadNotifications > 0) 
-                  Positioned(
-                    right: 6,
-                    top: 6,
-                    child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$_unreadNotifications',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+          // ✅ Notifications + Profil à droite
+          Row(
+            children: [
+              Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications,
+                        color: Colors.white, size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              NotificationScreen(userId: widget.userId),
+                        ),
+                      );
+                    },
+                  ),
+                  // 🔴 Marqueur rouge si notifications non lues
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '$_unreadNotifications',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            SizedBox(width: 8),
-            IconButton(
-              icon: Icon(Icons.person, color: Colors.white, size: 28),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UserProfileScreen(
-                      userId: widget.userId,
-                      token: widget.token,
+                ],
+              ),
+              SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.person, color: Colors.white, size: 28),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileScreen(
+                        userId: widget.userId,
+                        token: widget.token,
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
