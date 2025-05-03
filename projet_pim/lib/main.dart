@@ -149,7 +149,8 @@ class MyApp extends StatelessWidget {
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
         themeMode: ThemeProvider.themeMode,
-        home: userId != null && token != null ? const MainScreen() : LoginView(),
+        home:
+            userId != null && token != null ? const MainScreen() : LoginView(),
         routes: {
           '/home': (context) =>
               const HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),

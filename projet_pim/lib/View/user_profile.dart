@@ -148,6 +148,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       carnetId, userId); // 🔥 Appel avec 2 paramètres
                   Navigator.of(context).pop(); // Fermer la boîte de dialogue
                   print("✅Notebook successfully deleted!");
+                  fetchUser(); // 🔥 Rafraîchir les données après suppression
                 } catch (e) {
                   print("❌ Error while deleting: $e");
                 }
@@ -630,7 +631,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 builder: (context) =>
                                     CreateCarnetScreen(userId: widget.userId),
                               ),
-                            );
+                            ).then((_) {
+                              fetchUser(); // 🔥 Rafraîchir les données après la création d'un carnet
+                            });
                           } else {
                             Navigator.push(
                               context,
@@ -641,7 +644,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 ),
                               ),
                             ).then((_) {
-                              fetchUser(); // Rafraîchit la page après l'ajout de la place
+                              fetchUser(); // Rafraîchir les données après l'ajout d'une place
                             });
                           }
                         },

@@ -4,7 +4,9 @@ import 'package:projet_pim/Model/review.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
+import 'package:projet_pim/View/user_profile.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CarnetDetailsPage extends StatefulWidget {
   final Carnet carnet;
@@ -17,6 +19,27 @@ class CarnetDetailsPage extends StatefulWidget {
 
 class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
   late String carnetTitle;
+  String? userId;
+  String? token;
+  bool isLoading = true;
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? _userId = prefs.getString("user_id");
+    String? _token = prefs.getString("jwt_token");
+
+    if (_userId != null && _token != null) {
+      setState(() {
+        userId = _userId;
+        token = _token;
+      });
+    } else {
+      print("User ID or Token is not available");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   void _updateCarnetTitle(String newTitle) async {
     if (newTitle.isEmpty) return;
@@ -46,6 +69,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
   void initState() {
     super.initState();
     carnetTitle = widget.carnet.title;
+    _loadUserData(); // Charge les données utilisateur au démarrage
   }
 
   void _editCarnetTitle() {
@@ -106,11 +130,15 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           false;
 
       if (shouldDelete) {
-        const jwtToken = 'YOUR_JWT_TOKEN'; // À récupérer dynamiquement
-        print("🛠 Removal of ${place.name} with ID: ${place.id}");
+        print(
+            "🛠 Attempting to delete place: ${place.name} with ID: ${place.id}");
+
+        // Recharge les carnets pour s'assurer que la liste est à jour
+        await Provider.of<CarnetProvider>(context, listen: false)
+            .fetchCarnets();
 
         await Provider.of<CarnetProvider>(context, listen: false)
-            .deletePlace(widget.carnet.id, place.id, jwtToken);
+            .deletePlace(widget.carnet.id, place.id, token!);
 
         setState(() {
           widget.carnet.places.removeWhere((p) => p.id == place.id);
@@ -122,7 +150,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
         );
       }
     } catch (e, stacktrace) {
-      print("❌ Error deleting${place.name}: $e");
+      print("❌ Error deleting ${place.name}: $e");
       print(stacktrace);
     }
   }
