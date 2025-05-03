@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io' show Platform;
+import 'package:geocoding/geocoding.dart'; // Add this import for reverse geocoding
 
 class PlaceDetailsScreen extends StatefulWidget {
   final Place place;
@@ -29,17 +30,45 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   final ReviewService _reviewService = ReviewService();
   List<Review> _reviews = [];
   String? _currentUserId;
+  String? _placeLocationName; // Add this to store the place location name
 
   @override
   void initState() {
     super.initState();
     _initPage();
+    _fetchPlaceLocationName(); // Fetch the location name on initialization
   }
 
   Future<void> _initPage() async {
     await _getCurrentUserId(); // On récupère d'abord l'ID
     await _fetchReviews(); // Puis on peut charger les avis
     await _checkIfFavorite(); // Ensuite les favoris
+  }
+
+  Future<void> _fetchPlaceLocationName() async {
+    if (widget.place.latitude != null && widget.place.longitude != null) {
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          widget.place.latitude!,
+          widget.place.longitude!,
+        );
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks.first;
+          setState(() {
+            _placeLocationName = "${place.locality}, ${place.country}";
+          });
+        }
+      } catch (e) {
+        print("Error in reverse geocoding: $e");
+        setState(() {
+          _placeLocationName = "Unknown location";
+        });
+      }
+    } else {
+      setState(() {
+        _placeLocationName = "Coordinates not available";
+      });
+    }
   }
 
   Future<void> _fetchReviews() async {
@@ -288,6 +317,20 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
           children: [
             Text(widget.place.name,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+
+            // Display the location name
+            if (_placeLocationName != null)
+              Row(
+                children: [
+                  Icon(Icons.location_on, color: Colors.red, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    _placeLocationName!,
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ],
+              ),
             SizedBox(height: 20),
 
             if (widget.place.images.isNotEmpty)
