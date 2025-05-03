@@ -504,7 +504,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   await Provider.of<ReviewProvider>(context, listen: false)
                       .addReview(widget.place.id,
                           review); // Ensure this line works without returning a value
-
+                  _fetchReviews();
                   // Fermer le pop-up de chargement
                   Navigator.of(context).pop();
 
