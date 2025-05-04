@@ -5,6 +5,7 @@ import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/user_profile.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -282,7 +283,7 @@ class PlaceCard extends StatelessWidget {
                       builder: (BuildContext context) {
                         return Dialog(
                           child: Image.network(
-                            place.images[0],
+                            '${ApiConstants.baseUrl}'+place.images[0],
                             fit: BoxFit.cover,
                           ),
                         );
@@ -290,7 +291,7 @@ class PlaceCard extends StatelessWidget {
                     );
                   },
                   child: Image.network(
-                    place.images[0],
+                    '${ApiConstants.baseUrl}'+place.images[0],
                     width: 100,
                     height: 100,
                     fit: BoxFit.cover,

@@ -12,6 +12,7 @@ import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/notification_service.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
@@ -70,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
     _getCurrentLocation();
@@ -203,6 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print('Erreur lors du chargement des matches: $e');
     } finally {
+      if (!mounted) return;
       setState(() {
         isLoadingMatches = false;
       });
@@ -213,6 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_userId != null) {
       final count =
           await _notificationService.getUnreadNotificationsCount(_userId!);
+          if (!mounted) return;
       setState(() {
         _unreadNotifications = count;
       });
@@ -225,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _token = prefs.getString('jwt_token') ?? '';
     provider = Provider.of<CarnetProvider>(context, listen: false);
     eventProvider = Provider.of<EventProvider>(context, listen: false);
+    if (!mounted) return;
     await Future.wait([
       provider!.fetchCarnetsExcludingUser(widget.userId),
       provider!.fetchUnlockedPlaces(widget.userId),
@@ -271,12 +275,16 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final data =
           await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
+          if (!mounted) return;
+
       setState(() {
         weatherData = data;
         isLoading = false;
       });
     } catch (e) {
       print("Erreur de chargement de la météo : $e");
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
@@ -338,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
     print(
         "🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategories");
-
+    if (!mounted) return;
     setState(() {
       users = filtered;
       isShowingFallbackUsers = false; // (ou inutile à ce stade)
@@ -452,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     radius: 35,
                     backgroundImage: user['profileImageUrl'] != null &&
                             user['profileImageUrl'].isNotEmpty
-                        ? NetworkImage(user['profileImageUrl'])
+                        ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImageUrl'])
                         : AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
@@ -589,6 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color:
                                       isSelected ? Colors.white : Colors.black),
                               onSelected: (selected) {
+                                if (!mounted) return;
                                 setState(() {
                                   selected
                                       ? {
@@ -613,6 +622,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             horizontal: 16, vertical: 8),
                         child: TextButton.icon(
                           onPressed: () {
+                            if (!mounted) return;
                             setState(() {
                               _selectedCategories.clear();
                               _searchController.clear();
@@ -651,6 +661,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
+                                  if (!mounted) return;
                                   setState(() {
                                     showMatches = false;
                                   });
@@ -680,6 +691,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
+                                  if (!mounted) return;
                                   setState(() {
                                     showMatches = true;
                                   });

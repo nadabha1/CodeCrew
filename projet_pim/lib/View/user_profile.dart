@@ -16,6 +16,7 @@ import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/follow/FollowersScreen.dart';
 import 'package:projet_pim/View/follow/FollowingScreen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/ViewModel/login.dart';
@@ -254,6 +255,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }),
     );
   }
+  String resolveImageUrl(String? path) {
+  if (path == null || path.isEmpty) {
+    return ''; // Ou retourne un placeholder
+  }
+  if (path.startsWith('http')) {
+    return path; // C’est déjà une URL
+  }
+  return '${ApiConstants.baseUrl}$path'; // Ex: http://localhost:3000/uploads/...
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +294,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       radius: 40,
                       backgroundImage: userData?['profileImage'] != null &&
                               userData!['profileImage'].isNotEmpty
-                          ? NetworkImage(userData!['profileImage'])
+                          ?  NetworkImage('${ApiConstants.baseUrl}'+userData!['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -618,6 +629,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0, bottom: 32),
                       child: FloatingActionButton(
+                        heroTag: 'add_place_fab',
                         backgroundColor:
                             const Color.fromARGB(255, 248, 214, 253),
                         child: const Icon(Icons.add),
@@ -678,7 +690,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                       top: 16.0, bottom: 32),
                                   child: Align(
                                     alignment: Alignment.centerLeft,
+                                    
                                     child: FloatingActionButton(
+                                      heroTag: 'add_event_fab',
                                       backgroundColor: const Color.fromARGB(
                                           255, 248, 214, 253),
                                       child: const Icon(Icons.add),
@@ -881,7 +895,7 @@ class AddressCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             image: DecorationImage(
               image: place.images.isNotEmpty
-                  ? NetworkImage(place.images.first)
+                  ? NetworkImage('${ApiConstants.baseUrl}'+place.images.first)
                   : const AssetImage('assets/default_image.jpg')
                       as ImageProvider,
               fit: BoxFit.cover,

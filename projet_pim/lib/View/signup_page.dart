@@ -53,7 +53,7 @@ class _SignUpPageState extends State<SignUpPage> {
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
           final fullImageUrl =
-              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+              '/uploads/${uploadedImage['filename']}';
           setState(() {
             _profileImageUrl = fullImageUrl;
           });
@@ -140,7 +140,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
     // Si aucune image n’est sélectionnée, utiliser l’image par défaut
     final imageUrlToSend =
-        _profileImageUrl ?? '${ApiConstants.baseUrl}/uploads/default_image.png';
+        _profileImageUrl ?? '/uploads/default_image.png';
     debugPrint(
         "🌐 URL de l'image utilisée pour l'inscription : $imageUrlToSend");
 
@@ -362,7 +362,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         radius: 50,
                         backgroundColor: Colors.grey[300],
                         backgroundImage: _profileImageUrl != null
-                            ? NetworkImage(_profileImageUrl!)
+                            ? NetworkImage('${ApiConstants.baseUrl}'+_profileImageUrl!)
                             : null,
                         child: _profileImageUrl == null
                             ? const Icon(Icons.person,

@@ -307,7 +307,7 @@ class _EditPlaceState extends State<EditPlace> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: Image.network(
-                                  imageUrl,
+                                  '${ApiConstants.baseUrl}'+imageUrl,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,

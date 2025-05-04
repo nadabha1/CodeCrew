@@ -8,6 +8,7 @@ import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/user_entity.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -253,7 +254,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
-                                  annotation.imageUrl!,
+                                  '${ApiConstants.baseUrl}'+annotation.imageUrl!,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,

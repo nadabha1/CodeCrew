@@ -43,6 +43,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
   @override
   void initState() {
     super.initState();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       eventProvider = Provider.of<EventProvider>(context, listen: false);
       _loadUserEvents(widget.userId, widget.token);
@@ -131,7 +132,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
       print("Génération du poster pour l'événement : ${event.title}");
 
       final response = await http.post(
-        Uri.parse('http://localhost:3000/ai/generate-poster-flux'),
+        Uri.parse('${ApiConstants.baseUrl}/ai/generate-poster-flux'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "description": description,
@@ -426,7 +427,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
           children: [
             if (hasImage)
               Image.network(
-                event.imagePath!,
+                '${ApiConstants.baseUrl}'+event.imagePath!,
                 height: 500,
                 width: double.infinity,
                 fit: BoxFit.cover,

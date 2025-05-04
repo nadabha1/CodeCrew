@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/EditPlace.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -119,7 +120,7 @@ class _DetailsState extends State<Details> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: Image.network(
-                              imageUrl,
+                              '${ApiConstants.baseUrl}'+imageUrl,
                               width: 150, // Set a fixed width for the images
                               height: 100,
                               fit: BoxFit.cover,

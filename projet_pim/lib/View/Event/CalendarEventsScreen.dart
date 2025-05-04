@@ -108,6 +108,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      if (!mounted) return;
       setState(() {
         _locationName = "Location services are disabled. Please enable them.";
       });
@@ -120,6 +121,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
         setState(() {
           _locationName =
               "Location permissions are permanently denied. Please enable them in settings.";
@@ -127,6 +129,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
         print("Error: Location permissions are permanently denied.");
         return;
       } else if (permission == LocationPermission.denied) {
+        if (!mounted) return;
         setState(() {
           _locationName =
               "Location permissions are denied. Please allow access.";
@@ -149,12 +152,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       );
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
+        if (!mounted) return;
         setState(() {
           _currentLocation = LatLng(position.latitude, position.longitude);
           _locationName = "${place.locality}, ${place.country}";
         });
         print("Location fetched successfully: $_locationName");
       } else {
+        if (!mounted) return;
         setState(() {
           _locationName = "Unable to determine location.";
         });
@@ -163,10 +168,12 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     } catch (e) {
       print("Error in getting location: $e");
       if (e.toString().contains("Failed host lookup")) {
+        if (!mounted) return;
         setState(() {
           _locationName = "No internet connection. Please check your network.";
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _locationName = "Error fetching location.";
         });
@@ -619,13 +626,32 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text("Cancel")),
             TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _eventProvider.joinEvent(widget.userId, event.id);
-                await _fetchAllEvents();
-              },
-              child: Text("Confirm"),
-            ),
+  onPressed: () async {
+    Navigator.of(context).pop(); // close dialog first
+    try {
+      await _eventProvider.joinEvent(widget.userId, event.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Inscription réussie à l’événement !")),
+      );
+      await _fetchAllEvents(); // refresh list
+    } catch (e) {
+      final error = e.toString();
+      if (error.contains("Insufficient coins")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⛔ Tu n’as pas assez de coins pour participer à cet événement."),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Erreur : $error")),
+        );
+      }
+    }
+  },
+  child: const Text("Confirm"),
+)
+
           ],
         );
       },
@@ -777,21 +803,38 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                       child: Text(isParticipating ? "Join Chat" : "Join Event"),
                     ),
                     IconButton(
-                      icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EventDetailsScreen(
-                              event: event,
-                              userId: widget.userId,
-                              token: widget.token,
-                              eventProvider: _eventProvider,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+  icon: const Icon(Icons.more_horiz),
+  onPressed: () {
+    if (isParticipating) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EventDetailsScreen(
+            event: event,
+            userId: widget.userId,
+            token: widget.token,
+            eventProvider: _eventProvider,
+          ),
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Access denied"),
+          content: const Text("You need to join this event first to view its details."),
+          actions: [
+            TextButton(
+              child: const Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    }
+  },
+),
+
                   ],
                 ),
               ],
