@@ -10,21 +10,31 @@ class UserService {
   // Récupérer les informations de l'utilisateur avec un token
   Future<Map<String, dynamic>> getUserById(String userId, String token) async {
     try {
-      final response = await client.get(
-        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
+      final url = Uri.parse('${ApiConstants.baseUrl}/users/$userId');
+      print("Making GET request to: $url");
+
+      final response = await http.get(
+        url,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-      ).timeout(const Duration(seconds: 10));
+      );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        // Debugging: Print the response body
+        print("API Response: ${response.body}");
+        return jsonDecode(response.body);
       } else {
-        return {'error': 'Erreur ${response.statusCode}: ${response.body}'};
+        // Debugging: Print the error response
+        print(
+            "Failed to fetch user details. Status Code: ${response.statusCode}");
+        print("Response Body: ${response.body}");
+        throw Exception('Failed to fetch user details');
       }
     } catch (e) {
-      return {'error': 'Erreur lors de la récupération de l’utilisateur: $e'};
+      print("Error in getUserById: $e");
+      throw Exception('Error fetching user details');
     }
   }
 

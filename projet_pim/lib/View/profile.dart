@@ -165,8 +165,8 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Succès !"),
-          content: Text("Vous avez déverrouillé '$placeName' !"),
+          title: const Text("Success! !"),
+          content: Text(" '$placeName'  unlocked successfully!!"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
