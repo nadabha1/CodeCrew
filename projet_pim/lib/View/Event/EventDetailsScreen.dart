@@ -691,11 +691,20 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       future: getAddressFromStringCoords(coords),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          return _buildDetailRow(
-            Icons.location_on,
-            "Location",
-            snapshot.data!,
-            iconColor: const Color(0xFFFF8A65),
+          return Row(
+            children: [
+              Icon(Icons.location_on, color: const Color(0xFFFF8A65)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  snapshot.data!,
+                  style: const TextStyle(
+                    fontSize: 16, // Reduced font size
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
           );
         } else {
           return const SizedBox.shrink();

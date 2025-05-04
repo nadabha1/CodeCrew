@@ -392,20 +392,33 @@ class _HomeScreenState extends State<HomeScreen> {
     return LatLng(0, 0); // Default value
   }
 
+  Future<String> _getLocationName(dynamic userData) async {
+    try {
+      if (userData?['location'] != null) {
+        LatLng parsedLocation = _parseLocation(userData['location']);
+        return await _geocodingService.getAddressFromLatLng(
+            parsedLocation.latitude, parsedLocation.longitude);
+      } else {
+        print("⚠️ No location data found in userData.");
+      }
+    } catch (e) {
+      print("❌ Error fetching location name: $e");
+    }
+    return "Unknown Location"; // Default value
+  }
+
   Widget _buildUserCard(dynamic user) {
-    // Appel de la fonction asynchrone pour récupérer la localisation
     return FutureBuilder<String>(
-      future: _getLocationName(user), // Appeler ta logique asynchrone ici
+      future: _getLocationName(user),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator(); // Affiche un indicateur de chargement pendant l'attente
+          return CircularProgressIndicator();
         }
 
         if (snapshot.hasError) {
           return Text('❌ Erreur : ${snapshot.error}');
         }
 
-        // Utiliser la localisation récupérée
         String locationName = snapshot.data ?? "Lieu inconnu";
 
         return GestureDetector(
@@ -430,9 +443,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundImage: user['profileImageUrl'] != null &&
-                            user['profileImageUrl'].isNotEmpty
-                        ? NetworkImage(user['profileImageUrl'])
+                    backgroundImage: user['profileImage'] != null &&
+                            user['profileImage'].isNotEmpty
+                        ? NetworkImage(user['profileImage'])
                         : AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
@@ -476,21 +489,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-
-// Fonction asynchrone pour récupérer la localisation
-  Future<String> _getLocationName(dynamic userData) async {
-    try {
-      if (userData?['location'] != null) {
-        LatLng parsedLocation = _parseLocation(userData['location']);
-        return await getAddressFromLatLng(parsedLocation);
-      } else {
-        print("⚠️ No location data found in userData.");
-      }
-    } catch (e) {
-      print("❌ Error fetching location name: $e");
-    }
-    return "Unknown Location"; // Default value
   }
 
   void onSearch(String keyword) {
@@ -717,14 +715,45 @@ class _HomeScreenState extends State<HomeScreen> {
                                       elevation: 5,
                                       margin: EdgeInsets.symmetric(
                                           horizontal: 16, vertical: 10),
-                                      child: ListTile(
-                                        leading: CircleAvatar(
-                                          backgroundImage: AssetImage(
-                                              'assets/default_profile.png'),
+                                      child: Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 35,
+                                              backgroundImage: match[
+                                                              'profileImage'] !=
+                                                          null &&
+                                                      match['profileImage']
+                                                          .isNotEmpty
+                                                  ? NetworkImage(
+                                                      match['profileImage'])
+                                                  : AssetImage(
+                                                          'assets/default_profile.png')
+                                                      as ImageProvider,
+                                            ),
+                                            SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(match['name'],
+                                                      style: TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                  SizedBox(height: 4),
+                                                  Text(
+                                                      'Score: ${match['score'].toStringAsFixed(2)} ⭐',
+                                                      style: TextStyle(
+                                                          color: Colors
+                                                              .grey[600])),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        title: Text(match['name']),
-                                        subtitle: Text(
-                                            'Score: ${match['score'].toStringAsFixed(2)} ⭐'),
                                       ),
                                     );
                                   },

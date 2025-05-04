@@ -21,10 +21,12 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   List conversations = [];
   bool isLoading = true;
   String? _userId;
+  bool hasFollowers = false;
 
   @override
   void initState() {
     super.initState();
+    checkFollowers();
     fetchConversations();
   }
 
@@ -49,6 +51,25 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     }
   }
 
+  Future<void> checkFollowers() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString("user_id");
+
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/users/$_userId/followers'));
+
+    if (response.statusCode == 200) {
+      final followers = json.decode(response.body);
+      setState(() {
+        hasFollowers = followers.isNotEmpty;
+      });
+    } else {
+      setState(() {
+        hasFollowers = false;
+      });
+    }
+  }
+
   String getParticipantName(List<dynamic> participants) {
     try {
       final otherParticipant = participants.firstWhere(
@@ -65,6 +86,27 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       print("🚨 Error retrieving name: $e");
     }
     return 'Unknown User';
+  }
+
+  String getParticipantProfileImage(List<dynamic> participants) {
+    try {
+      final otherParticipant = participants.firstWhere(
+        (p) => p['_id'] != _userId,
+        orElse: () => null,
+      );
+
+      if (otherParticipant != null &&
+          otherParticipant is Map &&
+          otherParticipant.containsKey('profileImage')) {
+        final profileImage = otherParticipant['profileImage'];
+        return (profileImage != null && profileImage.isNotEmpty)
+            ? profileImage
+            : 'https://example.com/default-avatar.png'; // ✅ Default image URL
+      }
+    } catch (e) {
+      print("🚨 Error retrieving profile image: $e");
+    }
+    return 'https://example.com/default-avatar.png'; // ✅ Default image URL
   }
 
   @override
@@ -94,16 +136,15 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundImage: NetworkImage(
-                          participants.firstWhere(
-                                (p) => p['_id'] != _userId,
-                                orElse: () => {'avatarUrl': null},
-                              )['avatarUrl'] ??
-                              'https://example.com/default-avatar.png',
+                          isGroupChat
+                              ? 'https://example.com/default-group-avatar.png'
+                              : getParticipantProfileImage(participants) ??
+                                  'https://example.com/default-avatar.png',
                         ),
                         backgroundColor: const Color(0xFFC8C4FF),
                         child: isGroupChat
                             ? Icon(Icons.group, color: Colors.white)
-                            : Icon(Icons.person, color: Colors.white),
+                            : null,
                       ),
                       title: Text(
                         participantName,
@@ -163,19 +204,20 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
               if (result != null) fetchConversations();
             },
           ),
-          SpeedDialChild(
-            child: const Icon(Icons.group),
-            label: 'Create a Group',
-            backgroundColor: Colors.deepPurple.shade100,
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => NewGroupConversationScreen()),
-              );
-              if (result != null) fetchConversations();
-            },
-          ),
+          if (hasFollowers) // ✅ Only show if the user has followers
+            SpeedDialChild(
+              child: const Icon(Icons.group),
+              label: 'Create a Group',
+              backgroundColor: Colors.deepPurple.shade100,
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => NewGroupConversationScreen()),
+                );
+                if (result != null) fetchConversations();
+              },
+            ),
         ],
       ),
     );
