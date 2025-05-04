@@ -39,6 +39,12 @@ late IO.Socket socket;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print("❌ Uncaught Flutter error: ${details.exception}");
+  };
+
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString("jwt_token");
   String? userId = prefs.getString("user_id");

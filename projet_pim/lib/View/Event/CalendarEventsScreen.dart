@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
@@ -19,6 +20,7 @@ import 'package:intl/date_symbol_data_local.dart'; // Add this import
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geocoding/geocoding.dart'; // Add this import for reverse geocoding
+import 'package:projet_pim/Services/geocoding_service.dart'; // Add this import
 
 class CalendarEventsScreen extends StatefulWidget {
   final String userId;
@@ -54,6 +56,8 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   LatLng? _currentLocation;
   String? _locationName; // Add this to store the location name
   late TabController _tabController;
+  final GeocodingService _geocodingService =
+      GeocodingService(); // Add this instance
 
   @override
   void initState() {
@@ -62,10 +66,19 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     initializeDateFormatting('fr_FR'); // Initialize locale data for French
     _deviceCalendarPlugin = DeviceCalendar.DeviceCalendarPlugin();
     _loadUserData();
+
     _getUserLocation();
     _eventProvider = EventProvider(userId: widget.userId);
     _fetchAllEvents();
     _displayedEvents = []; // Initially empty, will be set after fetching events
+  }
+
+  @override
+  void dispose() {
+    // Dispose controllers and other resources
+    _searchController.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   void _resetFilters() {
@@ -108,6 +121,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() {
         _locationName = "Location services are disabled. Please enable them.";
       });
@@ -120,6 +134,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return; // Ensure widget is still mounted
         setState(() {
           _locationName =
               "Location permissions are permanently denied. Please enable them in settings.";
@@ -127,6 +142,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
         print("Error: Location permissions are permanently denied.");
         return;
       } else if (permission == LocationPermission.denied) {
+        if (!mounted) return; // Ensure widget is still mounted
         setState(() {
           _locationName =
               "Location permissions are denied. Please allow access.";
@@ -149,12 +165,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       );
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
+        if (!mounted) return; // Ensure widget is still mounted
         setState(() {
           _currentLocation = LatLng(position.latitude, position.longitude);
           _locationName = "${place.locality}, ${place.country}";
         });
         print("Location fetched successfully: $_locationName");
       } else {
+        if (!mounted) return; // Ensure widget is still mounted
         setState(() {
           _locationName = "Unable to determine location.";
         });
@@ -162,31 +180,30 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       }
     } catch (e) {
       print("Error in getting location: $e");
-      if (e.toString().contains("Failed host lookup")) {
-        setState(() {
+      if (!mounted) return; // Ensure widget is still mounted
+      setState(() {
+        if (e.toString().contains("Failed host lookup")) {
           _locationName = "No internet connection. Please check your network.";
-        });
-      } else {
-        setState(() {
+        } else {
           _locationName = "Error fetching location.";
-        });
-      }
+        }
+      });
     }
   }
 
   Future<void> _requestPermission() async {
     try {
-      // Demander le full access calendrier (Android 14+)
+      // Request full calendar access (Android 14+)
       var status = await Permission.calendarFullAccess.status;
       if (!status.isGranted) {
         status = await Permission.calendarFullAccess.request();
         if (!status.isGranted) {
-          print('Permission calendrier non accordée (calendarFullAccess)');
+          print('Calendar permission not granted (calendarFullAccess)');
           return;
         }
       }
 
-      // Ensuite, vérifier via device_calendar
+      // Check permissions via device_calendar
       var hasPermissions = await _deviceCalendarPlugin.hasPermissions();
       print(
           "hasPermissions result: ${hasPermissions.isSuccess}, ${hasPermissions.data}");
@@ -200,13 +217,13 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
         if (permissionResponse.isSuccess && permissionResponse.data!) {
           _getCalendarEvents();
         } else {
-          print('Permission non accordée via device_calendar');
+          print('Permission not granted via device_calendar');
         }
       } else {
         _getCalendarEvents();
       }
     } catch (e) {
-      print('Erreur lors de la demande de permission: $e');
+      print('Error requesting permission: $e');
     }
   }
 
@@ -322,12 +339,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
 
   String generateFreeSlotMessage(
       List<Map<String, String>> slots, int eventCount) {
-    if (slots.isEmpty || eventCount == 0) return '';
+    if (slots.isEmpty || eventCount == 0 || _selectedDay == null) return '';
+
     final slot = slots.first;
     final start = DateTime.parse(slot['start']!).toLocal();
-    final dayName = _getDayName(start.weekday);
     final partOfDay = _getPartOfDay(start);
-    return 'Are you free on $dayName $partOfDay ?  Here are  $eventCount interesting events nearby.';
+    final dayName = _getDayName(_selectedDay!.weekday); // Use selected day
+
+    return 'Are you free on $dayName $partOfDay? Here are $eventCount interesting events nearby.';
   }
 
   String _getDayName(int weekday) {
@@ -380,6 +399,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
+
                 _displayedEvents = _nonConflictingEvents.where((event) {
                   return event.startDate.year == selectedDay.year &&
                       event.startDate.month == selectedDay.month &&
@@ -424,12 +444,26 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       );
     }
 
+    final freeSlotMessage =
+        generateFreeSlotMessage(_freeSlots, _displayedEvents.length);
+
     return Padding(
       padding: const EdgeInsets.only(left: 16.0), // Add padding to shift right
       child: Column(
-        children: _displayedEvents
-            .map((event) => _buildStyledEventCard(event))
-            .toList(),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (freeSlotMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                freeSlotMessage,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ..._displayedEvents
+              .map((event) => _buildStyledEventCard(event))
+              .toList(),
+        ],
       ),
     );
   }
@@ -506,11 +540,21 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
 
   Future<void> _refreshData() async {
     if (!mounted) return;
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+      _selectedDay = null; // Reset selected day
+      _focusedDay = DateTime.now(); // Reset focused day to today
+      _displayedEvents = []; // Clear displayed events
+      _freeSlots = []; // Clear free slots
+    });
     await _getCalendarEvents();
     await _fetchNonConflictingEvents();
     if (!mounted) return;
-    setState(() => isLoading = false);
+    setState(() {
+      isLoading = false;
+      _displayedEvents =
+          _nonConflictingEvents; // Show all non-conflicting events
+    });
   }
 
   Widget _buildHorizontalCalendar() {
@@ -587,7 +631,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        if (!mounted) return;
+        if (!mounted) return; // Ensure widget is still mounted
         setState(() {
           _event =
               data.map((json) => Event.fromJson(json, widget.userId)).toList();
@@ -596,13 +640,12 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
           _isLoading = false;
         });
       } else {
-        if (!mounted) return;
+        if (!mounted) return; // Ensure widget is still mounted
         setState(() => _isLoading = false);
         print('🔴 Erreur: ${response.body}');
       }
     } catch (e) {
-      print('🔴 Exception: $e');
-      if (!mounted) return;
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() => _isLoading = false);
     }
   }
@@ -663,142 +706,166 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     );
   }
 
-  Future<String> _getEventLocationName(LatLng location) async {
-    try {
-      // Validate coordinates
-      if (location.latitude == 0.0 && location.longitude == 0.0) {
-        return "Invalid coordinates";
-      }
+  Widget _buildLocationDetailRow(String coords) {
+    return FutureBuilder<String>(
+      future: _geocodingService.getAddressFromStringCoords(coords),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildDetailRow(
+            Icons.location_on,
+            "Location",
+            "Loading location...",
+            iconColor: Colors.grey,
+          );
+        }
+        if (snapshot.hasError) {
+          print("❌ Error in FutureBuilder: ${snapshot.error}");
+          return _buildDetailRow(
+            Icons.location_on,
+            "Location",
+            "Error fetching location",
+            iconColor: Colors.red,
+          );
+        }
+        return _buildDetailRow(
+          Icons.location_on,
+          "Location",
+          snapshot.data ?? "Unknown Location",
+          iconColor: const Color(0xFF161055),
+          iconSize: 14.0, // Set icon size to 14
+        );
+      },
+    );
+  }
 
-      // Use reverse geocoding to fetch the location name
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        location.latitude,
-        location.longitude,
-      );
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        return "${place.locality}, ${place.country}"; // Return the locality and country
-      } else {
-        return "No location found";
-      }
-    } catch (e) {
-      print("Error in reverse geocoding for event: $e");
-      if (e.toString().contains("Failed host lookup")) {
-        return "No internet connection";
-      }
-      return "Unknown location"; // Fallback if reverse geocoding fails
-    }
+  Widget _buildDetailRow(IconData icon, String label, String value,
+      {Color iconColor = Colors.black, double iconSize = 14.0}) {
+    return Row(
+      children: [
+        Icon(icon, color: iconColor, size: iconSize),
+        const SizedBox(width: 8),
+        Text("$label : ",
+            style: TextStyle(
+                fontWeight: FontWeight.normal, color: Color(0xFF161055))),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF161055)))), // Smaller font size
+      ],
+    );
   }
 
   Widget _buildStyledEventCard(Event event) {
     bool isParticipating = event.isParticipating;
-    return FutureBuilder<String>(
-      future:
-          _getEventLocationName(event.location), // Fetch event location name
-      builder: (context, snapshot) {
-        String locationName = snapshot.data ?? "Fetching location...";
-        return Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Color(0xFF161055), width: 1.5),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Container(
-            width: 400,
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Color(0xFF161055), width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        width: 400,
+        color: Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              event.title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF161055),
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              event.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Color(0xFF161055)),
+            ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisSize: MainAxisSize.min, // Shrink-wrap the Row
               children: [
+                Icon(Icons.calendar_today, size: 14, color: Color(0xFF161055)),
+                SizedBox(width: 6),
                 Text(
-                  event.title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF161055),
-                  ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  event.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFF161055)),
-                ),
-                SizedBox(height: 10),
-                Row(children: [
-                  Icon(Icons.calendar_today,
-                      size: 14, color: Color(0xFF161055)),
-                  SizedBox(width: 6),
-                  Text(
-                    event.startDate.toString().split(" ")[0],
-                    style: TextStyle(fontSize: 12, color: Color(0xFF161055)),
-                  ),
-                ]),
-                SizedBox(height: 4),
-                Row(children: [
-                  Icon(Icons.location_on, size: 14, color: Color(0xFF161055)),
-                  SizedBox(width: 6),
-                  Text(
-                    locationName, // Display the fetched location name
-                    style: TextStyle(fontSize: 12, color: Color(0xFF161055)),
-                  ),
-                ]),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        if (isParticipating) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GroupChatScreen(
-                                eventProvider:
-                                    EventProvider(userId: widget.userId),
-                                conversationId: event.conversationId ?? "",
-                                groupName: event.title,
-                                userId: widget.userId,
-                              ),
-                            ),
-                          );
-                        } else {
-                          _showJoinConfirmationDialog(event);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isParticipating
-                            ? Color(0xFF9680D4)
-                            : Color.fromARGB(198, 243, 199, 249),
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(isParticipating ? "Join Chat" : "Join Event"),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EventDetailsScreen(
-                              event: event,
-                              userId: widget.userId,
-                              token: widget.token,
-                              eventProvider: _eventProvider,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                  event.startDate.toString().split(" ")[0],
+                  style: TextStyle(fontSize: 12, color: Color(0xFF161055)),
                 ),
               ],
             ),
-          ),
-        );
-      },
+            SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(
+                  left: 8.0), // Shift location display to the left
+              child: Row(
+                mainAxisSize: MainAxisSize.min, // Shrink-wrap the Row
+                children: [
+                  Flexible(
+                    fit: FlexFit.loose, // Allow the text to shrink-wrap
+                    child: _buildLocationDetailRow(
+                      "${event.location.latitude},${event.location.longitude}",
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (isParticipating) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GroupChatScreen(
+                            eventProvider: EventProvider(userId: widget.userId),
+                            conversationId: event.conversationId ?? "",
+                            groupName: event.title,
+                            userId: widget.userId,
+                          ),
+                        ),
+                      );
+                    } else {
+                      _showJoinConfirmationDialog(event);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isParticipating
+                        ? Color(0xFF9680D4)
+                        : Color.fromARGB(198, 243, 199, 249),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(isParticipating ? "Join Chat" : "Join Event"),
+                ),
+                IconButton(
+                  icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EventDetailsScreen(
+                          event: event,
+                          userId: widget.userId,
+                          token: widget.token,
+                          eventProvider: _eventProvider,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

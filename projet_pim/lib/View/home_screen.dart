@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:projet_pim/Services/geocoding_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   EventProvider? eventProvider;
   final WeatherService _weatherService = WeatherService();
+  final GeocodingService _geocodingService = GeocodingService();
   Map<String, dynamic>? weatherData;
   List<dynamic> users = [];
   List<dynamic> allUsers = [];
@@ -79,6 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    // Dispose controllers and other resources
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -199,10 +203,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _preloadMatches() async {
     try {
       final fetchedMatches = await _fetchMatches();
-      matches = fetchedMatches;
+      if (!mounted) return; // Ensure widget is still mounted
+      setState(() {
+        matches = fetchedMatches;
+      });
     } catch (e) {
       print('Erreur lors du chargement des matches: $e');
     } finally {
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() {
         isLoadingMatches = false;
       });
@@ -213,6 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_userId != null) {
       final count =
           await _notificationService.getUnreadNotificationsCount(_userId!);
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() {
         _unreadNotifications = count;
       });
@@ -271,12 +280,14 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final data =
           await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() {
         weatherData = data;
         isLoading = false;
       });
     } catch (e) {
       print("Erreur de chargement de la météo : $e");
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() {
         isLoading = false;
       });
@@ -293,6 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
           fetchedUsers.where((user) => user['_id'] != widget.userId).toList();
       _applySmartFilter();
     } catch (_) {
+      if (!mounted) return; // Ensure widget is still mounted
       setState(() => isLoadingUsers = false);
     }
   }
@@ -339,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
     print(
         "🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategories");
 
+    if (!mounted) return; // Ensure widget is still mounted
     setState(() {
       users = filtered;
       isShowingFallbackUsers = false; // (ou inutile à ce stade)
@@ -347,41 +360,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<String> getAddressFromLatLng(LatLng location) async {
-    try {
-      print(
-          "🌍 Fetching address for coordinates: ${location.latitude}, ${location.longitude}");
-
-      if (location.latitude == 0.0 && location.longitude == 0.0) {
-        print(
-            "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
-        return "Lieu inconnu";
-      }
-
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(location.latitude, location.longitude);
-
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-
-        // Extraire les informations utiles
-        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
-        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
-        String region = place.administrativeArea ?? "Région inconnue";
-        String country = place.country ?? "Pays inconnu";
-
-        // Construire une adresse détaillée
-        String formattedAddress = "$street, $city, $region, $country";
-        print("✅ Geocoding successful: $formattedAddress");
-
-        return formattedAddress;
-      } else {
-        print("⚠️ No placemarks found for the given coordinates.");
-      }
-    } catch (e) {
-      print("❌ Erreur lors du géocodage : $e");
-    }
-
-    return "Lieu inconnu";
+    return await _geocodingService.getAddressFromLatLng(
+        location.latitude, location.longitude);
   }
 
   LatLng _parseLocation(dynamic location) {
@@ -510,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print("❌ Error fetching location name: $e");
     }
-    return "Lieu inconnu"; // Valeur par défaut
+    return "Unknown Location"; // Default value
   }
 
   void onSearch(String keyword) {

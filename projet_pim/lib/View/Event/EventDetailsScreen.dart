@@ -19,6 +19,7 @@ import 'package:projet_pim/ViewModel/activityLoggerService.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/shareEventMessage.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
+import 'package:projet_pim/Services/geocoding_service.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -46,6 +47,7 @@ class EventDetailsScreen extends StatefulWidget {
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   final UserService userService = UserService();
+  final GeocodingService _geocodingService = GeocodingService();
   Map<String, dynamic> participantDetails = {};
   bool isLoading = true;
   bool _reelExists = false;
@@ -237,30 +239,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<String> getAddressFromStringCoords(String coords) async {
-    try {
-      final parts = coords.split(',');
-      if (parts.length != 2) return "Coordonnées invalides";
-
-      final lat = double.parse(parts[0]);
-      final lng = double.parse(parts[1]);
-      return await getAddressFromLatLng(lat, lng);
-    } catch (e) {
-      print("Erreur lors de la conversion des coordonnées : $e");
-      return "Adresse inconnue";
-    }
+    return await _geocodingService.getAddressFromStringCoords(coords);
   }
 
   Future<String> getAddressFromLatLng(double lat, double lng) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        return "${place.locality}, ${place.country}"; // Example: Paris, France
-      }
-    } catch (e) {
-      print("Erreur de conversion: $e");
-    }
-    return "Localisation inconnue";
+    return await _geocodingService.getAddressFromLatLng(lat, lng);
   }
 
   void _openInGoogleMaps(double latitude, double longitude) async {
@@ -715,7 +698,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             iconColor: const Color(0xFFFF8A65),
           );
         } else {
-          // Si l'adresse n'est pas encore disponible, on ne montre rien.
           return const SizedBox.shrink();
         }
       },
