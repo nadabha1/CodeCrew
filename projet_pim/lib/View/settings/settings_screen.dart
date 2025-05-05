@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
 import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
@@ -57,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           name: userData['name'] ?? 'Unknown Name',
           job: userData['job'] ?? 'No Job Specified',
           location: userData['location'] ?? 'No Location Specified',
-          currentProfilePicture: userData['profilePicture'],
+          currentProfilePicture: '${ApiConstants.baseUrl}'+userData['profileImage'],
         ),
       ),
     );
@@ -184,7 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     CircleAvatar(
                       radius: 40,
                       backgroundImage: userData['profileImage'] != null
-                          ? NetworkImage(userData['profileImage'])
+                          ? NetworkImage('${ApiConstants.baseUrl}'+userData['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),

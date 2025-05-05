@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'TripCalendarScreen.dart';
 
 class TripPlanningScreen extends StatefulWidget {
@@ -19,6 +20,10 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
   bool _showResults = false;
   List<dynamic> _itinerary = [];
   DateTimeRange? _selectedDateRange;
+ Color primaryColor = Color(0xFF8A56AC); // violet doux
+ Color secondaryColor = Color(0xFFB388FF); // violet clair
+ Color accentColor = Color(0xFFFFC107); // jaune-orangé doux
+ Color bgColor = Color(0xFFF9F6FF); // fond pastel
 
   Future<void> _selectDateRange(BuildContext context) async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -32,6 +37,8 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
       });
     }
   }
+  
+
 
   Future<void> generateTripPlan({bool regenerate = false}) async {
     if (_destinationController.text.isEmpty || _selectedDateRange == null) {
@@ -42,16 +49,20 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _showResults = false;
-    });
+    final confirmed = await showTripConfirmationDialog();
+if (!confirmed) return;
+
+setState(() {
+  _isLoading = true;
+  _showResults = false;
+});
+
 
     final dateOnlyFormat = DateFormat('yyyy-MM-dd');
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/trip/generate'),
+        Uri.parse('${ApiConstants.baseUrl}/trip/generate'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'destination': _destinationController.text,
@@ -74,13 +85,80 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    } finally {
+  print('Error: $e');
+
+  String errorMsg = e.toString();
+
+  if (errorMsg.contains("Not enough coins")) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          "⛔ You don’t have enough coins to generate this trip.",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error: ${e.toString()}"),
+        backgroundColor: Colors.grey.shade800,
+      ),
+    );
+  }
+}
+finally {
       setState(() => _isLoading = false);
     }
+
   }
+Future<bool> showTripConfirmationDialog() async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text("Trip Generation Confirmation"),
+            content: const Text(
+              "Generating your trip itinerary will cost 20 coins.\nDo you want to continue?",
+              style: TextStyle(fontSize: 15),
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF673AB7), // Couleur texte
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                child: const Text("Cancel"),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple, // Couleur de fond
+                  foregroundColor: Colors.white, // Couleur du texte
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                child: const Text("Confirm"),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+          );
+        },
+      ) ??
+      false; // si annulé
+}
 
   void _onDayClicked(int dayIndex) {
     final dayActivities = _itinerary[dayIndex]['activities'];
@@ -124,7 +202,7 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
 
         return Card(
           elevation: 6,
-          color: Colors.blue.shade50,
+          color: Colors.purple.shade50,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -142,7 +220,7 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: Colors.blue,
+                      color: Color.fromARGB(255, 210, 184, 251),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -169,7 +247,7 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.blue.shade800,
+        foregroundColor: const Color(0xFF673AB7),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -219,22 +297,37 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => generateTripPlan(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade600,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text('Generate My Itinerary'),
-                      ),
-                    ),
+  width: double.infinity,
+  child: ElevatedButton(
+    onPressed: _isLoading ? null : () => generateTripPlan(),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: primaryColor,
+      foregroundColor: Colors.white,
+      disabledBackgroundColor: primaryColor.withOpacity(0.6),
+      elevation: 4,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1,
+      ),
+    ),
+    child: _isLoading
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
+            ),
+          )
+        : const Text("Generate My Itinerary"),
+  ),
+)
+
                   ],
                 ),
               ),
@@ -263,24 +356,26 @@ class _TripPlanningScreenState extends State<TripPlanningScreen> {
                 icon: const Icon(Icons.calendar_month),
                 label: const Text('View in Calendar'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade800,
+                  backgroundColor: secondaryColor,
+                  foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(16)),
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: () => generateTripPlan(regenerate: true),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Regenerate a New Plan'),
+                onPressed: () => generateTripPlan(regenerate: true),icon: Icon(Icons.refresh, color: primaryColor),
+                label: Text('Regenerate Plan',
+                style: TextStyle(color: primaryColor),),                
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade600,
-                  padding:
+                padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(color: primaryColor.withOpacity(0.5)),
+    ),
                 ),
               ),
             ],

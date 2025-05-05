@@ -1,19 +1,27 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/carnet.dart';
+import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/follow/FollowersScreen.dart';
 import 'package:projet_pim/View/follow/FollowingScreen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class TravelerProfileScreen extends StatefulWidget {
   final String travelerId;
@@ -39,17 +47,237 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
   bool isFollowing = false;
   String? _userId;
   String? _token;
+  late EventProvider _eventProvider;
   UserService userService = UserService();
   CarnetProvider? carnetProvider;
   late TabController _tabController;
+  List<Event> travelerEvents = [];
+
 
   @override
   void initState() {
     super.initState();
     carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
     _tabController = TabController(length: 3, vsync: this); // ← ajouter ça !
+        _eventProvider = EventProvider(userId: widget.loggedInUserId);
     fetchTravelerProfile();
     fetchFollowerData();
+    fetchTravelerRating();
+      fetchTravelerEvents(); 
+  }
+  Future<void> fetchTravelerEvents() async {
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/events/user/${widget.travelerId}'),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        travelerEvents = data.map((e) => Event.fromJson(e, widget.loggedInUserId)).toList();
+      });
+    } else {
+      print('Erreur lors du chargement des événements: ${response.body}');
+    }
+  } catch (e) {
+    print('Erreur : $e');
+  }
+}
+
+Widget _buildEventsTab() {
+  if (travelerEvents.isEmpty) {
+    return const Center(child: Text("Aucun événement trouvé."));
+  }
+
+  return ListView.builder(
+    padding: const EdgeInsets.all(12),
+    itemCount: travelerEvents.length,
+    itemBuilder: (context, index) {
+      final event = travelerEvents[index];
+      return _buildStyledEventCard(event);
+    },
+  );
+}
+Future<String> _getEventLocationName(LatLng location) async {
+  try {
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      location.latitude,
+      location.longitude,
+    );
+    if (placemarks.isNotEmpty) {
+      final place = placemarks.first;
+      return "${place.locality}, ${place.country}";
+    }
+  } catch (e) {
+    print("Reverse geocoding error: $e");
+  }
+  return "Unknown place";
+}
+Widget _buildStyledEventCard(Event event) {
+  bool isParticipating = event.isParticipating;
+
+  return FutureBuilder<String>(
+    future: _getEventLocationName(event.location),
+    builder: (context, snapshot) {
+      String locationName = snapshot.data ?? "Fetching location...";
+
+      return Card(
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF161055), width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                event.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF161055),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                event.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF161055)),
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                const Icon(Icons.calendar_today, size: 14, color: Color(0xFF161055)),
+                const SizedBox(width: 6),
+                Text(
+                  DateFormat('dd/MM/yyyy HH:mm').format(event.startDate),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF161055)),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Row(children: [
+                const Icon(Icons.location_on, size: 14, color: Color(0xFF161055)),
+                const SizedBox(width: 6),
+                Text(
+                  locationName,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF161055)),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      if (isParticipating) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GroupChatScreen(
+                              eventProvider: EventProvider(userId: widget.loggedInUserId),
+                              conversationId: event.conversationId ?? "",
+                              groupName: event.title,
+                              userId: widget.loggedInUserId,
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Optionally, show message or dialog
+                        _showJoinConfirmationDialog(event);
+                        fetchTravelerEvents(); 
+
+
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isParticipating
+                          ? const Color(0xFF9680D4)
+                          : const Color.fromARGB(198, 243, 199, 249),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(isParticipating ? "Join Chat" : "Join Event"),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.more_horiz),
+                    onPressed: () {
+                      if (isParticipating) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EventDetailsScreen(
+                              event: event,
+                              userId: widget.loggedInUserId,
+                              token: widget.token,
+                              eventProvider: EventProvider(userId: widget.loggedInUserId),
+                            ),
+                          ),
+                        );
+                      } else {
+                        showDialog(
+                          context: context,
+                          builder: (_) => const AlertDialog(
+                            title: Text("Access Denied"),
+                            content: Text("You must join the event to view details."),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+ void _showJoinConfirmationDialog(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Join the event?"),
+          content: Text("Participation Fee: ${event.joinPrice} coins"),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("Cancel")),
+            TextButton(
+  onPressed: () async {
+    Navigator.of(context).pop(); // close dialog first
+    try {
+      await _eventProvider.joinEvent(widget.loggedInUserId, event.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Inscription réussie à l’événement !")),
+      );
+            fetchTravelerEvents(); 
+
+    } catch (e) {
+      final error = e.toString();
+      if (error.contains("Insufficient coins")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⛔ Tu n’as pas assez de coins pour participer à cet événement."),
+          ),
+        );
+      } 
+    }
+          fetchTravelerEvents(); 
+
+  },
+  child: const Text("Confirm"),
+)
+
+          ],
+        );
+      },
+    );
   }
 
   Future<void> fetchFollowerData() async {
@@ -165,8 +393,8 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Success! !"),
-          content: Text(" '$placeName'  unlocked successfully!!"),
+          title: const Text("Success !"),
+          content: Text("You have unlocked '$placeName' !"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -210,20 +438,20 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Confirmation du déverrouillage"),
+          title: const Text("Unlock Confirmation"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Voulez-vous déverrouiller '$placeName' ?"),
               const SizedBox(height: 10),
-              Text("Prix pour déverrouiller : $placePrice coins"),
+              Text("Unlock cost: : $placePrice coins"),
             ],
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Annuler"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
@@ -241,7 +469,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                   _showErrorDialog(e.toString());
                 }
               },
-              child: const Text("Confirmer"),
+              child: const Text("Confirm"),
             ),
           ],
         );
@@ -257,7 +485,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       if (location.latitude == 0.0 && location.longitude == 0.0) {
         print(
             "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
-        return "Lieu inconnu";
+        return "Unknown place";
       }
 
       List<Placemark> placemarks =
@@ -267,8 +495,8 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
         Placemark place = placemarks.first;
 
         // Extraire les informations utiles
-        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
-        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
+        String street = place.thoroughfare ?? place.street ?? "Unknown street";
+        String city = place.locality ?? place.subLocality ?? "Unknown city";
         String region = place.administrativeArea ?? "Région inconnue";
         String country = place.country ?? "Pays inconnu";
 
@@ -284,7 +512,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       print("❌ Erreur lors du géocodage : $e");
     }
 
-    return "Lieu inconnu";
+    return "Unknown place";
   }
 
   LatLng _parseLocation(dynamic location) {
@@ -326,7 +554,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
     } catch (e) {
       print("❌ Error fetching location name: $e");
     }
-    return "Lieu inconnu"; // Default value
+    return "Unknown place"; // Default value
   }
 
   Widget buildStarRating(double rating) {
@@ -360,11 +588,11 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
 
               if (snapshot.hasError) {
                 return const Center(
-                    child: Text('Erreur de chargement des carnets'));
+                    child: Text('Error loading address books'));
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text("Aucun carnet disponible."));
+                return const Center(child: Text("No address book available."));
               }
 
               return Column(
@@ -374,7 +602,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Carnet d'Adresses : ${carnet.title}",
+                        "Address Book : ${carnet.title}",
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -388,174 +616,146 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                             bool isUnlocked =
                                 carnetProvider.isPlaceUnlocked(place.id);
 
-                            return Container(
-                              width: 180,
-                              margin: const EdgeInsets.only(right: 12),
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                elevation: 4,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      SizedBox(
-                                        height: 120,
-                                        child: Stack(
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: isUnlocked
-                                                  ? Image.network(
-                                                      place.images.isNotEmpty
-                                                          ? place.images.first
-                                                          : '',
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (context,
-                                                          error, stackTrace) {
-                                                        return const Icon(
-                                                            Icons.broken_image,
-                                                            size: 50,
-                                                            color: Colors.grey);
-                                                      },
-                                                    )
-                                                  : ImageFiltered(
-                                                      imageFilter:
-                                                          ImageFilter.blur(
-                                                              sigmaX: 5,
-                                                              sigmaY: 5),
-                                                      child: Image.network(
-                                                        place.images.isNotEmpty
-                                                            ? place.images.first
-                                                            : '',
-                                                        width: double.infinity,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (context,
-                                                            error, stackTrace) {
-                                                          return const Icon(
-                                                              Icons
-                                                                  .broken_image,
-                                                              size: 50,
-                                                              color:
-                                                                  Colors.grey);
-                                                        },
-                                                      ),
-                                                    ),
-                                            ),
-                                            if (!isUnlocked)
-                                              const Positioned.fill(
-                                                child: Center(
-                                                  child: Icon(Icons.lock,
-                                                      color: Colors.white,
-                                                      size: 40),
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        place.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      if (place.categories.isNotEmpty)
-                                        Wrap(
-                                          spacing: 6.0,
-                                          runSpacing: 4.0,
-                                          children:
-                                              place.categories.map((category) {
-                                            return Chip(
-                                              label: Text(
-                                                category,
-                                                style: const TextStyle(
-                                                    fontSize: 10),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 0),
-                                              backgroundColor:
-                                                  Colors.deepPurple[100],
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              materialTapTargetSize:
-                                                  MaterialTapTargetSize
-                                                      .shrinkWrap,
-                                            );
-                                          }).toList(),
-                                        ),
-                                      const SizedBox(height: 10),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          buildStarRating(place.averageRating),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            place.averageRating
-                                                .toStringAsFixed(1),
-                                            style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.black54),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ElevatedButton(
-                                        onPressed: isUnlocked
-                                            ? () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Builder(
-                                                      builder: (newContext) =>
-                                                          ChangeNotifierProvider<
-                                                              ReviewProvider>(
-                                                        create: (_) =>
-                                                            ReviewProvider(),
-                                                        child:
-                                                            PlaceDetailsScreen(
-                                                                place: place),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            : () async {
-                                                _showConfirmUnlockDialog(
-                                                    place.name,
-                                                    place.unlockCost,
-                                                    place);
-                                              },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: isUnlocked
-                                              ? const Color(0xFF9E9E9E)
-                                              : const Color(0xFFD4F98F),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 16, vertical: 8),
-                                          textStyle:
-                                              const TextStyle(fontSize: 12),
-                                        ),
-                                        child: Text(isUnlocked
-                                            ? "Voir Détails"
-                                            : "Déverrouiller (${place.unlockCost} coins)"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
+                            return SizedBox(
+  width: 180,
+  height: 300,
+  child: Card(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(15),
+    ),
+    elevation: 4,
+    child: Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SizedBox(
+            height: 120,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: isUnlocked
+                      ? Image.network(
+                          place.images.isNotEmpty
+                              ? '${ApiConstants.baseUrl}${place.images.first}'
+                              : '',
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.broken_image,
+                                size: 50, color: Colors.grey);
+                          },
+                        )
+                      : ImageFiltered(
+                          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                          child: Image.network(
+                            place.images.isNotEmpty
+                                ? '${ApiConstants.baseUrl}${place.images.first}'
+                                : '',
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.broken_image,
+                                  size: 50, color: Colors.grey);
+                            },
+                          ),
+                        ),
+                ),
+                if (!isUnlocked)
+                  const Positioned.fill(
+                    child: Center(
+                      child:
+                          Icon(Icons.lock, color: Colors.white, size: 40),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              place.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (place.categories.isNotEmpty)
+            Wrap(
+              spacing: 6.0,
+              runSpacing: 4.0,
+              alignment: WrapAlignment.center,
+              children: place.categories.map((category) {
+                return Chip(
+                  label: Text(
+                    category,
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 0),
+                  backgroundColor: Colors.deepPurple[100],
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                );
+              }).toList(),
+            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              buildStarRating(place.averageRating),
+              const SizedBox(width: 6),
+              Text(
+                place.averageRating.toStringAsFixed(1),
+                style:
+                    const TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+            ],
+          ),
+          ElevatedButton(
+            onPressed: isUnlocked
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Builder(
+                          builder: (newContext) =>
+                              ChangeNotifierProvider<ReviewProvider>(
+                            create: (_) => ReviewProvider(),
+                            child: PlaceDetailsScreen(place: place),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                : () {
+                    _showConfirmUnlockDialog(place.name,
+                        place.unlockCost, place);
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isUnlocked
+                  ? const Color(0xFF9E9E9E)
+                  : const Color(0xFFD4F98F),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(fontSize: 12),
+            ),
+            child: Text(isUnlocked
+                ? "View Details"
+                : "Unlock (${place.unlockCost} coins)"),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+
                           }).toList(),
                         ),
                       ),
@@ -570,50 +770,49 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       ),
     );
   }
+double? travelerAverageRating;
+
+Future<void> fetchTravelerRating() async {
+  final response = await http.get(
+    Uri.parse('${ApiConstants.baseUrl}/carnets/total-rating/${widget.travelerId}'),
+    headers: {"Authorization": "Bearer ${widget.token}"},
+  );
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    setState(() {
+      travelerAverageRating = data['averageRating']?.toDouble();
+    });
+  }
+}
 
   Widget _buildInfoTab() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Bio: ${travelerData?['bio'] ?? "Pas de bio"}'),
-          const SizedBox(height: 10),
-          Text('Localisation: ${travelerData?['location'] ?? "Inconnue"}'),
-        ],
-      ),
-    );
+    return Column(
+  children: [
+    Text('⭐'),
+    Text(
+      travelerAverageRating != null ? travelerAverageRating.toString() : '0.0',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+    Text('Rating', style: TextStyle(fontSize: 12)),
+  ],
+);
   }
 
-  Widget _buildAdressesTab() {
-    return FutureBuilder<List<Carnet>>(
-      future: travelerCarnets,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return const Center(child: Text('Erreur de chargement'));
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('Aucun carnet trouvé.'));
-        }
-        return ListView(
-          scrollDirection: Axis.vertical,
-          children: snapshot.data!.map((carnet) {
-            return ListTile(
-              title: Text(carnet.title),
-              subtitle: Text('${carnet.places.length} lieux'),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
+  
 
   Widget _buildAvisTab() {
-    return const Center(
-      child: Text('Aucun avis pour l\'instant.'),
-    );
+       return Column(
+  children: [
+    Text('⭐'),
+    Text(
+      travelerAverageRating != null ? travelerAverageRating.toString() : '0.0',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+    Text('Rating', style: TextStyle(fontSize: 12)),
+  ],
+);
+
   }
 
   @override
@@ -645,7 +844,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                           backgroundImage: travelerData?['profileImage'] !=
                                       null &&
                                   travelerData!['profileImage'].isNotEmpty
-                              ? NetworkImage(travelerData!['profileImage'])
+                              ? NetworkImage('${ApiConstants.baseUrl}'+travelerData!['profileImage'])
                               : const AssetImage('assets/default_profile.png')
                                   as ImageProvider,
                         ),
@@ -679,7 +878,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                                       color: Colors.black54, size: 18),
                                   SizedBox(width: 6),
                                   Text(
-                                    "Métier inconnu",
+                                    "Unknown job",
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: Colors.black54,
@@ -703,7 +902,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return const Text(
-                                    "Chargement...",
+                                    "Loading...",
                                     style: TextStyle(
                                         color: Colors.black54, fontSize: 14),
                                   );
@@ -712,7 +911,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                                   print(
                                       "❌ Error in FutureBuilder: ${snapshot.error}");
                                   return const Text(
-                                    "Erreur de localisation",
+                                    "Location error",
                                     style: TextStyle(
                                         color: Colors.red, fontSize: 14),
                                   );
@@ -720,7 +919,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                                 print(
                                     "📍 Location displayed: ${snapshot.data}");
                                 return Text(
-                                  snapshot.data ?? "Lieu inconnu",
+                                  snapshot.data ?? "Unknown place",
                                   style: const TextStyle(
                                       color: Colors.black54, fontSize: 14),
                                 );
@@ -802,10 +1001,11 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                           labelColor: Colors.black,
                           indicatorColor: Colors.deepPurple,
                           tabs: const [
-                            Tab(text: 'Infos'),
-                            Tab(text: 'Adresses'),
-                            Tab(text: 'Avis'),
-                          ],
+  Tab(text: 'Places'),
+  Tab(text: 'Events'),
+  Tab(text: 'Info'),
+],
+
                         ),
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.5,
@@ -813,7 +1013,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                             controller: _tabController,
                             children: [
                               _buildCarnetSection(),
-                              _buildAdressesTab(),
+                              _buildEventsTab(),
                               _buildAvisTab(),
                             ],
                           ),
@@ -821,7 +1021,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                       ],
                     ),
                   ),
-                  // Section Carnet d'Adresses
+                  // Section Address Book
                 ],
               ),
             ),

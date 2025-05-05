@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -33,7 +34,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/trip/accept'),
+        Uri.parse('${ApiConstants.baseUrl}/trip/accept'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'userId': widget.userId,
@@ -70,6 +71,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      print(e.toString() + " error in acceptTrip()");      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );

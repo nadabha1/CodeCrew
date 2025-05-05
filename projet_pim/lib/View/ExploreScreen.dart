@@ -9,6 +9,7 @@ import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/ARViewScreen.dart';
 import 'package:projet_pim/View/UserProfilePage.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -198,7 +199,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     backgroundImage:
                         usersAtLocation[i]['profileImage'] != null &&
                                 usersAtLocation[i]['profileImage'].isNotEmpty
-                            ? NetworkImage(usersAtLocation[i]['profileImage'])
+                            ? NetworkImage('${ApiConstants.baseUrl}'+usersAtLocation[i]['profileImage'])
                             : AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                     backgroundColor: Colors.transparent,
@@ -259,7 +260,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       leading: CircleAvatar(
                         backgroundImage: user['profileImage'] != null &&
                                 user['profileImage'].isNotEmpty
-                            ? NetworkImage(user['profileImage'])
+                            ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImage'])
                             : AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,7 +136,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
-                                        place.images[0],
+                                        '${ApiConstants.baseUrl}'+place.images[0],
                                         height: 150,
                                         width: double.infinity,
                                         fit: BoxFit.cover,

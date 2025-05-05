@@ -12,13 +12,13 @@ import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/notification_service.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
-import 'package:projet_pim/Services/geocoding_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -36,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   EventProvider? eventProvider;
   final WeatherService _weatherService = WeatherService();
-  final GeocodingService _geocodingService = GeocodingService();
   Map<String, dynamic>? weatherData;
   List<dynamic> users = [];
   List<dynamic> allUsers = [];
@@ -72,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
     _getCurrentLocation();
@@ -81,8 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    // Dispose controllers and other resources
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -203,14 +200,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _preloadMatches() async {
     try {
       final fetchedMatches = await _fetchMatches();
-      if (!mounted) return; // Ensure widget is still mounted
-      setState(() {
-        matches = fetchedMatches;
-      });
+      matches = fetchedMatches;
     } catch (e) {
       print('Erreur lors du chargement des matches: $e');
     } finally {
-      if (!mounted) return; // Ensure widget is still mounted
+      if (!mounted) return;
       setState(() {
         isLoadingMatches = false;
       });
@@ -221,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_userId != null) {
       final count =
           await _notificationService.getUnreadNotificationsCount(_userId!);
-      if (!mounted) return; // Ensure widget is still mounted
+          if (!mounted) return;
       setState(() {
         _unreadNotifications = count;
       });
@@ -234,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _token = prefs.getString('jwt_token') ?? '';
     provider = Provider.of<CarnetProvider>(context, listen: false);
     eventProvider = Provider.of<EventProvider>(context, listen: false);
+    if (!mounted) return;
     await Future.wait([
       provider!.fetchCarnetsExcludingUser(widget.userId),
       provider!.fetchUnlockedPlaces(widget.userId),
@@ -280,14 +275,16 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final data =
           await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
-      if (!mounted) return; // Ensure widget is still mounted
+          if (!mounted) return;
+
       setState(() {
         weatherData = data;
         isLoading = false;
       });
     } catch (e) {
       print("Erreur de chargement de la météo : $e");
-      if (!mounted) return; // Ensure widget is still mounted
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
@@ -304,7 +301,6 @@ class _HomeScreenState extends State<HomeScreen> {
           fetchedUsers.where((user) => user['_id'] != widget.userId).toList();
       _applySmartFilter();
     } catch (_) {
-      if (!mounted) return; // Ensure widget is still mounted
       setState(() => isLoadingUsers = false);
     }
   }
@@ -350,8 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
     print(
         "🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategories");
-
-    if (!mounted) return; // Ensure widget is still mounted
+    if (!mounted) return;
     setState(() {
       users = filtered;
       isShowingFallbackUsers = false; // (ou inutile à ce stade)
@@ -360,8 +355,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<String> getAddressFromLatLng(LatLng location) async {
-    return await _geocodingService.getAddressFromLatLng(
-        location.latitude, location.longitude);
+    try {
+      print(
+          "🌍 Fetching address for coordinates: ${location.latitude}, ${location.longitude}");
+
+      if (location.latitude == 0.0 && location.longitude == 0.0) {
+        print(
+            "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
+        return "Lieu inconnu";
+      }
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(location.latitude, location.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+
+        // Extraire les informations utiles
+        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
+        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
+        String region = place.administrativeArea ?? "Région inconnue";
+        String country = place.country ?? "Pays inconnu";
+
+        // Construire une adresse détaillée
+        String formattedAddress = "$street, $city, $region, $country";
+        print("✅ Geocoding successful: $formattedAddress");
+
+        return formattedAddress;
+      } else {
+        print("⚠️ No placemarks found for the given coordinates.");
+      }
+    } catch (e) {
+      print("❌ Erreur lors du géocodage : $e");
+    }
+
+    return "Lieu inconnu";
   }
 
   LatLng _parseLocation(dynamic location) {
@@ -392,33 +420,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return LatLng(0, 0); // Default value
   }
 
-  Future<String> _getLocationName(dynamic userData) async {
-    try {
-      if (userData?['location'] != null) {
-        LatLng parsedLocation = _parseLocation(userData['location']);
-        return await _geocodingService.getAddressFromLatLng(
-            parsedLocation.latitude, parsedLocation.longitude);
-      } else {
-        print("⚠️ No location data found in userData.");
-      }
-    } catch (e) {
-      print("❌ Error fetching location name: $e");
-    }
-    return "Unknown Location"; // Default value
-  }
-
   Widget _buildUserCard(dynamic user) {
+    // Appel de la fonction asynchrone pour récupérer la localisation
     return FutureBuilder<String>(
-      future: _getLocationName(user),
+      future: _getLocationName(user), // Appeler ta logique asynchrone ici
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
+          return CircularProgressIndicator(); // Affiche un indicateur de chargement pendant l'attente
         }
 
         if (snapshot.hasError) {
           return Text('❌ Erreur : ${snapshot.error}');
         }
 
+        // Utiliser la localisation récupérée
         String locationName = snapshot.data ?? "Lieu inconnu";
 
         return GestureDetector(
@@ -443,9 +458,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundImage: user['profileImage'] != null &&
-                            user['profileImage'].isNotEmpty
-                        ? NetworkImage(user['profileImage'])
+                    backgroundImage: user['profileImageUrl'] != null &&
+                            user['profileImageUrl'].isNotEmpty
+                        ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImageUrl'])
                         : AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
@@ -489,6 +504,21 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+// Fonction asynchrone pour récupérer la localisation
+  Future<String> _getLocationName(dynamic userData) async {
+    try {
+      if (userData?['location'] != null) {
+        LatLng parsedLocation = _parseLocation(userData['location']);
+        return await getAddressFromLatLng(parsedLocation);
+      } else {
+        print("⚠️ No location data found in userData.");
+      }
+    } catch (e) {
+      print("❌ Error fetching location name: $e");
+    }
+    return "Lieu inconnu"; // Valeur par défaut
   }
 
   void onSearch(String keyword) {
@@ -567,6 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color:
                                       isSelected ? Colors.white : Colors.black),
                               onSelected: (selected) {
+                                if (!mounted) return;
                                 setState(() {
                                   selected
                                       ? {
@@ -591,6 +622,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             horizontal: 16, vertical: 8),
                         child: TextButton.icon(
                           onPressed: () {
+                            if (!mounted) return;
                             setState(() {
                               _selectedCategories.clear();
                               _searchController.clear();
@@ -629,6 +661,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
+                                  if (!mounted) return;
                                   setState(() {
                                     showMatches = false;
                                   });
@@ -658,6 +691,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
+                                  if (!mounted) return;
                                   setState(() {
                                     showMatches = true;
                                   });
@@ -715,45 +749,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       elevation: 5,
                                       margin: EdgeInsets.symmetric(
                                           horizontal: 16, vertical: 10),
-                                      child: Padding(
-                                        padding: EdgeInsets.all(12),
-                                        child: Row(
-                                          children: [
-                                            CircleAvatar(
-                                              radius: 35,
-                                              backgroundImage: match[
-                                                              'profileImage'] !=
-                                                          null &&
-                                                      match['profileImage']
-                                                          .isNotEmpty
-                                                  ? NetworkImage(
-                                                      match['profileImage'])
-                                                  : AssetImage(
-                                                          'assets/default_profile.png')
-                                                      as ImageProvider,
-                                            ),
-                                            SizedBox(width: 16),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(match['name'],
-                                                      style: TextStyle(
-                                                          fontSize: 18,
-                                                          fontWeight:
-                                                              FontWeight.bold)),
-                                                  SizedBox(height: 4),
-                                                  Text(
-                                                      'Score: ${match['score'].toStringAsFixed(2)} ⭐',
-                                                      style: TextStyle(
-                                                          color: Colors
-                                                              .grey[600])),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
+                                      child: ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundImage: AssetImage(
+                                              'assets/default_profile.png'),
                                         ),
+                                        title: Text(match['name']),
+                                        subtitle: Text(
+                                            'Score: ${match['score'].toStringAsFixed(2)} ⭐'),
                                       ),
                                     );
                                   },

@@ -77,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
           final fullImageUrl =
-              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+              '/uploads/${uploadedImage['filename']}';
           setState(() {
             _profileImageUrl = fullImageUrl;
           });

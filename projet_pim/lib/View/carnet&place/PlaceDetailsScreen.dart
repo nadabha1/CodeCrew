@@ -3,6 +3,7 @@ import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/review.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/add_review_form.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/review_service.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -345,7 +346,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.network(
-                          widget.place.images[index],
+                          '${ApiConstants.baseUrl}'+widget.place.images[index],
                           height: 250,
                           fit: BoxFit.cover,
                         ),

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
@@ -374,7 +375,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               borderRadius: BorderRadius.circular(15),
                               child: isUnlocked
                                   ? Image.network(
-                                      place.images.first,
+                                      '${ApiConstants.baseUrl}'+place.images.first,
                                       width: 160,
                                       height: 120,
                                       fit: BoxFit.cover,
@@ -388,7 +389,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       imageFilter: ImageFilter.blur(
                                           sigmaX: 5, sigmaY: 5),
                                       child: Image.network(
-                                        place.images.first,
+                                        '${ApiConstants.baseUrl}'+place.images.first,
                                         width: 160,
                                         height: 120,
                                         fit: BoxFit.cover,

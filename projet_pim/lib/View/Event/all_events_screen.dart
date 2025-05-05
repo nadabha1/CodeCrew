@@ -145,13 +145,45 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text("Cancel")),
             TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _eventProvider.joinEvent(widget.userId, event.id);
-                await _fetchAllEvents();
-              },
-              child: const Text("Confirm"),
-            ),
+  onPressed: () async {
+    Navigator.of(context).pop(); // close dialog first
+    try {
+      await _eventProvider.joinEvent(widget.userId, event.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Inscription réussie à l’événement !")),
+      );
+      await _fetchAllEvents(); // refresh list
+    } catch (e) {
+      final error = e.toString();
+      if (error.contains("Insufficient coins")) {
+  if (!mounted) return; // ← Sécurité
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Coins insuffisants"),
+        content: const Text("You don’t have enough coins to join this event."),
+        actions: [
+          TextButton(
+            child: const Text("OK"),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      );
+    },
+  );
+}
+else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Erreur : $error")),
+        );
+      }
+    }
+  },
+  child: const Text("Confirm"),
+)
+
+
           ],
         );
       },
@@ -234,19 +266,36 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                 IconButton(
                   icon: const Icon(Icons.more_horiz),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EventDetailsScreen(
-                          event: event,
-                          userId: widget.userId,
-                          token: widget.token,
-                          eventProvider: _eventProvider,
-                        ),
-                      ),
-                    );
-                  },
+                      print("isParticipating for event '${event.title}': $isParticipating");
+                     if (event.isParticipating) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EventDetailsScreen(
+                            event: event,
+                            userId: widget.userId,
+                            token: widget.token,
+                            eventProvider: _eventProvider,
+                            ),
+                            ),
+                     );
+                            } else {
+                              showDialog(
+                                context: context,builder: (_) => AlertDialog(
+                                  title: const Text("Access denied"),
+                                  content: const Text("You need to join this event first to view its details."),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text("OK"),
+                                      onPressed: () => Navigator.of(context).pop(),
+                                      ),
+                                      ],
+                                      ),
+                                      );
+                                      }
+                                      },
                 ),
+
               ],
             ),
           ],

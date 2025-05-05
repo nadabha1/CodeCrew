@@ -151,31 +151,46 @@ class EventProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+Future<void> joinEvent(String userId, String eventId) async {
+  if (!_isValidUserId(userId)) {
+    throw Exception('Invalid userId format');
+  }
 
-  Future<void> joinEvent(String userId, String eventId) async {
-    if (!_isValidUserId(userId)) {
-      print('Invalid userId format');
-      return;
-    }
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/events/$eventId/join'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'userId': userId}),
-      );
-      if (response.statusCode == 200) {
-        await fetchEvents(userId); // Refresh events after joining
-      } else {
-        throw Exception('Failed to join event: Status ${response.statusCode}');
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/events/$eventId/join'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'userId': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      await fetchEvents(userId);
+    } else {
+      String errorMessage = 'Unknown error';
+
+      try {
+        final data = jsonDecode(response.body);
+        errorMessage = data['message'] ?? errorMessage;
+      } catch (_) {
+        // fallback to default errorMessage
+        errorMessage = 'Internal server error';
       }
-    } catch (e) {
-      print('Error joining event: $e');
+
+      throw Exception(errorMessage);
     }
+  } catch (e) {
     _isLoading = false;
     notifyListeners();
+    rethrow; // Rethrow to be caught and handled in the UI
   }
+
+  _isLoading = false;
+  notifyListeners();
+}
+
 
   Future<List<Event>> fetchUserEvents(String userId, String token) async {
     if (!_isValidUserId(userId)) {

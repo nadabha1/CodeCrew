@@ -107,6 +107,7 @@ flutter:
     - assets/default_image.png
     - assets/default_profile.png
     - assets/whatsapp.jpeg
+    - assets/default_event_image.jpg
 
 
 

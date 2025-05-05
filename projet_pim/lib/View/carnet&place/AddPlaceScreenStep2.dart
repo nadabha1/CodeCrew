@@ -55,7 +55,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
           final fullImageUrl =
-              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+              '/uploads/${uploadedImage['filename']}';
           setState(() {
             _imageUrls.add(fullImageUrl);
           });
@@ -229,7 +229,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: Image.network(
-                                  imageUrl,
+                                  '${ApiConstants.baseUrl}'+imageUrl,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
