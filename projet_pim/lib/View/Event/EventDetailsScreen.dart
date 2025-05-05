@@ -57,7 +57,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    
+    _checkReels();
+
     _fetchParticipants();
     fetchReels(); // ✅ récupérer tous les reels
   }
@@ -73,6 +74,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         const SnackBar(content: Text("🎞️ Souvenir généré !")),
       );
       await _checkReels();
+      fetchReels();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Erreur de génération du Reel.")),
@@ -144,55 +146,58 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     setState(() => isLoading = false);
   }
 
-Future<void> _uploadAndGenerateReel({required bool isShared}) async {
-  final picker = ImagePicker();
-  final picked = await picker.pickMultiImage();
+  Future<void> _uploadAndGenerateReel({required bool isShared}) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickMultiImage();
 
-  if (picked.isNotEmpty) {
-    final files = picked.map((e) => File(e.path)).toList();
+    if (picked.isNotEmpty) {
+      final files = picked.map((e) => File(e.path)).toList();
 
-    // 🎵 Demander la musique après les images
-    final selectedMusicPath = await pickMusicFile();
-    if (selectedMusicPath == null) {
+      // 🎵 Demander la musique après les images
+      final selectedMusicPath = await pickMusicFile();
+      if (selectedMusicPath == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("❌ Aucune musique sélectionnée. Annulation.")),
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ Aucune musique sélectionnée. Annulation.")),
+        const SnackBar(content: Text("Téléversement en cours...")),
       );
-      return;
-    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Téléversement en cours...")),
-    );
-
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
-    );
-
-    request.fields['eventId'] = widget.event.id;
-    request.fields['userId'] = widget.userId;
-    request.fields['isShared'] = isShared.toString();
-
-    // ✅ Ajouter les images
-    for (var file in files) {
-      request.files.add(await http.MultipartFile.fromPath('files', file.path));
-    }
-
-    // ✅ Ajouter le fichier musique
-    request.files.add(await http.MultipartFile.fromPath('music', selectedMusicPath));
-
-    var response = await request.send();
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      print("✅ Images et musique uploadées avec succès");
-      await _generateReel();
-    } else {
-      print("❌ Erreur d’upload : ${response.statusCode}");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur d’upload.")),
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConstants.baseUrl}/reels/upload'),
       );
+
+      request.fields['eventId'] = widget.event.id;
+      request.fields['userId'] = widget.userId;
+      request.fields['isShared'] = isShared.toString();
+
+      // ✅ Ajouter les images
+      for (var file in files) {
+        request.files
+            .add(await http.MultipartFile.fromPath('files', file.path));
+      }
+
+      // ✅ Ajouter le fichier musique
+      request.files
+          .add(await http.MultipartFile.fromPath('music', selectedMusicPath));
+
+      var response = await request.send();
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print("✅ Images et musique uploadées avec succès");
+        await _generateReel();
+      } else {
+        print("❌ Erreur d’upload : ${response.statusCode}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erreur d’upload.")),
+        );
+      }
     }
   }
-}
 
   void _openStoryView() {
     if (reelsUrls.isEmpty) {
@@ -349,7 +354,7 @@ Future<void> _uploadAndGenerateReel({required bool isShared}) async {
             right: 0,
             child: widget.event.imagePath != null
                 ? Image.network(
-                    '${ApiConstants.baseUrl}'+widget.event.imagePath!,
+                    '${ApiConstants.baseUrl}' + widget.event.imagePath!,
                     fit: BoxFit.cover,
                     height: 500,
                     width: double.infinity,
@@ -514,7 +519,9 @@ Future<void> _uploadAndGenerateReel({required bool isShared}) async {
                                     leading: CircleAvatar(
                                       backgroundImage: user?["profileImage"] !=
                                               null
-                                          ? NetworkImage('${ApiConstants.baseUrl}'+user["profileImage"])
+                                          ? NetworkImage(
+                                              '${ApiConstants.baseUrl}' +
+                                                  user["profileImage"])
                                           : const AssetImage(
                                                   "assets/default_avatar.png")
                                               as ImageProvider,
@@ -531,22 +538,24 @@ Future<void> _uploadAndGenerateReel({required bool isShared}) async {
                               );
                             },
                           ),
-                          if (_reelExists)
-                ElevatedButton.icon(
-                  onPressed: _openStoryView,
-                  icon: const Icon(Icons.movie),
-                  label: const Text("🎬 Voir souvenirs",selectionColor: Colors.white,),
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                      
-                ),
-              if (!_reelExists)
-                const Center(
-                  child: Text(
-                    "Pas encore de souvenirs 🎬",
-                    style: TextStyle(color: Colors.grey),
+                if (_reelExists)
+                  ElevatedButton.icon(
+                    onPressed: _openStoryView,
+                    icon: const Icon(Icons.movie),
+                    label: const Text(
+                      "🎬 Voir souvenirs",
+                      selectionColor: Colors.white,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple),
                   ),
-          ),
+                if (!_reelExists)
+                  const Center(
+                    child: Text(
+                      "Pas encore de souvenirs 🎬",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
                 const SizedBox(height: 20),
                 if (widget.event.participants.contains(widget.userId))
                   ElevatedButton.icon(
@@ -575,15 +584,10 @@ Future<void> _uploadAndGenerateReel({required bool isShared}) async {
                     ),
                   ),
               ],
-              
             ),
-            
           ),
-           
         ],
-        
       ),
-      
     );
   }
 

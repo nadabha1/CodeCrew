@@ -36,21 +36,17 @@ class _ReelStoryViewState extends State<ReelStoryView> {
     for (String url in widget.reelsUrls) {
       if (!url.endsWith('.mp4')) continue;
 
-      final fullUrl = url.startsWith('http')
-          ? url
-          : '${ApiConstants.baseUrl}/$url';
+      final fullUrl =
+          url.startsWith('http') ? url : '${ApiConstants.baseUrl}/$url';
 
       final controller = VideoPlayerController.network(fullUrl);
       await controller.initialize(); // ⏳ Important ! Wait until loaded
 
-      tempStories.add(
-        StoryItem.pageVideo(
-  url,
-  controller: _storyController,
-  caption: Text("🎬 Souvenir de l'événement"),
-)
-
-      );
+      tempStories.add(StoryItem.pageVideo(
+        url,
+        controller: _storyController,
+        caption: Text("🎬 Souvenir de l'événement"),
+      ));
     }
 
     setState(() {

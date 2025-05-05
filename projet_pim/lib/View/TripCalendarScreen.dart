@@ -71,7 +71,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      print(e.toString() + " error in acceptTrip()");      
+      print(e.toString() + " error in acceptTrip()");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
@@ -134,7 +134,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Calendar View'),
-        backgroundColor: Colors.blue.shade800,
+        backgroundColor: Color(0xFFDBD9FE),
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -144,8 +144,9 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
             child: Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Color(0xFF161055), width: 1.5),
+              ),
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
@@ -156,11 +157,11 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800)),
+                            color: Color(0xFF161055))),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.location_on, color: Colors.blue),
+                        Icon(Icons.location_on, color: Color(0xFF161055)),
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text('Destination: ${widget.destination}',
@@ -170,7 +171,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, color: Colors.blue),
+                        Icon(Icons.calendar_today, color: Color(0xFF161055)),
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text('Days: $numberOfDays',
@@ -180,7 +181,8 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.check_circle_outline, color: Colors.blue),
+                        Icon(Icons.check_circle_outline,
+                            color: Color(0xFF161055)),
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text('Activities: $totalActivities',
@@ -267,7 +269,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
               child: ElevatedButton.icon(
                 onPressed: _isAccepting ? null : acceptTrip,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
+                  backgroundColor: Color.fromARGB(198, 243, 199, 249),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

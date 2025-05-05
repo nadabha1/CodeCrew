@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/Model/trip.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
+import 'package:projet_pim/View/MyTripsScreen.dart';
 import 'package:projet_pim/View/carnet&place/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
@@ -16,6 +18,7 @@ import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
 import 'package:projet_pim/View/follow/FollowersScreen.dart';
 import 'package:projet_pim/View/follow/FollowingScreen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
+import 'package:projet_pim/ViewModel/TripService.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/Model/carnet.dart';
@@ -42,12 +45,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool isLoading = true;
   List<Carnet> userCarnet = [];
   Map<String, dynamic>? travelerData;
+  List<Trip> acceptedTrips = [];
 
   @override
   void initState() {
     super.initState();
     fetchUser();
     fetchFollowerData();
+    fetchAcceptedTrips();
   }
 
   Future<void> fetchFollowerData() async {
@@ -126,6 +131,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         isLoading = false;
       });
       print('Erreur : $e');
+    }
+  }
+
+  Future<void> fetchAcceptedTrips() async {
+    try {
+      final tripService = TripService();
+      final trips = await tripService.getAcceptedTrips(widget.userId);
+      setState(() {
+        acceptedTrips = trips;
+      });
+    } catch (e) {
+      print('❌ Failed to load accepted trips: $e');
     }
   }
 
@@ -255,16 +272,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }),
     );
   }
-  String resolveImageUrl(String? path) {
-  if (path == null || path.isEmpty) {
-    return ''; // Ou retourne un placeholder
-  }
-  if (path.startsWith('http')) {
-    return path; // C’est déjà une URL
-  }
-  return '${ApiConstants.baseUrl}$path'; // Ex: http://localhost:3000/uploads/...
-}
 
+  String resolveImageUrl(String? path) {
+    if (path == null || path.isEmpty) {
+      return ''; // Ou retourne un placeholder
+    }
+    if (path.startsWith('http')) {
+      return path; // C’est déjà une URL
+    }
+    return '${ApiConstants.baseUrl}$path'; // Ex: http://localhost:3000/uploads/...
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +311,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       radius: 40,
                       backgroundImage: userData?['profileImage'] != null &&
                               userData!['profileImage'].isNotEmpty
-                          ?  NetworkImage('${ApiConstants.baseUrl}'+userData!['profileImage'])
+                          ? NetworkImage('${ApiConstants.baseUrl}' +
+                              userData!['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -420,7 +438,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 220),
+                  const SizedBox(width: 150),
                   // Bouton pour consulter les favoris
                   IconButton(
                     icon:
@@ -431,6 +449,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const FavoritesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon:
+                        const Icon(Icons.flight_takeoff), // Icon for "My Trips"
+                    onPressed: () {
+                      // Navigate to the "My Trips" page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MyTripsScreen(
+                              trips:
+                                  acceptedTrips), // Passing acceptedTrips to the new screen
                         ),
                       );
                     },
@@ -690,7 +723,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                       top: 16.0, bottom: 32),
                                   child: Align(
                                     alignment: Alignment.centerLeft,
-                                    
                                     child: FloatingActionButton(
                                       heroTag: 'add_event_fab',
                                       backgroundColor: const Color.fromARGB(
@@ -895,7 +927,7 @@ class AddressCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             image: DecorationImage(
               image: place.images.isNotEmpty
-                  ? NetworkImage('${ApiConstants.baseUrl}'+place.images.first)
+                  ? NetworkImage('${ApiConstants.baseUrl}' + place.images.first)
                   : const AssetImage('assets/default_image.jpg')
                       as ImageProvider,
               fit: BoxFit.cover,

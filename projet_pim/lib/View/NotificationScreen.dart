@@ -43,7 +43,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _loadUserSession();
     _fetchInitialNotifications();
     _setupWebSocket();
-    
   }
 
   Future<void> _loadUserSession() async {
@@ -84,7 +83,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       String notificationId, Map<String, dynamic> notification) async {
     try {
       await _notificationService.markAsRead(notificationId);
-          _fetchInitialNotifications();
+      _fetchInitialNotifications();
 
       if (notification['type'] == 'NEW_EVENT_All') {
         final eventId = notification['data']?['eventId'] ?? '';
@@ -221,7 +220,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       child: ListTile(
                         onTap: () => _handleNotificationTap(
                             notification['_id'], notification),
-                        leading: Icon(iconType, color: Colors.blue),
+                        leading: Icon(iconType, color: Color(0xFF1A1055)),
                         title: Text(notification['message'],
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
@@ -231,7 +230,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         ),
                         trailing: !notification['isRead']
                             ? const Icon(Icons.circle,
-                                color: Colors.blue, size: 10)
+                                color: Color(0xFF1A1055), size: 10)
                             : null,
                       ),
                     );

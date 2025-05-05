@@ -74,10 +74,17 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Perform any context-dependent operations here instead of dispose()
+  }
+
+  @override
   void dispose() {
     // Dispose controllers and other resources
     _searchController.dispose();
     _tabController.dispose();
+    // Ensure no context-dependent operations are performed here
     super.dispose();
   }
 
@@ -663,12 +670,29 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                 child: Text("Cancel")),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
-                await _eventProvider.joinEvent(widget.userId, event.id);
-                await _fetchAllEvents();
+                Navigator.of(context).pop(); // close dialog first
+                try {
+                  await _eventProvider.joinEvent(widget.userId, event.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("✅ Inscription réussie à l’événement !")),
+                  );
+                  _fetchAllEvents();
+                } catch (e) {
+                  final error = e.toString();
+                  if (error.contains("Insufficient coins")) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            "⛔ Tu n’as pas assez de coins pour participer à cet événement."),
+                      ),
+                    );
+                  }
+                }
+                _fetchAllEvents();
               },
-              child: Text("Confirm"),
-            ),
+              child: const Text("Confirm"),
+            )
           ],
         );
       },
