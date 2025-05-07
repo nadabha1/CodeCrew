@@ -458,9 +458,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundImage: user['profileImageUrl'] != null &&
-                            user['profileImageUrl'].isNotEmpty
-                        ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImageUrl'])
+                    backgroundImage: user['profileImage'] != null &&
+                            user['profileImage'].isNotEmpty
+                        ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImage'])
                         : AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
@@ -751,8 +751,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                           horizontal: 16, vertical: 10),
                                       child: ListTile(
                                         leading: CircleAvatar(
-                                          backgroundImage: AssetImage(
-                                              'assets/default_profile.png'),
+                                          backgroundImage: NetworkImage(
+                                              match['profileImage'] != null &&
+                                                      match['profileImage']
+                                                          .isNotEmpty
+                                                  ? '${ApiConstants.baseUrl}'+match['profileImage']
+                                                  : 'assets/default_profile.png'),
                                         ),
                                         title: Text(match['name']),
                                         subtitle: Text(

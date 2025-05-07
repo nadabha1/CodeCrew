@@ -8,6 +8,7 @@ import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Model/user_entity.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -229,7 +230,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                     CircleAvatar(
                                       radius: 50,
                                       backgroundImage: NetworkImage(
-                                          matchedUser!.profileImage!),
+                                          '${ApiConstants.baseUrl}'+matchedUser!.profileImage!),
                                       onBackgroundImageError: (_, __) =>
                                           const Icon(Icons.person, size: 50),
                                     ),
@@ -349,7 +350,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
                                       child: Image.network(
-                                        matchedPlace!.images[0],
+                                        '${ApiConstants.baseUrl}'+matchedPlace!.images[0],
                                         width: double.infinity,
                                         height: 180,
                                         fit: BoxFit.cover,
@@ -625,7 +626,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                           borderRadius:
                                               BorderRadius.circular(8),
                                           child: Image.network(
-                                            annotation.imageUrl!,
+                                            '${ApiConstants.baseUrl}'+annotation.imageUrl!,
                                             width: 100,
                                             height: 100,
                                             fit: BoxFit.cover,

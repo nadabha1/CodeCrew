@@ -662,37 +662,52 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Join the event?"),
-          content: Text("Participation Fee: ${event.joinPrice} coins"),
+          title: const Text("Join the event?"),
+          content: Text("Participation price: ${event.joinPrice} coins"),
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text("Cancel")),
+                child: const Text("Cancel")),
             TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop(); // close dialog first
-                try {
-                  await _eventProvider.joinEvent(widget.userId, event.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text("✅ Inscription réussie à l’événement !")),
-                  );
-                  _fetchAllEvents();
-                } catch (e) {
-                  final error = e.toString();
-                  if (error.contains("Insufficient coins")) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            "⛔ Tu n’as pas assez de coins pour participer à cet événement."),
-                      ),
-                    );
-                  }
-                }
-                _fetchAllEvents();
-              },
-              child: const Text("Confirm"),
-            )
+  onPressed: () async {
+    Navigator.of(context).pop(); // close dialog first
+    try {
+      await _eventProvider.joinEvent(widget.userId, event.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Inscription réussie à l’événement !")),
+      );
+      await _fetchAllEvents(); // refresh list
+    } catch (e) {
+      final error = e.toString();
+      if (error.contains("Insufficient coins")) {
+  if (!mounted) return; // ← Sécurité
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Coins insuffisants"),
+        content: const Text("You don’t have enough coins to join this event."),
+        actions: [
+          TextButton(
+            child: const Text("OK"),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      );
+    },
+  );
+}
+else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Erreur : $error")),
+        );
+      }
+    }
+  },
+  child: const Text("Confirm"),
+)
+
+
           ],
         );
       },
@@ -872,17 +887,27 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                 IconButton(
                   icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EventDetailsScreen(
-                          event: event,
-                          userId: widget.userId,
-                          token: widget.token,
-                          eventProvider: _eventProvider,
-                        ),
-                      ),
-                    );
+                   if (isParticipating) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EventDetailsScreen(
+                              event: event,
+                              userId: widget.userId,
+                              token: widget.token,
+                              eventProvider: EventProvider(userId: widget.userId),
+                            ),
+                          ),
+                        );
+                      } else {
+                        showDialog(
+                          context: context,
+                          builder: (_) => const AlertDialog(
+                            title: Text("Access Denied"),
+                            content: Text("You must join the event to view details."),
+                          ),
+                        );
+                      }
                   },
                 ),
               ],

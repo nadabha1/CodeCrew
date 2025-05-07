@@ -82,7 +82,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
 
         if (uploadedImage != null && uploadedImage['filename'] != null) {
           final fullImageUrl =
-              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+              '/uploads/${uploadedImage['filename']}';
 
           // Utilisez cette URL pour créer l'événement
           await eventProvider.createEvent(
