@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
@@ -215,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_userId != null) {
       final count =
           await _notificationService.getUnreadNotificationsCount(_userId!);
-          if (!mounted) return;
+      if (!mounted) return;
       setState(() {
         _unreadNotifications = count;
       });
@@ -275,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final data =
           await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
-          if (!mounted) return;
+      if (!mounted) return;
 
       setState(() {
         weatherData = data;
@@ -420,6 +423,39 @@ class _HomeScreenState extends State<HomeScreen> {
     return LatLng(0, 0); // Default value
   }
 
+  Future<Map<String, dynamic>?> _fetchUserCarnet(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print('Failed to fetch carnet for user $userId: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching carnet for user $userId: $e');
+      return null;
+    }
+  }
+
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   Widget _buildUserCard(dynamic user) {
     // Appel de la fonction asynchrone pour récupérer la localisation
     return FutureBuilder<String>(
@@ -460,7 +496,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     radius: 35,
                     backgroundImage: user['profileImage'] != null &&
                             user['profileImage'].isNotEmpty
-                        ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImage'])
+                        ? NetworkImage(
+                            '${ApiConstants.baseUrl}' + user['profileImage'])
                         : AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),
@@ -488,10 +525,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         Row(
                           children: [
-                            Icon(Icons.star, color: Colors.orange, size: 16),
-                            SizedBox(width: 4),
-                            Text(
-                                '${user['rating'] ?? 0} (${user['reviewsCount'] ?? 0} avis)'),
+                            FutureBuilder<Map<String, dynamic>?>(
+                              future: _fetchUserCarnet(user['_id']),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const CircularProgressIndicator();
+                                } else {
+                                  final userCarnet = snapshot.data!;
+                                  final rating =
+                                      (userCarnet['globalAverageRating'] ?? 0)
+                                          .toDouble(); // Ensure double
+                                  return Row(
+                                    children: [
+                                      buildStarRating(rating),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        rating.toStringAsFixed(1),
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54),
+                                      ),
+                                    ],
+                                  );
+                                }
+                              },
+                            ),
                           ],
                         ),
                       ],
@@ -519,6 +578,127 @@ class _HomeScreenState extends State<HomeScreen> {
       print("❌ Error fetching location name: $e");
     }
     return "Lieu inconnu"; // Valeur par défaut
+  }
+
+  Widget _buildMatchCard(dynamic match) {
+    if (match == null || match['id'] == null) {
+      return SizedBox
+          .shrink(); // Return an empty widget if match or 'id' is null
+    }
+
+    return GestureDetector(
+        onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TravelerProfileScreen(
+                  travelerId: match['id'], // Use the correct 'id' field
+                  loggedInUserId: widget.userId,
+                  token: _token!,
+                ),
+              ),
+            ),
+        child: Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 5,
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 35,
+                  backgroundImage: match['profileImage'] != null &&
+                          match['profileImage'].isNotEmpty
+                      ? NetworkImage(
+                          '${ApiConstants.baseUrl}${match['profileImage']}')
+                      : AssetImage('assets/default_profile.png')
+                          as ImageProvider,
+                  onBackgroundImageError: (_, __) {
+                    // Handle image loading errors
+                    print(
+                        'Error loading profile image for match: ${match['id']}');
+                  },
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              match['name'] ??
+                                  'Unknown Name', // Fallback for null name
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '${match['score'] != null ? (match['score'] * 100).toStringAsFixed(1) + '% compatibility' : 'N/A'}',
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      if (match['tags'] != null && match['tags'].isNotEmpty)
+                        Wrap(
+                          spacing: 6,
+                          children: (match['tags'] is String
+                                  ? match['tags']
+                                      .split(' ')
+                                      .map((tag) => tag.trim())
+                                      .toList()
+                                  : List<String>.from(match['tags']))
+                              .map<Widget>((tag) {
+                            return Chip(
+                              label: Text(tag),
+                              backgroundColor: Color(0xFFE5E5F7),
+                              labelStyle: TextStyle(fontSize: 12),
+                            );
+                          }).toList(),
+                        ),
+                      SizedBox(height: 4),
+                      FutureBuilder<Map<String, dynamic>?>(
+                        future: _fetchUserCarnet(match['id']),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          } else if (snapshot.hasData) {
+                            final userCarnet = snapshot.data!;
+                            final rating =
+                                (userCarnet['globalAverageRating'] ?? 0)
+                                    .toDouble(); // Ensure double
+                            return Row(
+                              children: [
+                                buildStarRating(rating),
+                                const SizedBox(width: 6),
+                                Text(
+                                  rating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black54),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Text(
+                              'No Rating',
+                              style: TextStyle(color: Colors.grey[600]),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ));
   }
 
   void onSearch(String keyword) {
@@ -740,30 +920,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: matches.length,
-                                  itemBuilder: (context, index) {
-                                    final match = matches[index];
-                                    return Card(
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16)),
-                                      elevation: 5,
-                                      margin: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 10),
-                                      child: ListTile(
-                                        leading: CircleAvatar(
-                                          backgroundImage: NetworkImage(
-                                              match['profileImage'] != null &&
-                                                      match['profileImage']
-                                                          .isNotEmpty
-                                                  ? '${ApiConstants.baseUrl}'+match['profileImage']
-                                                  : 'assets/default_profile.png'),
-                                        ),
-                                        title: Text(match['name']),
-                                        subtitle: Text(
-                                            'Score: ${match['score'].toStringAsFixed(2)} ⭐'),
-                                      ),
-                                    );
-                                  },
+                                  itemBuilder: (context, index) =>
+                                      _buildMatchCard(matches[index]),
                                 )
                     else
                       users.isEmpty && !isLoadingUsers

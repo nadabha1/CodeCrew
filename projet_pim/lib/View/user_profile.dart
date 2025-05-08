@@ -476,7 +476,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (context) =>
-                                SettingsScreen(userData: userData!)),
+                                SettingsScreen(userData: userData)),
                       );
                     },
                   ),

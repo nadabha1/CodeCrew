@@ -88,7 +88,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                       : () => forgotPasswordProvider.sendOtp(
                           context, _emailController.text),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF161055),
+                    backgroundColor: const Color(0xFF2C1055),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 16),

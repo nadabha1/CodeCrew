@@ -10,9 +10,9 @@ import 'package:projet_pim/View/settings/account_settings_screen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final Map<String, dynamic> userData;
+  final Map<String, dynamic>? userData;
 
-  const SettingsScreen({required this.userData, super.key});
+  const SettingsScreen({this.userData, super.key});
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -24,7 +24,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    userData = Map<String, dynamic>.from(widget.userData); // ✅ Clone userData
+    userData = Map<String, dynamic>.from(
+        widget.userData ?? {}); // ✅ Clone userData or use empty map
   }
 
   /// ✅ **Load User Session from SharedPreferences**
@@ -58,7 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           name: userData['name'] ?? 'Unknown Name',
           job: userData['job'] ?? 'No Job Specified',
           location: userData['location'] ?? 'No Location Specified',
-          currentProfilePicture: '${ApiConstants.baseUrl}'+userData['profileImage'],
+          currentProfilePicture:
+              '${ApiConstants.baseUrl}' + (userData['profileImage'] ?? ''),
         ),
       ),
     );
@@ -112,8 +114,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (result.containsKey('error')) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text(result['error'], style: const TextStyle(color: Colors.red))),
+              content: Text(result['error'],
+                  style: const TextStyle(color: Colors.red))),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -185,7 +187,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     CircleAvatar(
                       radius: 40,
                       backgroundImage: userData['profileImage'] != null
-                          ? NetworkImage('${ApiConstants.baseUrl}'+userData['profileImage'])
+                          ? NetworkImage('${ApiConstants.baseUrl}' +
+                              userData['profileImage'])
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
