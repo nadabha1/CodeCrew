@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart' as loc;
 import 'package:geocoding/geocoding.dart';
@@ -9,6 +10,7 @@ import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/ARViewScreen.dart';
 import 'package:projet_pim/View/UserProfilePage.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/agora_service.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -199,7 +201,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     backgroundImage:
                         usersAtLocation[i]['profileImage'] != null &&
                                 usersAtLocation[i]['profileImage'].isNotEmpty
-                            ? NetworkImage('${ApiConstants.baseUrl}'+usersAtLocation[i]['profileImage'])
+                            ? NetworkImage('${ApiConstants.baseUrl}' +
+                                usersAtLocation[i]['profileImage'])
                             : AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                     backgroundColor: Colors.transparent,
@@ -234,6 +237,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return markers;
   }
 
+  Future<void> fetchTravelerRating(String travelerId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/total-rating/$travelerId'),
+        headers: {"Authorization": "Bearer $_token"},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            travelerAverageRating = data['averageRating']?.toDouble() ?? 0.0;
+          });
+        }
+      } else {
+        print('Failed to fetch rating: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching traveler rating: $e');
+    }
+  }
+
   void _showUserListBottomSheet(List<Map<String, dynamic>> users) {
     showModalBottomSheet(
       context: context,
@@ -256,41 +281,60 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   separatorBuilder: (context, index) => Divider(),
                   itemBuilder: (context, index) {
                     final user = users[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: user['profileImage'] != null &&
-                                user['profileImage'].isNotEmpty
-                            ? NetworkImage('${ApiConstants.baseUrl}'+user['profileImage'])
-                            : AssetImage('assets/default_profile.png')
-                                as ImageProvider,
+                    return FutureBuilder<http.Response>(
+                      future: http.get(
+                        Uri.parse(
+                            '${ApiConstants.baseUrl}/carnets/total-rating/${user['_id']}'),
+                        headers: {"Authorization": "Bearer $_token"},
                       ),
-                      title: Text(user['name'] ?? 'Utilisateur inconnu',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(user['job'] ?? 'Métier inconnu'),
-                      trailing: user['likes'] != null
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.favorite,
-                                    color: Colors.red, size: 18),
-                                SizedBox(width: 4),
-                                Text('${user['likes']}',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                              ],
-                            )
-                          : null,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TravelerProfileScreen(
-                              travelerId: user['_id'],
-                              loggedInUserId: widget.userId,
-                              token: _token ?? '',
-                            ),
+                      builder: (context, snapshot) {
+                        double userRating = 0.0;
+                        if (snapshot.connectionState == ConnectionState.done &&
+                            snapshot.hasData &&
+                            snapshot.data!.statusCode == 200) {
+                          final data = json.decode(snapshot.data!.body);
+                          userRating = data['averageRating']?.toDouble() ?? 0.0;
+                        }
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: user['profileImage'] != null &&
+                                    user['profileImage'].isNotEmpty
+                                ? NetworkImage('${ApiConstants.baseUrl}' +
+                                    user['profileImage'])
+                                : AssetImage('assets/default_profile.png')
+                                    as ImageProvider,
                           ),
+                          title: Text(user['name'] ?? 'Utilisateur inconnu',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(user['job'] ?? 'Métier inconnu'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.star,
+                                  color:
+                                      const Color.fromARGB(255, 255, 192, 31),
+                                  size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                userRating.toStringAsFixed(1),
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TravelerProfileScreen(
+                                  travelerId: user['_id'],
+                                  loggedInUserId: widget.userId,
+                                  token: _token ?? '',
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     );
@@ -303,6 +347,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       },
     );
   }
+
+  double? travelerAverageRating;
 
   void _openInGoogleMaps(double latitude, double longitude) async {
     final url = Uri.parse(

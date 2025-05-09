@@ -58,6 +58,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     jobController = TextEditingController(text: widget.job);
     bioController = TextEditingController(text: widget.userData?['bio'] ?? '');
     locationController = TextEditingController(text: widget.location);
+    _profileImageUrl = widget
+        .currentProfilePicture; // ✅ Initialize with current profile picture
   }
 
   // Fonction pour télécharger l'image sur le serveur
@@ -76,9 +78,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl = '/uploads/${uploadedImage['filename']}';
+          final fullImageUrl = uploadedImage['filename'].startsWith('http')
+              ? uploadedImage['filename']
+              : '/uploads/${uploadedImage['filename']}';
           setState(() {
-            _profileImageUrl = fullImageUrl;
+            _profileImageUrl = fullImageUrl; // ✅ Update profile image URL
           });
           debugPrint("🌐 URL de l'image mise à jour : $_profileImageUrl");
         } else {
@@ -148,25 +152,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (isLoading) return;
     setState(() => isLoading = true);
 
+    // Process _profileImageUrl to remove everything before /uploads/
+    String? profileImageUrl = _profileImageUrl ?? widget.currentProfilePicture;
+    if (profileImageUrl != null && profileImageUrl.contains('/uploads/')) {
+      profileImageUrl =
+          profileImageUrl.substring(profileImageUrl.indexOf('/uploads/'));
+    }
+
     debugPrint("🔄 Updating profile...");
-    print("🔄 Updating Profile...");
     print("📤 Sending Data:");
-    print("   - User ID: ${widget.userId}");
-    print("   - Token: ${widget.token}");
-    print("   - Name: ${nameController.text}");
-    print("   - Job: ${jobController.text}");
-    print("   - Bio: ${bioController.text}");
-    print("   - Profile Image: $_profileImageUrl");
-    print("   - Location: $latitudeLongitude"); // ✅ Log coordinates
+    print(
+        "   - Name: ${nameController.text.isNotEmpty ? nameController.text : widget.name}");
+    print(
+        "   - Job: ${jobController.text.isNotEmpty ? jobController.text : widget.job}");
+    print(
+        "   - Bio: ${bioController.text.isNotEmpty ? bioController.text : widget.userData?['bio'] ?? ''}");
+    print(
+        "   - Profile Image: $profileImageUrl"); // ✅ Use processed _profileImageUrl
+    print("   - Location: ${latitudeLongitude ?? widget.location}");
 
     final result = await userService.updateUserProfile(
       widget.userId,
       widget.token,
-      nameController.text,
-      jobController.text,
-      bioController.text,
-      _profileImageUrl ?? widget.currentProfilePicture,
-      latitudeLongitude, // ✅ Include coordinates in the API call
+      nameController.text.isNotEmpty ? nameController.text : widget.name,
+      jobController.text.isNotEmpty ? jobController.text : widget.job,
+      bioController.text.isNotEmpty
+          ? bioController.text
+          : widget.userData?['bio'] ?? '',
+      profileImageUrl, // ✅ Use processed _profileImageUrl
+      latitudeLongitude ?? widget.location, // ✅ Retain location
     );
 
     setState(() => isLoading = false);
@@ -182,14 +196,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         const SnackBar(content: Text('Profile updated successfully!')),
       );
 
-      // ✅ Optionally navigate back or refresh data
       Navigator.pop(context, {
-        'name': nameController.text,
-        'job': jobController.text,
-        'location': locationController.text,
-        'bio': bioController.text,
-        'profileImage': _profileImageUrl ?? widget.currentProfilePicture,
-        'latitudeLongitude': latitudeLongitude, // ✅ Pass coordinates back
+        'name':
+            nameController.text.isNotEmpty ? nameController.text : widget.name,
+        'bio': bioController.text.isNotEmpty
+            ? bioController.text
+            : widget.userData?['bio'] ?? '',
+        'profileImage': profileImageUrl, // ✅ Pass _profileImageUrl as-is
       });
     }
   }
@@ -266,13 +279,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 radius: 60,
                 backgroundImage: _profileImage != null
                     ? FileImage(_profileImage!) as ImageProvider
-                    : (_profileImageUrl != null
+                    : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
                         ? NetworkImage(_profileImageUrl!)
-                        : (widget.currentProfilePicture != null &&
-                                widget.currentProfilePicture!.isNotEmpty
-                            ? NetworkImage(widget.currentProfilePicture!)
-                            : const AssetImage('assets/default_avatar.png'))),
-                child: _profileImage == null && _profileImageUrl == null
+                        : const AssetImage('assets/default_avatar.png')),
+                child: _profileImage == null &&
+                        (_profileImageUrl == null || _profileImageUrl!.isEmpty)
                     ? const Icon(Icons.camera_alt,
                         size: 40, color: Colors.white)
                     : null,

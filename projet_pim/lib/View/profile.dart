@@ -1038,11 +1038,6 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                                 );
                               },
                             ),
-                            const SizedBox(width: 20),
-                            _StatItem(
-                              count: travelerData?['likes']?.toString() ?? '0',
-                              label: 'Likes',
-                            ),
                           ],
                         ),
                       ],
