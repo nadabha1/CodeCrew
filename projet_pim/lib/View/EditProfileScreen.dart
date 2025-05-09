@@ -76,8 +76,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl =
-              '/uploads/${uploadedImage['filename']}';
+          final fullImageUrl = '/uploads/${uploadedImage['filename']}';
           setState(() {
             _profileImageUrl = fullImageUrl;
           });
@@ -114,6 +113,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 final pickedFile =
                     await _picker.pickImage(source: ImageSource.camera);
                 if (pickedFile != null) {
+                  setState(() {
+                    _profileImage =
+                        File(pickedFile.path); // Set the selected image
+                  });
                   await _uploadImage(pickedFile);
                 }
               },
@@ -126,6 +129,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 final pickedFile =
                     await _picker.pickImage(source: ImageSource.gallery);
                 if (pickedFile != null) {
+                  setState(() {
+                    _profileImage =
+                        File(pickedFile.path); // Set the selected image
+                  });
                   await _uploadImage(pickedFile);
                 }
               },
@@ -257,14 +264,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onTap: _pickImage,
               child: CircleAvatar(
                 radius: 60,
-                backgroundImage: _profileImageUrl != null
-                    ? NetworkImage(_profileImageUrl!) as ImageProvider
-                    : (widget.currentProfilePicture != null &&
-                            widget.currentProfilePicture!.isNotEmpty
-                        ? NetworkImage(widget.currentProfilePicture!)
-                        : const AssetImage('assets/default_avatar.png')
-                            as ImageProvider),
-                child: _profileImageUrl == null
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!) as ImageProvider
+                    : (_profileImageUrl != null
+                        ? NetworkImage(_profileImageUrl!)
+                        : (widget.currentProfilePicture != null &&
+                                widget.currentProfilePicture!.isNotEmpty
+                            ? NetworkImage(widget.currentProfilePicture!)
+                            : const AssetImage('assets/default_avatar.png'))),
+                child: _profileImage == null && _profileImageUrl == null
                     ? const Icon(Icons.camera_alt,
                         size: 40, color: Colors.white)
                     : null,

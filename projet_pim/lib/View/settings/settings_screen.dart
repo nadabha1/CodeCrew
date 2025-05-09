@@ -60,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           job: userData['job'] ?? 'No Job Specified',
           location: userData['location'] ?? 'No Location Specified',
           currentProfilePicture:
-              '${ApiConstants.baseUrl}' + (userData['profileImage'] ?? ''),
+              '${ApiConstants.baseUrl}${userData['profileImage'] ?? ''}',
         ),
       ),
     );
@@ -72,7 +72,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         userData['job'] = updatedProfileData['job'];
         userData['location'] = updatedProfileData['location'];
         userData['bio'] = updatedProfileData['bio'];
-        userData['profilePicture'] = updatedProfileData['profileImage'];
+        userData['profileImage'] =
+            updatedProfileData['profileImage']; // Update profileImage
       });
     }
   }
@@ -172,6 +173,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context, userData); // Pass updated userData back
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -181,14 +188,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // ✅ **Profile Section with Edit Option**
               GestureDetector(
-                onTap: _navigateToEditProfile,
+                onTap: _navigateToEditProfile, // Navigate to EditProfileScreen
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 40,
                       backgroundImage: userData['profileImage'] != null
-                          ? NetworkImage('${ApiConstants.baseUrl}' +
-                              userData['profileImage'])
+                          ? NetworkImage(
+                              '${ApiConstants.baseUrl}${userData['profileImage']}')
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -199,27 +206,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             userData['name'] ?? 'Unknown Name',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color:
-                                  Theme.of(context).textTheme.bodyLarge?.color,
                             ),
                           ),
                           const SizedBox(height: 5),
                           Text(
                             userData['bio'] ?? 'Bio not specified',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color:
-                                  Theme.of(context).textTheme.bodyMedium?.color,
-                            ),
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.black54),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.edit,
-                        color: Theme.of(context).iconTheme.color, size: 20),
+                    const Icon(Icons.edit, size: 20),
                   ],
                 ),
               ),

@@ -34,7 +34,7 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   CarnetProvider? provider;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   EventProvider? eventProvider;
@@ -75,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     if (!mounted) return;
+    WidgetsBinding.instance.addObserver(this); // Add observer
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
     _getCurrentLocation();
@@ -83,12 +84,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reload notifications when returning to the app
+      _fetchUnreadNotifications();
+    }
+  }
+
+  @override
   void didPopNext() {
-    // ✅ Quand on revient sur cette page
+    // Called when returning to this screen
     _fetchUnreadNotifications();
   }
 
@@ -216,12 +226,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchUnreadNotifications() async {
     if (_userId != null) {
-      final count =
-          await _notificationService.getUnreadNotificationsCount(_userId!);
-      if (!mounted) return;
-      setState(() {
-        _unreadNotifications = count;
-      });
+      try {
+        final count =
+            await _notificationService.getUnreadNotificationsCount(_userId!);
+        print("Fetched unread notifications count: $count"); // Debug print
+        if (!mounted) return;
+        setState(() {
+          _unreadNotifications = count;
+          print(
+              "Updated _unreadNotifications: $_unreadNotifications"); // Debug print
+        });
+      } catch (e) {
+        print("Error fetching unread notifications: $e");
+      }
     }
   }
 
@@ -721,231 +738,310 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eventProvider = Provider.of<EventProvider>(context);
+    return Navigator(
+      observers: [NavigatorObserver()],
+      onPopPage: (route, result) {
+        if (route.didPop(result)) {
+          _fetchUnreadNotifications(); // Reload notifications on pop
+          return true;
+        }
+        return false;
+      },
+      pages: [
+        MaterialPage(
+          child: Scaffold(
+            key: _scaffoldKey, // Ajout ici
+            backgroundColor: Color(0xFFF7F4FC),
+            drawer: _buildDrawer(), // Ajout ici
+            body: SafeArea(
+              child: Provider.of<EventProvider>(context).isLoading ||
+                      isLoadingUsers
+                  ? Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(),
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: TextField(
+                              controller: _searchController,
+                              onSubmitted: onSearch,
+                              decoration: InputDecoration(
+                                hintText: 'Search for a user...',
+                                prefixIcon: Icon(Icons.search),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              onChanged: (_) => _applySmartFilter(),
+                            ),
+                          ),
+                          SingleChildScrollView(
+                            padding: const EdgeInsets.only(left: 12),
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: categories.map((category) {
+                                final name = category['name'];
+                                final isSelected =
+                                    _selectedCategories.contains(name);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5.0),
+                                  child: ChoiceChip(
+                                    avatar: Icon(category['icon'],
+                                        color: isSelected
+                                            ? Colors.white
+                                            : category['color'],
+                                        size: 20),
+                                    label: Text(name),
+                                    selected: isSelected,
+                                    selectedColor: category['color'],
+                                    backgroundColor: Colors.white,
+                                    labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.black),
+                                    onSelected: (selected) {
+                                      if (!mounted) return;
+                                      setState(() {
+                                        selected
+                                            ? {
+                                                _selectedCategories.add(name),
+                                                onPlaceClick(name, "click add")
+                                              }
+                                            : {
+                                                _selectedCategories
+                                                    .remove(name),
+                                                onPlaceClick(name, "remove")
+                                              };
+                                        _applySmartFilter();
+                                      });
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          if (_selectedCategories.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _selectedCategories.clear();
+                                    _searchController.clear();
+                                    _applySmartFilter();
+                                  });
+                                },
+                                icon:
+                                    Icon(Icons.refresh, color: Colors.black87),
+                                label: Text("Reset filters",
+                                    style: TextStyle(color: Colors.black87)),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: Colors.grey[200],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.3),
+                                    blurRadius: 6,
+                                    spreadRadius: 2,
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          showMatches = false;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: !showMatches
+                                              ? Color(0xFFDBD9FE)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(25),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'People You May Like',
+                                            style: TextStyle(
+                                              color: !showMatches
+                                                  ? Colors.black
+                                                  : Colors.grey,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          showMatches = true;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: showMatches
+                                              ? Color(0xFFDBD9FE)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(25),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Matches You May Like',
+                                            style: TextStyle(
+                                              color: showMatches
+                                                  ? Colors.black
+                                                  : Colors.grey,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (showMatches)
+                            isLoadingMatches
+                                ? Center(child: CircularProgressIndicator())
+                                : matches.isEmpty
+                                    ? Padding(
+                                        padding: const EdgeInsets.all(20.0),
+                                        child: Center(
+                                          child: Text(
+                                            "No match found.",
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey),
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemCount: matches.length,
+                                        itemBuilder: (context, index) =>
+                                            _buildMatchCard(matches[index]),
+                                      )
+                          else
+                            users.isEmpty && !isLoadingUsers
+                                ? Padding(
+                                    padding: const EdgeInsets.all(20.0),
+                                    child: Center(
+                                      child: Text(
+                                        "No user found.",
+                                        style: TextStyle(
+                                            fontSize: 16, color: Colors.grey),
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: users.length,
+                                    itemBuilder: (context, index) =>
+                                        _buildUserCard(users[index]),
+                                  ),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        )
+      ],
+    );
+  }
 
-    return Scaffold(
-      key: _scaffoldKey, // Ajout ici
-      backgroundColor: Color(0xFFF7F4FC),
-      drawer: _buildDrawer(), // Ajout ici
-      body: SafeArea(
-        child: eventProvider.isLoading || isLoadingUsers
-            ? Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: TextField(
-                        controller: _searchController,
-                        onSubmitted: onSearch,
-                        decoration: InputDecoration(
-                          hintText: 'Search for a user...',
-                          prefixIcon: Icon(Icons.search),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        onChanged: (_) => _applySmartFilter(),
+  Widget _buildNotificationsIcon() {
+    return FutureBuilder<int>(
+      future: _notificationService.getUnreadNotificationsCount(widget.userId),
+      builder: (context, snapshot) {
+        int unreadCount = snapshot.data ?? 0;
+
+        return Stack(
+          children: [
+            IconButton(
+              icon: Icon(Icons.notifications, color: Colors.white, size: 28),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        NotificationScreen(userId: widget.userId),
+                  ),
+                ).then((_) {
+                  setState(
+                      () {}); // Trigger rebuild to refresh the FutureBuilder
+                });
+              },
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: BoxConstraints(
+                    minWidth: 20,
+                    minHeight: 20,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$unreadCount',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SingleChildScrollView(
-                      padding: const EdgeInsets.only(left: 12),
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: categories.map((category) {
-                          final name = category['name'];
-                          final isSelected = _selectedCategories.contains(name);
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 5.0),
-                            child: ChoiceChip(
-                              avatar: Icon(category['icon'],
-                                  color: isSelected
-                                      ? Colors.white
-                                      : category['color'],
-                                  size: 20),
-                              label: Text(name),
-                              selected: isSelected,
-                              selectedColor: category['color'],
-                              backgroundColor: Colors.white,
-                              labelStyle: TextStyle(
-                                  color:
-                                      isSelected ? Colors.white : Colors.black),
-                              onSelected: (selected) {
-                                if (!mounted) return;
-                                setState(() {
-                                  selected
-                                      ? {
-                                          _selectedCategories.add(name),
-                                          onPlaceClick(name, "click add")
-                                        }
-                                      : {
-                                          _selectedCategories.remove(name),
-                                          onPlaceClick(name, "remove")
-                                        };
-                                  _applySmartFilter();
-                                });
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    if (_selectedCategories.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: TextButton.icon(
-                          onPressed: () {
-                            if (!mounted) return;
-                            setState(() {
-                              _selectedCategories.clear();
-                              _searchController.clear();
-                              _applySmartFilter();
-                            });
-                          },
-                          icon: Icon(Icons.refresh, color: Colors.black87),
-                          label: Text("Reset filters",
-                              style: TextStyle(color: Colors.black87)),
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.grey[200],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              blurRadius: 6,
-                              spreadRadius: 2,
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  if (!mounted) return;
-                                  setState(() {
-                                    showMatches = false;
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: !showMatches
-                                        ? Color(0xFFDBD9FE)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'People You May Like',
-                                      style: TextStyle(
-                                        color: !showMatches
-                                            ? Colors.black
-                                            : Colors.grey,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  if (!mounted) return;
-                                  setState(() {
-                                    showMatches = true;
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: showMatches
-                                        ? Color(0xFFDBD9FE)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'Matches You May Like',
-                                      style: TextStyle(
-                                        color: showMatches
-                                            ? Colors.black
-                                            : Colors.grey,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (showMatches)
-                      isLoadingMatches
-                          ? Center(child: CircularProgressIndicator())
-                          : matches.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.all(20.0),
-                                  child: Center(
-                                    child: Text(
-                                      "No match found.",
-                                      style: TextStyle(
-                                          fontSize: 16, color: Colors.grey),
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: matches.length,
-                                  itemBuilder: (context, index) =>
-                                      _buildMatchCard(matches[index]),
-                                )
-                    else
-                      users.isEmpty && !isLoadingUsers
-                          ? Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Center(
-                                child: Text(
-                                  "No user found.",
-                                  style: TextStyle(
-                                      fontSize: 16, color: Colors.grey),
-                                ),
-                              ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: users.length,
-                              itemBuilder: (context, index) =>
-                                  _buildUserCard(users[index]),
-                            ),
-                  ],
+                  ),
                 ),
               ),
-      ),
+          ],
+        );
+      },
     );
   }
 
@@ -962,14 +1058,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // ✅ Météo à gauche
+          // Weather section
           GestureDetector(
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => WeatherScreen(
-                  userId: widget.userId,
-                ),
+                builder: (context) => WeatherScreen(userId: widget.userId),
               ),
             ),
             child: weatherData != null
@@ -998,53 +1092,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
           ),
 
-          // ✅ Notifications + Profil à droite
+          // Notifications and profile section
           Row(
             children: [
-              Stack(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.notifications,
-                        color: Colors.white, size: 28),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              NotificationScreen(userId: widget.userId),
-                        ),
-                      );
-                    },
-                  ),
-                  // 🔴 Marqueur rouge si notifications non lues
-                  if (_unreadNotifications > 0)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: BoxConstraints(
-                          minWidth: 20,
-                          minHeight: 20,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$_unreadNotifications',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              _buildNotificationsIcon(),
               SizedBox(width: 8),
               IconButton(
                 icon: Icon(Icons.person, color: Colors.white, size: 28),

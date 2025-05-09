@@ -468,16 +468,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       );
                     },
                   ),
-                  // Icone des paramètres
                   IconButton(
                     icon: const Icon(Icons.settings),
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      final updatedUserData = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) =>
-                                SettingsScreen(userData: userData)),
+                          builder: (context) =>
+                              SettingsScreen(userData: userData),
+                        ),
                       );
+
+                      // ✅ Update UI if user data is updated
+                      if (updatedUserData != null) {
+                        setState(() {
+                          userData = updatedUserData;
+                        });
+                      }
                     },
                   ),
                 ],
