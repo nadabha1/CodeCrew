@@ -328,4 +328,30 @@ class EventProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> fetchEventsCreatedByUser(String userId) async {
+    if (!_isValidUserId(userId)) {
+      print('Invalid userId format');
+      return;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/events/created-by/$userId'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        _events = data.map((json) => Event.fromJson(json, userId)).toList();
+      } else {
+        throw Exception(
+            'Failed to load events created by user: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching events created by user: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
 }

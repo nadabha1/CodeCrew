@@ -105,7 +105,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       EventProvider eventProvider =
           Provider.of<EventProvider>(context, listen: false);
       await eventProvider
-          .fetchEvents(widget.userId); // Remplacez par fetchEvents
+          .fetchEventsCreatedByUser(widget.userId); // Remplacez par fetchEvents
 
       // Ensure 'location' is parsed correctly
       if (userData?['location'] != null) {
