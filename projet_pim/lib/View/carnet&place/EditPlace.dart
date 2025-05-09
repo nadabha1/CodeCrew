@@ -86,8 +86,7 @@ class _EditPlaceState extends State<EditPlace> {
         final responseBody = await response.stream.bytesToString();
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl =
-              '/uploads/${uploadedImage['filename']}';
+          final fullImageUrl = '/uploads/${uploadedImage['filename']}';
           setState(() {
             _imageUrls.add(fullImageUrl);
           });
@@ -161,8 +160,23 @@ class _EditPlaceState extends State<EditPlace> {
           Provider.of<CarnetProvider>(context, listen: false);
       carnetProvider.updatePlace(updatedPlace, _carnetId);
 
-      // Fermer la page une fois les modifications enregistrées
-      Navigator.pop(context, updatedPlace); // Passer la place mise à jour
+      // Afficher un popup pour informer l'utilisateur
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("All Set!"),
+          content: const Text("Nice! The place just got a fresh update! "),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Fermer le popup
+                Navigator.pop(context, updatedPlace); // Fermer la page
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -307,7 +321,7 @@ class _EditPlaceState extends State<EditPlace> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: Image.network(
-                                  '${ApiConstants.baseUrl}'+imageUrl,
+                                  '${ApiConstants.baseUrl}' + imageUrl,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,

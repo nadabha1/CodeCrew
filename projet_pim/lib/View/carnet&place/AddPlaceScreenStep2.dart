@@ -54,8 +54,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
         final responseBody = await response.stream.bytesToString();
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl =
-              '/uploads/${uploadedImage['filename']}';
+          final fullImageUrl = '/uploads/${uploadedImage['filename']}';
           setState(() {
             _imageUrls.add(fullImageUrl);
           });
@@ -229,7 +228,7 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: Image.network(
-                                  '${ApiConstants.baseUrl}'+imageUrl,
+                                  '${ApiConstants.baseUrl}' + imageUrl,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
@@ -283,10 +282,31 @@ class _AddPlaceScreenStep2State extends State<AddPlaceScreenStep2> {
                     widget.latitude,
                     widget.longitude,
                   );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MainScreen(),
+
+                  // Show popup dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text(
+                        "Place Added, Coins Earned!",
+                        style: TextStyle(fontSize: 18), // Reduced font size
+                      ),
+                      content: const Text(
+                          "Boom! Place added and 5 coins just landed in your pocket! 💥"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Close the dialog
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text("OK"),
+                        ),
+                      ],
                     ),
                   );
                 },

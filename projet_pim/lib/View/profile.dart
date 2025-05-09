@@ -53,227 +53,239 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
   late TabController _tabController;
   List<Event> travelerEvents = [];
 
-
   @override
   void initState() {
     super.initState();
     carnetProvider = Provider.of<CarnetProvider>(context, listen: false);
     _tabController = TabController(length: 3, vsync: this); // ← ajouter ça !
-        _eventProvider = EventProvider(userId: widget.loggedInUserId);
+    _eventProvider = EventProvider(userId: widget.loggedInUserId);
     fetchTravelerProfile();
     fetchFollowerData();
     fetchTravelerRating();
-      fetchTravelerEvents(); 
+    fetchTravelerEvents();
   }
+
   Future<void> fetchTravelerEvents() async {
-  try {
-    final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}/events/user/${widget.travelerId}'),
-      headers: {'Authorization': 'Bearer ${widget.token}'},
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      setState(() {
-        travelerEvents = data.map((e) => Event.fromJson(e, widget.loggedInUserId)).toList();
-      });
-    } else {
-      print('Erreur lors du chargement des événements: ${response.body}');
-    }
-  } catch (e) {
-    print('Erreur : $e');
-  }
-}
-
-Widget _buildEventsTab() {
-  if (travelerEvents.isEmpty) {
-    return const Center(child: Text("Aucun événement trouvé."));
-  }
-
-  return ListView.builder(
-    padding: const EdgeInsets.all(12),
-    itemCount: travelerEvents.length,
-    itemBuilder: (context, index) {
-      final event = travelerEvents[index];
-      return _buildStyledEventCard(event);
-    },
-  );
-}
-Future<String> _getEventLocationName(LatLng location) async {
-  try {
-    List<Placemark> placemarks = await placemarkFromCoordinates(
-      location.latitude,
-      location.longitude,
-    );
-    if (placemarks.isNotEmpty) {
-      final place = placemarks.first;
-      return "${place.locality}, ${place.country}";
-    }
-  } catch (e) {
-    print("Reverse geocoding error: $e");
-  }
-  return "Unknown place";
-}
-Widget _buildStyledEventCard(Event event) {
-  bool isParticipating = event.isParticipating;
-
-  return FutureBuilder<String>(
-    future: _getEventLocationName(event.location),
-    builder: (context, snapshot) {
-      String locationName = snapshot.data ?? "Fetching location...";
-
-      return Card(
-        elevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF161055), width: 1.5),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                event.title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF161055),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                event.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF161055)),
-              ),
-              const SizedBox(height: 10),
-              Row(children: [
-                const Icon(Icons.calendar_today, size: 14, color: Color(0xFF161055)),
-                const SizedBox(width: 6),
-                Text(
-                  DateFormat('dd/MM/yyyy HH:mm').format(event.startDate),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF161055)),
-                ),
-              ]),
-              const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.location_on, size: 14, color: Color(0xFF161055)),
-                const SizedBox(width: 6),
-                Text(
-                  locationName,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF161055)),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      if (isParticipating) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => GroupChatScreen(
-                              eventProvider: EventProvider(userId: widget.loggedInUserId),
-                              conversationId: event.conversationId ?? "",
-                              groupName: event.title,
-                              userId: widget.loggedInUserId,
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Optionally, show message or dialog
-                        _showJoinConfirmationDialog(event);
-                        fetchTravelerEvents(); 
-
-
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isParticipating
-                          ? const Color(0xFF9680D4)
-                          : const Color.fromARGB(198, 243, 199, 249),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(isParticipating ? "Join Chat" : "Join Event"),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.more_horiz),
-                    onPressed: () {
-                      if (isParticipating) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EventDetailsScreen(
-                              event: event,
-                              userId: widget.loggedInUserId,
-                              token: widget.token,
-                              eventProvider: EventProvider(userId: widget.loggedInUserId),
-                            ),
-                          ),
-                        );
-                      } else {
-                        showDialog(
-                          context: context,
-                          builder: (_) => const AlertDialog(
-                            title: Text("Access Denied"),
-                            content: Text("You must join the event to view details."),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/events/user/${widget.travelerId}'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
       );
-    },
-  );
-}
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            travelerEvents = data
+                .map((e) => Event.fromJson(e, widget.loggedInUserId))
+                .toList();
+          });
+        }
+      } else {
+        print('Erreur lors du chargement des événements: ${response.body}');
+      }
+    } catch (e) {
+      print('Erreur : $e');
+    }
+  }
 
- void _showJoinConfirmationDialog(Event event) {
+  Widget _buildEventsTab() {
+    if (travelerEvents.isEmpty) {
+      return const Center(child: Text("Aucun événement trouvé."));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: travelerEvents.length,
+      itemBuilder: (context, index) {
+        final event = travelerEvents[index];
+        return _buildStyledEventCard(event);
+      },
+    );
+  }
+
+  Future<String> _getEventLocationName(LatLng location) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        return "${place.locality}, ${place.country}";
+      }
+    } catch (e) {
+      print("Reverse geocoding error: $e");
+    }
+    return "Unknown place";
+  }
+
+  Widget _buildStyledEventCard(Event event) {
+    bool isParticipating = event.isParticipating;
+
+    return FutureBuilder<String>(
+      future: _getEventLocationName(event.location),
+      builder: (context, snapshot) {
+        String locationName = snapshot.data ?? "Fetching location...";
+
+        return Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF161055), width: 1.5),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF161055),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  event.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF161055)),
+                ),
+                const SizedBox(height: 10),
+                Row(children: [
+                  const Icon(Icons.calendar_today,
+                      size: 14, color: Color(0xFF161055)),
+                  const SizedBox(width: 6),
+                  Text(
+                    DateFormat('dd/MM/yyyy HH:mm').format(event.startDate),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF161055)),
+                  ),
+                ]),
+                const SizedBox(height: 4),
+                Row(children: [
+                  const Icon(Icons.location_on,
+                      size: 14, color: Color(0xFF161055)),
+                  const SizedBox(width: 6),
+                  Text(
+                    locationName,
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF161055)),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        if (isParticipating) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GroupChatScreen(
+                                eventProvider: EventProvider(
+                                    userId: widget.loggedInUserId),
+                                conversationId: event.conversationId ?? "",
+                                groupName: event.title,
+                                userId: widget.loggedInUserId,
+                              ),
+                            ),
+                          );
+                        } else {
+                          // Optionally, show message or dialog
+                          _showJoinConfirmationDialog(event);
+                          fetchTravelerEvents();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isParticipating
+                            ? const Color(0xFF9680D4)
+                            : const Color.fromARGB(198, 243, 199, 249),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(isParticipating ? "Join Chat" : "Join Event"),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.more_horiz),
+                      onPressed: () {
+                        if (isParticipating) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EventDetailsScreen(
+                                event: event,
+                                userId: widget.loggedInUserId,
+                                token: widget.token,
+                                eventProvider: EventProvider(
+                                    userId: widget.loggedInUserId),
+                              ),
+                            ),
+                          );
+                        } else {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const AlertDialog(
+                              title: Text("Access Denied"),
+                              content: Text(
+                                  "Want the inside scoop? Join the event first!"),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showJoinConfirmationDialog(Event event) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Join the event?"),
-          content: Text("Participation Fee: ${event.joinPrice} coins"),
+          title: Text("Ready to Join?"),
+          content:
+              Text("It’s just ${event.joinPrice} coins to join the event!"),
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text("Cancel")),
             TextButton(
-  onPressed: () async {
-    Navigator.of(context).pop(); // close dialog first
-    try {
-      await _eventProvider.joinEvent(widget.loggedInUserId, event.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Inscription réussie à l’événement !")),
-      );
-            fetchTravelerEvents(); 
-
-    } catch (e) {
-      final error = e.toString();
-      if (error.contains("Insufficient coins")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⛔ Tu n’as pas assez de coins pour participer à cet événement."),
-          ),
-        );
-      } 
-    }
-          fetchTravelerEvents(); 
-
-  },
-  child: const Text("Confirm"),
-)
-
+              onPressed: () async {
+                Navigator.of(context).pop(); // close dialog first
+                try {
+                  await _eventProvider.joinEvent(
+                      widget.loggedInUserId, event.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("✅You're part of the event now! 🙌")),
+                  );
+                  fetchTravelerEvents();
+                } catch (e) {
+                  final error = e.toString();
+                  if (error.contains("Insufficient coins")) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text("Oops, not enough coins to join this event."),
+                      ),
+                    );
+                  }
+                }
+                fetchTravelerEvents();
+              },
+              child: const Text("Confirm"),
+            )
           ],
         );
       },
@@ -291,12 +303,14 @@ Widget _buildStyledEventCard(Event event) {
       int followingCount =
           await userService.getFollowingCount(widget.travelerId);
 
-      setState(() {
-        travelerData?['followers'] = followers;
-        travelerData?['following'] = following;
-        travelerData?['followersCount'] = followersCount;
-        travelerData?['followingCount'] = followingCount;
-      });
+      if (mounted) {
+        setState(() {
+          travelerData?['followers'] = followers;
+          travelerData?['following'] = following;
+          travelerData?['followersCount'] = followersCount;
+          travelerData?['followingCount'] = followingCount;
+        });
+      }
     } catch (e) {
       print("❌ Error fetching followers/following: $e");
     }
@@ -326,17 +340,21 @@ Widget _buildStyledEventCard(Event event) {
           await userService.getFollowers(widget.travelerId);
       bool isUserFollowing = followers.contains(widget.loggedInUserId);
 
-      setState(() {
-        travelerData = traveler;
-        travelerCarnets = carnetService.getUserCarnet(widget.travelerId);
-        traveler['followers']?.contains(widget.loggedInUserId) ?? false;
-        isFollowing = isUserFollowing; // Mise à jour du statut de suivi
+      if (mounted) {
+        setState(() {
+          travelerData = traveler;
+          travelerCarnets = carnetService.getUserCarnet(widget.travelerId);
+          traveler['followers']?.contains(widget.loggedInUserId) ?? false;
+          isFollowing = isUserFollowing; // Mise à jour du statut de suivi
 
-        isLoading = false;
-      });
+          isLoading = false;
+        });
+      }
     } catch (e) {
       print("❌ Error fetching traveler profile: $e");
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -393,8 +411,8 @@ Widget _buildStyledEventCard(Event event) {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Success !"),
-          content: Text("You have unlocked '$placeName' !"),
+          title: const Text("Unlocked!"),
+          content: Text("You’ve unlocked '$placeName' — time to explore! !"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -443,9 +461,9 @@ Widget _buildStyledEventCard(Event event) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Voulez-vous déverrouiller '$placeName' ?"),
+              Text("Are you ready to unlock '$placeName'?"),
               const SizedBox(height: 10),
-              Text("Unlock cost: : $placePrice coins"),
+              Text("It’s just $placePrice coins!"),
             ],
           ),
           actions: <Widget>[
@@ -587,8 +605,7 @@ Widget _buildStyledEventCard(Event event) {
               }
 
               if (snapshot.hasError) {
-                return const Center(
-                    child: Text('Error loading address books'));
+                return const Center(child: Text('Error loading address books'));
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -617,145 +634,177 @@ Widget _buildStyledEventCard(Event event) {
                                 carnetProvider.isPlaceUnlocked(place.id);
 
                             return SizedBox(
-  width: 180,
-  height: 300,
-  child: Card(
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(15),
-    ),
-    elevation: 4,
-    child: Padding(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SizedBox(
-            height: 120,
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: isUnlocked
-                      ? Image.network(
-                          place.images.isNotEmpty
-                              ? '${ApiConstants.baseUrl}${place.images.first}'
-                              : '',
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.broken_image,
-                                size: 50, color: Colors.grey);
-                          },
-                        )
-                      : ImageFiltered(
-                          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                          child: Image.network(
-                            place.images.isNotEmpty
-                                ? '${ApiConstants.baseUrl}${place.images.first}'
-                                : '',
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.broken_image,
-                                  size: 50, color: Colors.grey);
-                            },
-                          ),
-                        ),
-                ),
-                if (!isUnlocked)
-                  const Positioned.fill(
-                    child: Center(
-                      child:
-                          Icon(Icons.lock, color: Colors.white, size: 40),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: Text(
-              place.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (place.categories.isNotEmpty)
-            Wrap(
-              spacing: 6.0,
-              runSpacing: 4.0,
-              alignment: WrapAlignment.center,
-              children: place.categories.map((category) {
-                return Chip(
-                  label: Text(
-                    category,
-                    style: const TextStyle(fontSize: 10),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 0),
-                  backgroundColor: Colors.deepPurple[100],
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                );
-              }).toList(),
-            ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              buildStarRating(place.averageRating),
-              const SizedBox(width: 6),
-              Text(
-                place.averageRating.toStringAsFixed(1),
-                style:
-                    const TextStyle(fontSize: 14, color: Colors.black54),
-              ),
-            ],
-          ),
-          ElevatedButton(
-            onPressed: isUnlocked
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Builder(
-                          builder: (newContext) =>
-                              ChangeNotifierProvider<ReviewProvider>(
-                            create: (_) => ReviewProvider(),
-                            child: PlaceDetailsScreen(place: place),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                : () {
-                    _showConfirmUnlockDialog(place.name,
-                        place.unlockCost, place);
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isUnlocked
-                  ? const Color(0xFF9E9E9E)
-                  : const Color(0xFFD4F98F),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 8),
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-            child: Text(isUnlocked
-                ? "View Details"
-                : "Unlock (${place.unlockCost} coins)"),
-          ),
-        ],
-      ),
-    ),
-  ),
-);
-
+                              width: 180,
+                              height: 300,
+                              child: Card(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                elevation: 4,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      SizedBox(
+                                        height: 120,
+                                        child: Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: isUnlocked
+                                                  ? Image.network(
+                                                      place.images.isNotEmpty
+                                                          ? '${ApiConstants.baseUrl}${place.images.first}'
+                                                          : '',
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
+                                                        return const Icon(
+                                                            Icons.broken_image,
+                                                            size: 50,
+                                                            color: Colors.grey);
+                                                      },
+                                                    )
+                                                  : ImageFiltered(
+                                                      imageFilter:
+                                                          ImageFilter.blur(
+                                                              sigmaX: 5,
+                                                              sigmaY: 5),
+                                                      child: Image.network(
+                                                        place.images.isNotEmpty
+                                                            ? '${ApiConstants.baseUrl}${place.images.first}'
+                                                            : '',
+                                                        width: double.infinity,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
+                                                          return const Icon(
+                                                              Icons
+                                                                  .broken_image,
+                                                              size: 50,
+                                                              color:
+                                                                  Colors.grey);
+                                                        },
+                                                      ),
+                                                    ),
+                                            ),
+                                            if (!isUnlocked)
+                                              const Positioned.fill(
+                                                child: Center(
+                                                  child: Icon(Icons.lock,
+                                                      color: Colors.white,
+                                                      size: 40),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: Text(
+                                          place.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      if (place.categories.isNotEmpty)
+                                        Wrap(
+                                          spacing: 6.0,
+                                          runSpacing: 4.0,
+                                          alignment: WrapAlignment.center,
+                                          children:
+                                              place.categories.map((category) {
+                                            return Chip(
+                                              label: Text(
+                                                category,
+                                                style: const TextStyle(
+                                                    fontSize: 10),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 0),
+                                              backgroundColor:
+                                                  Colors.deepPurple[100],
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            );
+                                          }).toList(),
+                                        ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          buildStarRating(place.averageRating),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            place.averageRating
+                                                .toStringAsFixed(1),
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black54),
+                                          ),
+                                        ],
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: isUnlocked
+                                            ? () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        Builder(
+                                                      builder: (newContext) =>
+                                                          ChangeNotifierProvider<
+                                                              ReviewProvider>(
+                                                        create: (_) =>
+                                                            ReviewProvider(),
+                                                        child:
+                                                            PlaceDetailsScreen(
+                                                                place: place),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            : () {
+                                                _showConfirmUnlockDialog(
+                                                    place.name,
+                                                    place.unlockCost,
+                                                    place);
+                                              },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: isUnlocked
+                                              ? const Color(0xFF9E9E9E)
+                                              : const Color(0xFFD4F98F),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                          textStyle:
+                                              const TextStyle(fontSize: 12),
+                                        ),
+                                        child: Text(isUnlocked
+                                            ? "View Details"
+                                            : "Unlock (${place.unlockCost} coins)"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
                           }).toList(),
                         ),
                       ),
@@ -770,49 +819,54 @@ Widget _buildStyledEventCard(Event event) {
       ),
     );
   }
-double? travelerAverageRating;
 
-Future<void> fetchTravelerRating() async {
-  final response = await http.get(
-    Uri.parse('${ApiConstants.baseUrl}/carnets/total-rating/${widget.travelerId}'),
-    headers: {"Authorization": "Bearer ${widget.token}"},
-  );
+  double? travelerAverageRating;
 
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    setState(() {
-      travelerAverageRating = data['averageRating']?.toDouble();
-    });
+  Future<void> fetchTravelerRating() async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.baseUrl}/carnets/total-rating/${widget.travelerId}'),
+      headers: {"Authorization": "Bearer ${widget.token}"},
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (mounted) {
+        setState(() {
+          travelerAverageRating = data['averageRating']?.toDouble();
+        });
+      }
+    }
   }
-}
 
   Widget _buildInfoTab() {
     return Column(
-  children: [
-    Text('⭐'),
-    Text(
-      travelerAverageRating != null ? travelerAverageRating.toString() : '0.0',
-      style: TextStyle(fontWeight: FontWeight.bold),
-    ),
-    Text('Rating', style: TextStyle(fontSize: 12)),
-  ],
-);
+      children: [
+        Text('⭐'),
+        Text(
+          travelerAverageRating != null
+              ? travelerAverageRating.toString()
+              : '0.0',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Text('Rating', style: TextStyle(fontSize: 12)),
+      ],
+    );
   }
 
-  
-
   Widget _buildAvisTab() {
-       return Column(
-  children: [
-    Text('⭐'),
-    Text(
-      travelerAverageRating != null ? travelerAverageRating.toString() : '0.0',
-      style: TextStyle(fontWeight: FontWeight.bold),
-    ),
-    Text('Rating', style: TextStyle(fontSize: 12)),
-  ],
-);
-
+    return Column(
+      children: [
+        Text('⭐'),
+        Text(
+          travelerAverageRating != null
+              ? travelerAverageRating.toString()
+              : '0.0',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Text('Rating', style: TextStyle(fontSize: 12)),
+      ],
+    );
   }
 
   @override
@@ -844,7 +898,8 @@ Future<void> fetchTravelerRating() async {
                           backgroundImage: travelerData?['profileImage'] !=
                                       null &&
                                   travelerData!['profileImage'].isNotEmpty
-                              ? NetworkImage('${ApiConstants.baseUrl}'+travelerData!['profileImage'])
+                              ? NetworkImage('${ApiConstants.baseUrl}' +
+                                  travelerData!['profileImage'])
                               : const AssetImage('assets/default_profile.png')
                                   as ImageProvider,
                         ),
@@ -1001,11 +1056,10 @@ Future<void> fetchTravelerRating() async {
                           labelColor: Colors.black,
                           indicatorColor: Colors.deepPurple,
                           tabs: const [
-  Tab(text: 'Places'),
-  Tab(text: 'Events'),
-  Tab(text: 'Info'),
-],
-
+                            Tab(text: 'Places'),
+                            Tab(text: 'Events'),
+                            Tab(text: 'Info'),
+                          ],
                         ),
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.5,

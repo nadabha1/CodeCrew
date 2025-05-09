@@ -43,7 +43,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       eventProvider = Provider.of<EventProvider>(context, listen: false);
       _loadUserEvents(widget.userId, widget.token);
@@ -52,19 +52,19 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     });
   }
 
-  /*Future<void> _loadUserEvents() async {
-    await eventProvider.fetchUserEvents(widget.userId, widget.token);
-    print("Nombre d'événements récupérés : ${eventProvider.userEvents.length}");
-  }*/
   Future<void> _loadUserEvents(String userId, String token) async {
     userEvents = await eventProvider.fetchUserEvents(
         userId, token); // ← Fixed syntax and type mismatch
-    //notifyListeners();
     setState(() {});
   }
 
   Future<void> _uploadGeneratedImage(String base64Image, Event event) async {
     try {
+      // Validate base64Image
+      if (base64Image.isEmpty || !base64Image.contains(',')) {
+        throw Exception("Invalid image data");
+      }
+
       final imageBytes = base64Decode(base64Image.split(',').last);
       final tempDir = await getTemporaryDirectory();
       final filePath = '${tempDir.path}/generated_image.png';
@@ -81,10 +81,9 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         final uploadedImage = jsonDecode(responseBody);
 
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl =
-              '/uploads/${uploadedImage['filename']}';
+          final fullImageUrl = '/uploads/${uploadedImage['filename']}';
 
-          // Utilisez cette URL pour créer l'événement
+          // Use this URL to create the event
           await eventProvider.createEvent(
             widget.userId,
             event.title,
@@ -94,15 +93,15 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
             "${event.location.latitude},${event.location.longitude}",
             event.joinPrice,
             event.type,
-            imagePath: fullImageUrl, // Passez l'URL de l'image
+            imagePath: fullImageUrl, // Pass the image URL
           );
-          print("Événement créé avec l'image : $fullImageUrl");
+          print("Event created with image: $fullImageUrl");
         }
       } else {
-        print("Erreur lors de l'upload : ${response.statusCode}");
+        print("Error during upload: ${response.statusCode}");
       }
     } catch (e) {
-      print('Erreur lors du téléchargement de l\'image : $e');
+      print('Error during image upload: $e');
     }
   }
 
@@ -178,7 +177,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     return "Adresse inconnue";
   }
 
-  void _showCreateEventDialog() {
+  Future<void> _showCreateEventDialog() async {
     String title = '', description = '', location = '';
     DateTime? startDate, endDate;
     int joinPrice = 5;
@@ -216,7 +215,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
       }
     }
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("Create an event"),
@@ -331,18 +330,21 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+            onPressed: () {
+              Navigator.pop(context); // Ensure the dialog is dismissed
+            },
+            child: Text("Cancel"),
+          ),
           TextButton(
             onPressed: () async {
               if (title.isNotEmpty &&
                   location.isNotEmpty &&
                   startDate != null &&
                   endDate != null) {
-                // Générer le poster de l'événement et obtenir le chemin de l'image
                 await generateEventPoster(
                   description,
                   Event(
-                    id: '', // Fournir un ID valide ou laisser vide si non applicable
+                    id: '',
                     title: title,
                     description: description,
                     creatorId: widget.userId,
@@ -352,48 +354,46 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                       double.parse(location.split(',')[0]),
                       double.parse(location.split(',')[1]),
                     ),
-                    participants: [], // Fournir une liste de participants si applicable
-                    isParticipating:
-                        false, // Définir le statut de participation par défaut
+                    participants: [],
+                    isParticipating: false,
                     joinPrice: joinPrice,
-                    conversationId:
-                        '', // Fournir un ID de conversation valide ou laisser vide
+                    conversationId: '',
                     type: selectedType,
                   ),
                 );
 
-                /* // Créer l'événement avec le chemin de l'image
-                await eventProvider.createEvent(
-                  widget.userId,
-                  title,
-                  description,
-                  startDate!.toIso8601String(),
-                  endDate!.toIso8601String(),
-                  location,
-                  joinPrice,
-                  selectedType,
-                  imagePath: imagePath, // Passer l'URL de l'image générée
-                );
+                Navigator.pop(context); // Close the create event dialog
+                await _loadUserEvents(widget.userId, widget.token);
 
-                print("Événement créé :");
-                print("Titre: $title");
-                print("Description: $description");
-                print("Localisation: $location");
-                print("Date de début: $startDate");
-                print("Date de fin: $endDate");
-                print("Prix de participation: $joinPrice");
-                print("Type d'événement: $selectedType");
-                print("Image: $imagePath");*/
-
-                Navigator.pop(context);
-                await _loadUserEvents(
-                    widget.userId, widget.token); // Refresh list
+                // Show success dialog directly
+                Future.delayed(Duration.zero, () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text(
+                        "Let’s Get This Party Started! 🎉",
+                        style: TextStyle(fontSize: 18), // Adjusted font size
+                      ),
+                      content: const Text(
+                          "Event created! You scored 5 coins for your awesome effort! 💥"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Close the success dialog
+                            Navigator.pop(
+                                context); // Ensure all dialogs are closed
+                          },
+                          child: const Text("OK"),
+                        ),
+                      ],
+                    ),
+                  );
+                });
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Please fill out all the fields.")),
                 );
               }
-              Navigator.pop(context);
             },
             child: Text("Create"),
           ),
@@ -427,7 +427,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
           children: [
             if (hasImage)
               Image.network(
-                '${ApiConstants.baseUrl}'+event.imagePath!,
+                '${ApiConstants.baseUrl}' + event.imagePath!,
                 height: 500,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -464,26 +464,63 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                   Text(
                       "📅 ${event.startDate.toLocal().toString().split(' ')[0]}"),
                   SizedBox(height: 6),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (event.isParticipating) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => GroupChatScreen(
-                              eventProvider:
-                                  EventProvider(userId: widget.userId),
-                              conversationId: event.conversationId,
-                              groupName: event.title,
-                              userId: widget.userId,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          if (event.isParticipating) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => GroupChatScreen(
+                                  eventProvider:
+                                      EventProvider(userId: widget.userId),
+                                  conversationId: event.conversationId,
+                                  groupName: event.title,
+                                  userId: widget.userId,
+                                ),
+                              ),
+                            );
+                          } else {
+                            eventProvider.joinEvent(widget.userId, event.id);
+                          }
+                        },
+                        child: Text(event.isParticipating ? "Chat" : "Join"),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text("Sure About That?"),
+                              content: Text(
+                                  "Poof! This event will be gone forever. Are you sure?"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context, false); // Cancel
+                                  },
+                                  child: Text("Cancel"),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context, true); // Confirm
+                                  },
+                                  child: Text("Delete"),
+                                ),
+                              ],
                             ),
-                          ),
-                        );
-                      } else {
-                        eventProvider.joinEvent(widget.userId, event.id);
-                      }
-                    },
-                    child: Text(event.isParticipating ? "Chat" : "Join"),
+                          );
+
+                          if (confirm == true) {
+                            await eventProvider.deleteEvent(event.id);
+                            await _loadUserEvents(widget.userId, widget.token);
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -496,8 +533,6 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final events = userEvents;
-
     return Scaffold(
       appBar: AppBar(
         title: Text("My Events"),
@@ -511,7 +546,9 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                   _buildEventCard(userEvents[index]),
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateEventDialog,
+        onPressed: () async {
+          await _showCreateEventDialog(); // Wait for the dialog to close
+        },
         backgroundColor: Color(0xFFD4F98F),
         child: Icon(Icons.add),
       ),

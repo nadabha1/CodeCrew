@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/ViewModel/agora_service.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/calendar_service.dart';
 
@@ -151,46 +152,34 @@ class EventProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-Future<void> joinEvent(String userId, String eventId) async {
-  if (!_isValidUserId(userId)) {
-    throw Exception('Invalid userId format');
-  }
 
-  _isLoading = true;
-  notifyListeners();
+  Future<void> joinEvent(String userId, String eventId) async {
+    try {
+      // Correct endpoint with event ID in the URL
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/events/$eventId/join'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'userId': userId}), // Send userId in the request body
+      );
 
-  try {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/events/$eventId/join'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'userId': userId}),
-    );
-
-    if (response.statusCode == 200) {
-      await fetchEvents(userId);
-    } else {
-      String errorMessage = 'Unknown error';
-
-      try {
-        final data = jsonDecode(response.body);
-        errorMessage = data['message'] ?? errorMessage;
-      } catch (_) {
-        // fallback to default errorMessage
-        errorMessage = 'Internal server error';
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("Successfully joined the event.");
+        print(
+            "Response body: ${response.body}"); // Log the response for debugging
+      } else {
+        // Log the response body for debugging
+        print("❌ Failed to join event. Status code: ${response.statusCode}");
+        print("Response body: ${response.body}");
+        throw Exception("Failed to join event: ${response.body}");
       }
-
-      throw Exception(errorMessage);
+    } catch (e) {
+      print("❌ Error in joinEvent: $e");
+      rethrow; // Re-throw the exception to be handled by the caller
     }
-  } catch (e) {
-    _isLoading = false;
-    notifyListeners();
-    rethrow; // Rethrow to be caught and handled in the UI
   }
-
-  _isLoading = false;
-  notifyListeners();
-}
-
 
   Future<List<Event>> fetchUserEvents(String userId, String token) async {
     if (!_isValidUserId(userId)) {

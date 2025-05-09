@@ -27,7 +27,29 @@ class CreateCarnetScreen extends StatelessWidget {
               onPressed: () async {
                 await carnetProvider.createCarnet(
                     userId, _titleController.text);
-                Navigator.pop(context); // ✅ Return to home after creation
+
+                // Show popup dialog
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text(
+                      "New Notebook, New Rewards!",
+                      style: TextStyle(fontSize: 18), // Adjusted font size
+                    ),
+                    content: const Text(
+                        "Your notebook is ready — and you just bagged 10 coins! 💰"),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Close the dialog
+                          Navigator.pop(
+                              context); // Return to the previous screen
+                        },
+                        child: const Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
               },
               child: const Text("Create"),
             ),
