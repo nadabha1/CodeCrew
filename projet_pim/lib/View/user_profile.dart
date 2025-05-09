@@ -553,11 +553,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     userCarnet.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 16.0),
-                            child: Text(
-                              "You haven't created an address book yet.",
-                              style: TextStyle(fontSize: 16),
+                            child: Column(
+                              children: [
+                                Text(
+                                  "You haven't created an address book yet.",
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  "Create your first carnet now and earn 10 coins! 🎉",
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color:
+                                          Color.fromARGB(255, 130, 130, 130)),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
                           )
+                        // Your other widget
+
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -657,13 +673,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 );
                               },
                             )
-                          : const Center(
-                              child: Text(
-                                "No places available",
-                                style:
-                                    TextStyle(fontSize: 16, color: Colors.grey),
-                              ),
-                            ),
+                          : userCarnet.isNotEmpty
+                              ? const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "No places available",
+                                        style: TextStyle(
+                                            fontSize: 16, color: Colors.grey),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        "Add a new place and earn 5 coins! 🎉",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color.fromARGB(
+                                              255, 125, 127, 125),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox(),
+// Do not display anything if no carnet exists
                     ),
                     // ✅ Floating Action Button ici
                     Padding(
@@ -872,6 +907,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 40),
                             ],
                           ),
                   ],

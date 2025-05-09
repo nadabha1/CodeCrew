@@ -630,7 +630,9 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: carnet.places.map((place) {
-                            bool isUnlocked =
+                            // Automatically unlock the first two places
+                            final index = carnet.places.indexOf(place);
+                            final isUnlocked = index < 2 ||
                                 carnetProvider.isPlaceUnlocked(place.id);
 
                             return SizedBox(

@@ -545,12 +545,16 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
               itemBuilder: (context, index) =>
                   _buildEventCard(userEvents[index]),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await _showCreateEventDialog(); // Wait for the dialog to close
-        },
-        backgroundColor: Color(0xFFD4F98F),
-        child: Icon(Icons.add),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(
+            bottom: 40.0), // Adjusted padding to raise the button
+        child: FloatingActionButton(
+          onPressed: () async {
+            await _showCreateEventDialog(); // Wait for the dialog to close
+          },
+          backgroundColor: Color(0xFFD4F98F),
+          child: Icon(Icons.add),
+        ),
       ),
     );
   }

@@ -100,6 +100,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
         weatherData = data;
         isLoading = false;
       });
+
+      // Extraire la condition météo
+      String weatherCondition = weatherData!['weather'][0]['main'];
+      _loadPlacesBasedOnWeather(weatherCondition);
     } catch (e) {
       print("Erreur de chargement de la météo : $e");
       setState(() {
@@ -107,21 +111,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
       });
     }
   }
-  /*// Fonction pour charger la météo et les lieux en fonction de la météo
-  void _loadWeather() async {
-    try {
-      final data = await _weatherService.fetchWeather("Tunis");
-      setState(() {
-        weatherData = data;
-      });
-
-      // Extraire la condition météo
-      String weatherCondition = weatherData!['weather'][0]['main'];
-      _loadPlacesBasedOnWeather(weatherCondition);
-    } catch (e) {
-      print("Erreur : $e");
-    }
-  }*/
 
   // Fonction pour charger les lieux en fonction de la météo
   void _loadPlacesBasedOnWeather(String weatherCondition) async {
@@ -375,7 +364,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               borderRadius: BorderRadius.circular(15),
                               child: isUnlocked
                                   ? Image.network(
-                                      '${ApiConstants.baseUrl}'+place.images.first,
+                                      '${ApiConstants.baseUrl}' +
+                                          place.images.first,
                                       width: 160,
                                       height: 120,
                                       fit: BoxFit.cover,
@@ -389,7 +379,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       imageFilter: ImageFilter.blur(
                                           sigmaX: 5, sigmaY: 5),
                                       child: Image.network(
-                                        '${ApiConstants.baseUrl}'+place.images.first,
+                                        '${ApiConstants.baseUrl}' +
+                                            place.images.first,
                                         width: 160,
                                         height: 120,
                                         fit: BoxFit.cover,
