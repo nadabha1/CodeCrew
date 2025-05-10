@@ -7,6 +7,9 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
 import 'package:projet_pim/Providers/user_provider.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
+import 'package:projet_pim/View/ExploreScreen.dart';
+import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
 import 'package:projet_pim/View/UserPreferences/FinalConfirmationPage.dart';
 import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
@@ -16,6 +19,7 @@ import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsProviderScreen.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
 import 'package:projet_pim/View/Event/event_chat_screen.dart';
+import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
@@ -183,7 +187,15 @@ class MyApp extends StatelessWidget {
           '/place': (context) {
             final place = ModalRoute.of(context)?.settings.arguments as Place;
             return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
+
           },
+          '/explore': (context) => ExploreScreen(userId: userId ?? ''),
+  '/trip': (context) => TripPlanningScreen(userId: userId ?? ''),
+  '/calendar': (context) =>
+      CalendarEventsScreen(userId: userId ?? '', token: token ?? ''),
+  '/messages': (context) => const ConversationListScreen(),
+
+
         },
       );
     });

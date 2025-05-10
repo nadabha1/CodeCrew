@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -36,12 +37,14 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _messageController = TextEditingController();
   String? otherUserName;
+  IO.Socket? socket;
   FlutterSoundRecorder? _recorder;
   bool isRecording = false;
   String? _audioPath;
   FlutterSoundPlayer _player = FlutterSoundPlayer();
   bool isPlaying = false;
   String? currentlyPlayingUrl;
+  Timer? _pollingTimer; // ✅ Add this line
 
   @override
   void initState() {
@@ -50,7 +53,33 @@ class _ChatScreenState extends State<ChatScreen> {
     fetchMessages();
     initRecorder();
     _player.openPlayer();
+    initSocket();
+     _pollingTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+    fetchMessages();
+  });
+
   }
+  void initSocket() {
+  socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
+    'transports': ['websocket'],
+    'autoConnect': false,
+  });
+
+  socket!.connect();
+
+  socket!.onConnect((_) {
+    print('🟢 Connected to socket');
+    socket!.emit('join', widget.userId); // Join your personal room
+  });
+
+  socket!.on('newMessage', (data) {
+    print('📩 New message received: $data');
+    fetchMessages(); // You could also just insert into messages instead of full fetch
+  });
+
+  socket!.onDisconnect((_) => print('🔴 Socket disconnected'));
+}
+
 
   Future<void> initRecorder() async {
     _recorder = FlutterSoundRecorder();
@@ -65,6 +94,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.dispose();
     super.dispose();
     _player.closePlayer();
+    socket?.disconnect();
+  socket?.dispose();
+    _pollingTimer?.cancel();
+
   }
 
   Future<void> fetchConversations() async {
@@ -97,7 +130,8 @@ class _ChatScreenState extends State<ChatScreen> {
             'content': msg['content'],
             'type': msg['type'] ?? 'text',
             'eventId': msg['event'],
-            'createdAt': msg['createdAt']
+            'createdAt': msg['createdAt'],
+            'avatarUrl': msg['sender']?['profileImage'], // ✅ Add this line
           };
         }).toList();
       });
@@ -317,63 +351,79 @@ class _ChatScreenState extends State<ChatScreen> {
                 final msg = messages[index];
                 final isMe = msg['sender']?['_id'] == widget.userId;
 
-                return Align(
-                  alignment:
-                      isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: msg['type'] == 'shared_event'
-                      ? _buildSharedEventCard(msg['eventId'])
-                      : msg['type'] == 'audio'
-                          ? _buildAudioPlayer(msg['content'], isMe)
-                          : Container(
-                              margin: EdgeInsets.symmetric(vertical: 6),
-                              padding: EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isMe
-                                    ? Colors.deepPurple[100]
-                                    : Colors.grey[300],
-                                borderRadius: BorderRadius.circular(10),
+                return Row(
+  mainAxisAlignment:
+      isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    // 👤 Show avatar for other users only
+    if (!isMe)
+      Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: CircleAvatar(
+          radius: 18,
+          backgroundImage: msg['avatarUrl'] != null
+              ? NetworkImage("${ApiConstants.baseUrl}${msg['avatarUrl']}")
+              : AssetImage('assets/default_avatar.png') as ImageProvider,
+        ),
+      ),
+
+    Flexible(
+      child: msg['type'] == 'shared_event'
+          ? _buildSharedEventCard(msg['eventId'])
+          : msg['type'] == 'audio'
+              ? _buildAudioPlayer(msg['content'], isMe)
+              : Container(
+                  margin: EdgeInsets.symmetric(vertical: 6),
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isMe
+                        ? Colors.deepPurple[100]
+                        : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      msg['content'] != null &&
+                              msg['content'].toString().startsWith('call:')
+                          ? GestureDetector(
+                              onTap: () {
+                                final channelName = msg['content']
+                                    .toString()
+                                    .substring(5); // remove 'call:'
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CallScreen(
+                                      channelName: channelName,
+                                      conversationId: widget.conversationId,
+                                      userId: widget.userId,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                "📞 Join the call",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  msg['content'] != null &&
-                                          msg['content']
-                                              .toString()
-                                              .startsWith('call:')
-                                      ? GestureDetector(
-                                          onTap: () {
-                                            final channelName = msg['content']
-                                                .toString()
-                                                .substring(5); // remove 'call:'
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => CallScreen(
-                                                  channelName: channelName,
-                                                  conversationId:
-                                                      widget.conversationId,
-                                                  userId: widget.userId,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: Text(
-                                            "📞 Join the call",
-                                            style: TextStyle(
-                                              color: Colors.blue,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                            ),
-                                          ),
-                                        )
-                                      : Text(msg['content'] ?? ""),
-                                  SizedBox(height: 4),
-                                  Text(formatTimestamp(msg['createdAt']),
-                                      style: TextStyle(fontSize: 10)),
-                                ],
-                              ),
-                            ),
-                );
+                            )
+                          : Text(msg['content'] ?? ""),
+                      SizedBox(height: 4),
+                      Text(
+                        formatTimestamp(msg['createdAt']),
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+    ),
+  ],
+);
+
               },
             ),
           ),
