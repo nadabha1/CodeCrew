@@ -49,13 +49,41 @@ class _ChatScreenState extends State<ChatScreen> {
     fetchConversations();
     fetchMessages();
     initRecorder();
-    _player.openPlayer();
+    _player.openPlayer().catchError((e) {
+      print("Error initializing player: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initialize player: $e')),
+      );
+    });
   }
 
   Future<void> initRecorder() async {
-    _recorder = FlutterSoundRecorder();
-    await _recorder!.openRecorder();
-    await Permission.microphone.request();
+    try {
+      // Requesting microphone and camera permissions
+      await [
+        Permission.microphone,
+        Permission.camera,
+      ].request();
+
+      // Check if microphone permission is granted
+      if (await Permission.microphone.isDenied) {
+        throw Exception('Microphone permission not granted');
+      }
+
+      // Check if camera permission is denied
+      if (await Permission.camera.isDenied) {
+        throw Exception('Camera permission not granted');
+      }
+
+      // Initializing recorder
+      _recorder = FlutterSoundRecorder();
+      await _recorder!.openRecorder();
+    } catch (e) {
+      print("Error initializing recorder: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initialize recorder: $e')),
+      );
+    }
   }
 
   @override

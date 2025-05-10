@@ -55,8 +55,8 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    final response = await http
-        .get(Uri.parse('${ApiConstants.baseUrl}/users/$_userId/followers'));
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/follow/followers/count/$_userId'));
 
     if (response.statusCode == 200) {
       final followers = json.decode(response.body);

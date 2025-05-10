@@ -73,12 +73,14 @@
 <string>Your message here explaining why you need location</string>
 <key>NSCalendarsUsageDescription</key>
 <string>Cette application utilise votre agenda pour vous suggérer des événements.</string>
-<key>NSCameraUsageDescription</key>
-<string>Nous avons besoin d'accéder à la caméra pour ajouter des photos de lieux</string>
+
 <key>NSPhotoLibraryUsageDescription</key>
 <string>Nous avons besoin d'accéder à votre galerie</string>
+
 <key>NSMicrophoneUsageDescription</key>
-<string>Besoin du micro pour envoyer des messages vocaux.</string>
+<string>Cette application a besoin d'accéder au micro pour les appels vocaux et vidéo.</string>
+<key>NSCameraUsageDescription</key>
+<string>Cette application a besoin d'accéder à la caméra pour les appels vidéo.</string>
 
 
 </dict>

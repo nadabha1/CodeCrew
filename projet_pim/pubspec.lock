@@ -5,10 +5,10 @@ packages:
     dependency: "direct main"
     description:
       name: agora_rtc_engine
-      sha256: "458c4b535a619d573915a36aa634feccd076ac72782263004e9666cafc449021"
+      sha256: f3b2cf4292692a4de45272adae79554f4942624af5049d222ac0dbe981944070
       url: "https://pub.dev"
     source: hosted
-    version: "6.5.1"
+    version: "6.5.2"
   ar_location_view:
     dependency: "direct main"
     description:
