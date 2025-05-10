@@ -858,17 +858,29 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                     IconButton(
                       icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EventDetailsScreen(
-                              event: event,
-                              userId: widget.userId,
-                              token: widget.token,
-                              eventProvider: _eventProvider,
+                        if (isParticipating) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EventDetailsScreen(
+                                event: event,
+                                userId: widget.userId,
+                                token: widget.token,
+                                eventProvider:
+                                    EventProvider(userId: widget.userId),
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        } else {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const AlertDialog(
+                              title: Text("Access Denied"),
+                              content: Text(
+                                  "Want the inside scoop? Join the event first!"),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ],
