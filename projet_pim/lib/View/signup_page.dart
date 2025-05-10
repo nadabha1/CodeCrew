@@ -13,6 +13,8 @@ import '../Providers/auth_provider.dart';
 import '../Providers/UserPreferences.dart';
 
 class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+
   @override
   _SignUpPageState createState() => _SignUpPageState();
 }
@@ -73,7 +75,7 @@ class _SignUpPageState extends State<SignUpPage> {
   Future<void> _pickImage() async {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => Padding(
@@ -81,8 +83,8 @@ class _SignUpPageState extends State<SignUpPage> {
         child: Wrap(
           children: [
             ListTile(
-              leading: Icon(Icons.camera_alt),
-              title: Text('Prendre une photo'),
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Prendre une photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -93,8 +95,8 @@ class _SignUpPageState extends State<SignUpPage> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text('Choisir depuis la galerie'),
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choisir depuis la galerie'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -116,7 +118,7 @@ class _SignUpPageState extends State<SignUpPage> {
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Veuillez remplir tous les champs!",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.orange,
@@ -127,7 +129,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Les mots de passe ne correspondent pas!",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
@@ -146,7 +148,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
     // Affichage d'un SnackBar temporaire pendant le traitement
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text("Traitement de votre demande..."),
         duration: Duration(seconds: 2),
       ),
@@ -168,7 +170,7 @@ class _SignUpPageState extends State<SignUpPage> {
         _isVerificationPending = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Inscription réussie! Veuillez vérifier votre email.",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
@@ -177,7 +179,7 @@ class _SignUpPageState extends State<SignUpPage> {
       _startVerificationCheck();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("L'inscription a échoué. Veuillez réessayer.",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
@@ -188,7 +190,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
   // Démarrer la vérification périodique de l'email toutes les 5 secondes
   void _startVerificationCheck() {
-    _verificationTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
+    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       await _checkVerificationStatus();
     });
   }
@@ -204,13 +206,13 @@ class _SignUpPageState extends State<SignUpPage> {
         _isVerificationPending = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Email vérifié avec succès! Redirection...",
               style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
       );
-      Future.delayed(Duration(seconds: 1), () {
+      Future.delayed(const Duration(seconds: 1), () {
         Navigator.pushReplacementNamed(context, "/gender-selection");
       });
     }
@@ -226,7 +228,7 @@ class _SignUpPageState extends State<SignUpPage> {
   InputDecoration _buildInputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey),
+      labelStyle: const TextStyle(color: Colors.grey),
       filled: true,
       fillColor: Colors.grey[200],
       border: OutlineInputBorder(
@@ -241,7 +243,7 @@ class _SignUpPageState extends State<SignUpPage> {
       String label, bool isObscured, VoidCallback toggleVisibility) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey),
+      labelStyle: const TextStyle(color: Colors.grey),
       filled: true,
       fillColor: Colors.grey[200],
       border: OutlineInputBorder(
@@ -272,7 +274,7 @@ class _SignUpPageState extends State<SignUpPage> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Impossible de récupérer la localisation!"),
           backgroundColor: Colors.red,
         ),
@@ -324,7 +326,7 @@ class _SignUpPageState extends State<SignUpPage> {
             child: Container(
               width: 300,
               height: 300,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Color(0xFFE8EAF6), // Violet clair
                 shape: BoxShape.circle,
               ),
@@ -336,7 +338,7 @@ class _SignUpPageState extends State<SignUpPage> {
             child: Container(
               width: 300,
               height: 300,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Color(0xFFF8BBD0), // Rose clair
                 shape: BoxShape.circle,
               ),
@@ -347,9 +349,9 @@ class _SignUpPageState extends State<SignUpPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 80),
+                const SizedBox(height: 80),
 
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 // Cercle pour l'ajout de la photo de profil
                 Center(
@@ -362,7 +364,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ? NetworkImage(_profileImageUrl!)
                             : null,
                         child: _profileImageUrl == null
-                            ? Icon(Icons.person, size: 50, color: Colors.white)
+                            ? const Icon(Icons.person, size: 50, color: Colors.white)
                             : null,
                       ),
                       Positioned(
@@ -371,12 +373,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         child: GestureDetector(
                           onTap: _pickImage,
                           child: Container(
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.blueAccent,
                             ),
-                            padding: EdgeInsets.all(6),
-                            child: Icon(
+                            padding: const EdgeInsets.all(6),
+                            child: const Icon(
                               Icons.camera_alt,
                               color: Colors.white,
                               size: 20,
@@ -388,22 +390,22 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
 
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextField(
                   controller: nameController,
                   decoration: _buildInputDecoration("Nom"),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextField(
                   controller: emailController,
                   decoration: _buildInputDecoration("Email"),
                   keyboardType: TextInputType.emailAddress,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("Utiliser ma localisation automatique"),
+                    const Text("Utiliser ma localisation automatique"),
                     Switch(
                       value: _useAutoLocation,
                       onChanged: (value) {
@@ -420,13 +422,13 @@ class _SignUpPageState extends State<SignUpPage> {
                   decoration: _buildInputDecoration("Localisation"),
                   readOnly: true,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 ElevatedButton.icon(
-                  icon: Icon(Icons.map),
-                  label: Text("Sélectionner sur la carte"),
+                  icon: const Icon(Icons.map),
+                  label: const Text("Sélectionner sur la carte"),
                   onPressed: _openMapToSelectLocation,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 TextField(
                   controller: passwordController,
@@ -438,7 +440,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     });
                   }),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextField(
                   controller: confirmPasswordController,
                   obscureText: _isConfirmPasswordObscured,
@@ -451,9 +453,9 @@ class _SignUpPageState extends State<SignUpPage> {
                   }),
                 ),
 
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
                 _isVerificationPending
-                    ? Center(
+                    ? const Center(
                         child: Column(
                           children: [
                             CircularProgressIndicator(),
@@ -471,22 +473,22 @@ class _SignUpPageState extends State<SignUpPage> {
                         onPressed: () => _registerUser(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              Color(0xFF2C2C54), // Bouton bleu marine
+                              const Color(0xFF2C2C54), // Bouton bleu marine
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          textStyle: TextStyle(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        child: Center(child: Text("S'inscrire")),
+                        child: const Center(child: Text("S'inscrire")),
                       ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Center(
                   child: GestureDetector(
                     onTap: () =>
                         Navigator.pushReplacementNamed(context, "/login"),
-                    child: Text(
+                    child: const Text(
                       "Vous avez déjà un compte ? Connectez-vous",
                       style: TextStyle(
                         color: Colors.blue,

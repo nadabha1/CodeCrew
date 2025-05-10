@@ -1,11 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/select_location_screen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:provider/provider.dart';
 
 class MyEventsScreen extends StatefulWidget {
@@ -20,22 +26,141 @@ class MyEventsScreen extends StatefulWidget {
 
 class _MyEventsScreenState extends State<MyEventsScreen> {
   late EventProvider eventProvider;
+  late List<Event> userEvents = [];
   final List<String> _eventTypes = [
-    "Concerts", "Workshops", "Networking Events", "Sports Activities",
-    "Cultural Festivals", "Tech Meetups", "Art Exhibitions", "Other"
+    "Concerts",
+    "Workshops",
+    "Networking Events",
+    "Sports Activities",
+    "Cultural Festivals",
+    "Tech Meetups",
+    "Art Exhibitions",
+    "Other"
   ];
+  bool isGeneratingImage = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       eventProvider = Provider.of<EventProvider>(context, listen: false);
-      _loadUserEvents();
+      _loadUserEvents(widget.userId, widget.token);
+      print(
+          "Nombre d'événements récupérés : ${eventProvider.userEvents.length}");
     });
   }
 
-  Future<void> _loadUserEvents() async {
-    await eventProvider.fetchSpecificEvents(widget.userId);
+  /*Future<void> _loadUserEvents() async {
+    await eventProvider.fetchUserEvents(widget.userId, widget.token);
+    print("Nombre d'événements récupérés : ${eventProvider.userEvents.length}");
+  }*/
+  Future<void> _loadUserEvents(String userId, String token) async {
+    userEvents = await eventProvider.fetchUserEvents(
+        userId, token); // ← Fixed syntax and type mismatch
+    //notifyListeners();
+    setState(() {});
+  }
+
+  Future<void> _uploadGeneratedImage(String base64Image, Event event) async {
+    try {
+      final imageBytes = base64Decode(base64Image.split(',').last);
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/generated_image.png';
+
+      final file = File(filePath)..writeAsBytesSync(imageBytes);
+
+      var uri = Uri.parse('${ApiConstants.baseUrl}/upload');
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(await http.MultipartFile.fromPath('photo', file.path));
+
+      var response = await request.send();
+      if (response.statusCode == 201) {
+        final responseBody = await response.stream.bytesToString();
+        final uploadedImage = jsonDecode(responseBody);
+
+        if (uploadedImage != null && uploadedImage['filename'] != null) {
+          final fullImageUrl =
+              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+
+          // Utilisez cette URL pour créer l'événement
+          await eventProvider.createEvent(
+            widget.userId,
+            event.title,
+            event.description,
+            event.startDate.toIso8601String(),
+            event.endDate.toIso8601String(),
+            "${event.location.latitude},${event.location.longitude}",
+            event.joinPrice,
+            event.type,
+            imagePath: fullImageUrl, // Passez l'URL de l'image
+          );
+          print("Événement créé avec l'image : $fullImageUrl");
+        }
+      } else {
+        print("Erreur lors de l'upload : ${response.statusCode}");
+      }
+    } catch (e) {
+      print('Erreur lors du téléchargement de l\'image : $e');
+    }
+  }
+
+  Future<String?> generateEventPoster(String description, Event event) async {
+    setState(() {
+      isGeneratingImage = true; // Affiche le message de génération
+    });
+
+    // Afficher un Dialog pour indiquer que l'image est en train de se générer
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Empêche de fermer le dialog avant la fin
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Génération de l\'image en cours...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      print("Génération du poster pour l'événement : ${event.title}");
+
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/ai/generate-poster-flux'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "description": description,
+          "title": event.title,
+          "startDate": event.startDate.toIso8601String(),
+          "endDate": event.endDate.toIso8601String(),
+          "location": event.location,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("Réponse de l'API reçue.");
+        final base64Image = jsonDecode(response.body)['image'];
+        await _uploadGeneratedImage(base64Image, event);
+        return base64Image;
+      } else {
+        print("Erreur API : ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Erreur réseau : $e");
+    }
+
+    setState(() {
+      isGeneratingImage = false; // Arrêter d'afficher le message
+    });
+
+    // Fermer le Dialog après avoir reçu l'image
+    Navigator.of(context).pop();
+
+    return null;
   }
 
   Future<String> getAddressFromLatLng(double lat, double lng) async {
@@ -80,7 +205,8 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         MaterialPageRoute(builder: (_) => SelectLocationScreen()),
       );
       if (selected != null) {
-        final address = await getAddressFromLatLng(selected.latitude, selected.longitude);
+        final address =
+            await getAddressFromLatLng(selected.latitude, selected.longitude);
         setState(() {
           location = "${selected.latitude},${selected.longitude}";
           locationController.text = address;
@@ -121,7 +247,8 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
               TextField(
                 controller: locationController,
                 readOnly: true,
-                decoration: InputDecoration(labelText: "Localisation (adresse)"),
+                decoration:
+                    InputDecoration(labelText: "Localisation (adresse)"),
               ),
               ElevatedButton.icon(
                 icon: Icon(Icons.map),
@@ -136,10 +263,12 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
               DropdownButtonFormField<String>(
                 value: selectedType,
                 decoration: InputDecoration(labelText: "Type d'événement"),
-                items: _eventTypes.map((e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                )).toList(),
+                items: _eventTypes
+                    .map((e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e),
+                        ))
+                    .toList(),
                 onChanged: (v) => selectedType = v!,
               ),
               ElevatedButton(
@@ -156,7 +285,8 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                       initialTime: TimeOfDay.now(),
                     );
                     if (time != null) {
-                      startDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                      startDate = DateTime(date.year, date.month, date.day,
+                          time.hour, time.minute);
                     }
                   }
                 },
@@ -176,7 +306,8 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                       initialTime: TimeOfDay.now(),
                     );
                     if (time != null) {
-                      endDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                      endDate = DateTime(date.year, date.month, date.day,
+                          time.hour, time.minute);
                     }
                   }
                 },
@@ -186,10 +317,39 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Annuler")),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: Text("Annuler")),
           TextButton(
             onPressed: () async {
-              if (title.isNotEmpty && location.isNotEmpty && startDate != null && endDate != null) {
+              if (title.isNotEmpty &&
+                  location.isNotEmpty &&
+                  startDate != null &&
+                  endDate != null) {
+                // Générer le poster de l'événement et obtenir le chemin de l'image
+                await generateEventPoster(
+                  description,
+                  Event(
+                    id: '', // Fournir un ID valide ou laisser vide si non applicable
+                    title: title,
+                    description: description,
+                    creatorId: widget.userId,
+                    startDate: startDate!,
+                    endDate: endDate!,
+                    location: LatLng(
+                      double.parse(location.split(',')[0]),
+                      double.parse(location.split(',')[1]),
+                    ),
+                    participants: [], // Fournir une liste de participants si applicable
+                    isParticipating:
+                        false, // Définir le statut de participation par défaut
+                    joinPrice: joinPrice,
+                    conversationId:
+                        '', // Fournir un ID de conversation valide ou laisser vide
+                    type: selectedType,
+                  ),
+                );
+
+                /* // Créer l'événement avec le chemin de l'image
                 await eventProvider.createEvent(
                   widget.userId,
                   title,
@@ -199,13 +359,28 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                   location,
                   joinPrice,
                   selectedType,
+                  imagePath: imagePath, // Passer l'URL de l'image générée
                 );
+
+                print("Événement créé :");
+                print("Titre: $title");
+                print("Description: $description");
+                print("Localisation: $location");
+                print("Date de début: $startDate");
+                print("Date de fin: $endDate");
+                print("Prix de participation: $joinPrice");
+                print("Type d'événement: $selectedType");
+                print("Image: $imagePath");*/
+
                 Navigator.pop(context);
+                await _loadUserEvents(
+                    widget.userId, widget.token); // Refresh list
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Remplissez tous les champs.")),
                 );
               }
+              Navigator.pop(context);
             },
             child: Text("Créer"),
           ),
@@ -215,42 +390,87 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
   }
 
   Widget _buildEventCard(Event event) {
+    final hasImage = event.imagePath != null && event.imagePath!.isNotEmpty;
+
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 4,
-      child: ListTile(
-        title: Text(event.title),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(event.description),
-            Text("📍 ${event.location.latitude}, ${event.location.longitude}"),
-            Text("📅 ${event.startDate.toLocal().toString().split(' ')[0]}"),
-          ],
-        ),
-        trailing: ElevatedButton(
-          onPressed: () {
-            if (event.isParticipating) {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => GroupChatScreen(
-                                                    eventProvider: EventProvider(userId: widget.userId),
-                  conversationId: event.conversationId,
-                  groupName: event.title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasImage)
+            Image.network(
+              event.imagePath!,
+              height: 500,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(event.title,
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text(event.description),
+                SizedBox(height: 4),
+                FutureBuilder<String>(
+                  future: getAddressFromLatLng(
+                    event.location.latitude,
+                    event.location.longitude,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator();
+                    } else if (snapshot.hasError) {
+                      return Text("Erreur de localisation");
+                    } else if (snapshot.hasData) {
+                      return Text("📍 ${snapshot.data}");
+                    } else {
+                      return Text("📍 Adresse inconnue");
+                    }
+                  },
                 ),
-              ));
-            } else {
-              eventProvider.joinEvent(widget.userId, event.id);
-            }
-          },
-          child: Text(event.isParticipating ? "Chat" : "Rejoindre"),
-        ),
+                SizedBox(height: 4),
+                Text(
+                    "📅 ${event.startDate.toLocal().toString().split(' ')[0]}"),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (event.isParticipating) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GroupChatScreen(
+                              eventProvider:
+                                  EventProvider(userId: widget.userId),
+                              conversationId: event.conversationId,
+                              groupName: event.title,
+                              userId: widget.userId,
+                            ),
+                          ),
+                        );
+                      } else {
+                        eventProvider.joinEvent(widget.userId, event.id);
+                      }
+                    },
+                    child: Text(event.isParticipating ? "Chat" : "Rejoindre"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final userEvents = Provider.of<EventProvider>(context).userEvents;
+    // final events = userEvents;
 
     return Scaffold(
       appBar: AppBar(
@@ -261,7 +481,8 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
           ? Center(child: Text("Aucun événement pour l’instant."))
           : ListView.builder(
               itemCount: userEvents.length,
-              itemBuilder: (context, index) => _buildEventCard(userEvents[index]),
+              itemBuilder: (context, index) =>
+                  _buildEventCard(userEvents[index]),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateEventDialog,

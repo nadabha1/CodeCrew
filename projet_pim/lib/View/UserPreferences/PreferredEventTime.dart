@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'FinalConfirmationPage.dart';
 
 class PreferredEventTimePage extends StatefulWidget {
+  const PreferredEventTimePage({super.key});
+
   @override
   _PreferredEventTimePageState createState() => _PreferredEventTimePageState();
 }
@@ -14,7 +16,7 @@ class _PreferredEventTimePageState extends State<PreferredEventTimePage> {
 void _navigateToNextPage() {
   if (_selectedTime == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Please select your preferred event timing!")),
+      const SnackBar(content: Text("Please select your preferred event timing!")),
     );
     return;
   }
@@ -40,11 +42,11 @@ void _navigateToNextPage() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Progress bar
-            LinearProgressIndicator(value: 0.8, color: Colors.green),
-            SizedBox(height: 20),
+            const LinearProgressIndicator(value: 0.8, color: Colors.green),
+            const SizedBox(height: 20),
 
             // Title
-            Text(
+            const Text(
               "WHEN DO YOU PREFER ATTENDING EVENTS?",
               style: TextStyle(
                 fontSize: 22,
@@ -52,10 +54,10 @@ void _navigateToNextPage() {
                 color: Colors.orange,
               ),
             ),
-            SizedBox(height: 8),
-            Text("This helps us suggest events that match your schedule."),
+            const SizedBox(height: 8),
+            const Text("This helps us suggest events that match your schedule."),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Time selection options
             Column(
@@ -73,7 +75,7 @@ void _navigateToNextPage() {
                   .toList(),
             ),
 
-            Spacer(),
+            const Spacer(),
 
             // Navigation buttons
             Row(
@@ -83,12 +85,12 @@ void _navigateToNextPage() {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pink[100]),
-                  child: Text("Previous"),
+                  child: const Text("Previous"),
                 ),
                 ElevatedButton(
                   onPressed: _navigateToNextPage,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
-                  child: Text("Next"),
+                  child: const Text("Next"),
                 ),
               ],
             ),

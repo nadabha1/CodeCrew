@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:projet_pim/Model/user_model.dart';
+import 'package:projet_pim/Model/user_entity.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/auth_service.dart';
@@ -157,8 +157,13 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> registerUser(String name, String email, String password,
-      String location, UserPreferences preferences, String? profileImageUrl) async {
+  Future<bool> registerUser(
+      String name,
+      String email,
+      String password,
+      String location,
+      UserPreferences preferences,
+      String? profileImageUrl) async {
     _isLoading = true;
     notifyListeners();
 
@@ -326,7 +331,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> checkUserVerification(String email) async {
-    final String apiUrl = "${ApiConstants.baseUrl}/users/checkverification";
+    const String apiUrl = "${ApiConstants.baseUrl}/users/checkverification";
 
     try {
       debugPrint("🔄 Checking verification status for: $email");

@@ -1,3 +1,5 @@
+import 'package:geolocator/geolocator.dart';
+import 'package:projet_pim/CustomAnnotation.dart';
 import 'package:projet_pim/Model/review.dart';
 
 class Place {
@@ -52,7 +54,7 @@ class Place {
     double? averageRating,
   }) {
     return Place(
-      id: this.id, // Keep the same ID
+      id: id, // Keep the same ID
       name: name ??
           this.name, // If a new name is passed, use it; otherwise, keep the current one
       description: description ?? this.description,
@@ -63,6 +65,27 @@ class Place {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       averageRating: averageRating ?? this.averageRating,
+    );
+  }
+
+  CustomAnnotation toAnnotation() {
+    return CustomAnnotation(
+      uid: this.id,
+      position: Position(
+        latitude: this.latitude ?? 0.0,
+        longitude: this.longitude ?? 0.0,
+        timestamp: DateTime.now(),
+        accuracy: 5.0,
+        altitude: 10.0,
+        altitudeAccuracy: 5.0,
+        heading: 0.0,
+        headingAccuracy: 1.0,
+        speed: 0.0,
+        speedAccuracy: 1.0,
+      ),
+      title: this.name,
+      imageUrl:
+          images.isNotEmpty ? images[0] : null, // Utiliser la première image
     );
   }
 }

@@ -98,7 +98,7 @@ class AuthService {
   late IO.Socket socket;
 
   void initSocket(String userId) {
-    socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+    socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });

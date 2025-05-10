@@ -26,6 +26,16 @@ class ReviewService {
       throw Exception('Network error: Unable to fetch reviews.');
     }
   }
+   Future<List<Review>> getReviewsByUser(String userId) async {
+    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/reviews/user/$userId'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = jsonDecode(response.body);
+      return jsonData.map((data) => Review.fromJson(data)).toList();
+    } else {
+      throw Exception('Erreur lors du chargement des avis');
+    }
+  }
 
   // Add a new review for a place
   Future<bool> addReview(String placeId, Review review) async {
@@ -47,7 +57,34 @@ class ReviewService {
       }
     } catch (e) {
       print("Error in addReview: $e");
-      throw e; // Rethrow to show an error in the UI
+      rethrow; // Rethrow to show an error in the UI
+    }
+  }
+
+  // Update a review
+  Future<bool> editReview(String placeId, Review review) async {
+    final url = '${ApiConstants.baseUrl}/reviews/$placeId';
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(review.toJson()),
+      );
+
+      print("PUT $url → ${response.statusCode}");
+      print("Response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        await getAllReviews(placeId);
+        return true;
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Failed to update review');
+      }
+    } catch (e) {
+      print("Error in editReview: $e");
+      throw Exception("Error editing review: $e");
     }
   }
 }

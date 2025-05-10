@@ -6,7 +6,7 @@ import 'package:projet_pim/Model/review.dart'; // Dépendance à ajouter
 class ReviewWidget extends StatelessWidget {
   final Review review;
 
-  const ReviewWidget({required this.review, Key? key}) : super(key: key);
+  const ReviewWidget({required this.review, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +19,14 @@ class ReviewWidget extends StatelessWidget {
             rating: review.rating.toDouble(),
             itemCount: 5,
             itemSize: 20.0,
-            itemBuilder: (context, _) => Icon(
+            itemBuilder: (context, _) => const Icon(
               Icons.star,
               color: Colors.amber,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(review.comment),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text('Publié le: ${review.createdAt.toLocal()}'),
         ],
       ),

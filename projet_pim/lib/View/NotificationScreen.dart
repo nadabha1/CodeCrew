@@ -14,7 +14,7 @@ import 'package:intl/intl.dart'; // Import the intl package for date formatting
 
 class NotificationScreen extends StatefulWidget {
   final String userId;
-  NotificationScreen({required this.userId});
+  const NotificationScreen({super.key, required this.userId});
 
   @override
   _NotificationScreenState createState() => _NotificationScreenState();
@@ -106,7 +106,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(event.description),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text("Location: ${event.location}"),
                   Text("Date: ${event.startDate.toLocal()}".split(' ')[0]),
                 ],
@@ -114,7 +114,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text("Close"),
+                  child: const Text("Close"),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -184,12 +184,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 future: _fetchEventDetails(eventId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Scaffold(
+                    return const Scaffold(
                       body: Center(child: CircularProgressIndicator()),
                     );
                   } else if (snapshot.hasError) {
                     print("🔴 Error fetching event: ${snapshot.error}");
-                    return Scaffold(
+                    return const Scaffold(
                       body: Center(child: Text("Error loading event")),
                     );
                   } else if (snapshot.hasData) {
@@ -200,7 +200,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       eventProvider: _eventProvider,
                     );
                   } else {
-                    return Scaffold(
+                    return const Scaffold(
                       body: Center(child: Text("Event not found")),
                     );
                   }
@@ -236,15 +236,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Join the event'),
+          title: const Text('Join the event'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Do you want to join the event "${event.title}"?'),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 'Join cost: ${event.joinPrice} coins',
-                style: TextStyle(
+                style: const TextStyle(
                     color: Colors.orange, fontWeight: FontWeight.bold),
               ),
             ],
@@ -252,7 +252,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -271,7 +271,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                 );
               },
-              child: Text('Confirm'),
+              child: const Text('Confirm'),
             ),
           ],
         );
@@ -300,11 +300,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Notifications")),
+      appBar: AppBar(title: const Text("Notifications")),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : _notifications.isEmpty
-              ? Center(child: Text("No notifications yet"))
+              ? const Center(child: Text("No notifications yet"))
               : ListView.builder(
                   itemCount: _notifications.length,
                   itemBuilder: (context, index) {
@@ -313,7 +313,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         Icons.notifications;
 
                     return Card(
-                      margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
@@ -322,14 +322,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             notification['_id'], notification),
                         leading: Icon(iconType, color: Colors.blue),
                         title: Text(notification['message'],
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           formatDate(notification[
                               'createdAt']), // Format the date to show only time like '21:03'
-                          style: TextStyle(color: Colors.grey),
+                          style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: !notification['isRead']
-                            ? Icon(Icons.circle, color: Colors.blue, size: 10)
+                            ? const Icon(Icons.circle, color: Colors.blue, size: 10)
                             : null,
                       ),
                     );

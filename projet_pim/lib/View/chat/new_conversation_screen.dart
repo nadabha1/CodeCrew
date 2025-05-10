@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NewConversationScreen extends StatefulWidget {
+  const NewConversationScreen({super.key});
+
   @override
   _NewConversationScreenState createState() => _NewConversationScreenState();
 }
@@ -73,9 +75,9 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Nouvelle Conversation")),
+      appBar: AppBar(title: const Text("Nouvelle Conversation")),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
               itemCount: users.length,
               itemBuilder: (context, index) {

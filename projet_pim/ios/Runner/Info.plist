@@ -77,6 +77,8 @@
 <string>Nous avons besoin d'accéder à la caméra pour ajouter des photos de lieux</string>
 <key>NSPhotoLibraryUsageDescription</key>
 <string>Nous avons besoin d'accéder à votre galerie</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Besoin du micro pour envoyer des messages vocaux.</string>
 
 
 </dict>

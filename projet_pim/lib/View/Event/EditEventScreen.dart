@@ -10,8 +10,7 @@ class EditEventScreen extends StatefulWidget {
   final Event event;
   final Function(Event) onSave;
 
-  const EditEventScreen({Key? key, required this.event, required this.onSave})
-      : super(key: key);
+  const EditEventScreen({super.key, required this.event, required this.onSave});
 
   @override
   _EditEventScreenState createState() => _EditEventScreenState();
@@ -85,7 +84,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
             pickedTime.minute,
           );
           if (endDate.isBefore(startDate)) {
-            endDate = startDate.add(Duration(hours: 1));
+            endDate = startDate.add(const Duration(hours: 1));
           }
         });
       }
@@ -123,8 +122,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
   void _saveChanges() {
     if (titleController.text.isNotEmpty &&
         location.isNotEmpty &&
-        startDate != null &&
-        endDate != null &&
         endDate.isAfter(startDate)) {
       // Convert the location string back to a LatLng object
       List<String> coords = location.split(',');
@@ -155,7 +152,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Veuillez remplir tous les champs correctement."),
           backgroundColor: Colors.red,
         ),
@@ -211,7 +208,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Impossible de récupérer la localisation!"),
           backgroundColor: Colors.red,
         ),
@@ -243,11 +240,11 @@ class _EditEventScreenState extends State<EditEventScreen> {
     return Scaffold(
       appBar: AppBar(
         title:
-            Text("Modifier l'événement", style: TextStyle(color: Colors.black)),
-        backgroundColor: Color(0xFFEDE7F6),
+            const Text("Modifier l'événement", style: TextStyle(color: Colors.black)),
+        backgroundColor: const Color(0xFFEDE7F6),
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFFEDE7F6), Color(0xFFD1C4E9)],
             begin: Alignment.topCenter,
@@ -259,15 +256,15 @@ class _EditEventScreenState extends State<EditEventScreen> {
           child: ListView(
             children: [
               _buildTextField(titleController, "Titre"),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildTextField(descriptionController, "Description",
                   maxLines: 3),
-              SizedBox(height: 16),
-              SizedBox(height: 20),
+              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Utiliser ma localisation automatique"),
+                  const Text("Utiliser ma localisation automatique"),
                   Switch(
                     value: _useAutoLocation,
                     onChanged: (value) {
@@ -282,24 +279,24 @@ class _EditEventScreenState extends State<EditEventScreen> {
               TextField(
                 controller: locationController,
                 decoration:
-                    InputDecoration(labelText: "Localisation (adresse)"),
+                    const InputDecoration(labelText: "Localisation (adresse)"),
                 readOnly: true,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               ElevatedButton.icon(
-                icon: Icon(Icons.map),
-                label: Text("Sélectionner sur la carte"),
+                icon: const Icon(Icons.map),
+                label: const Text("Sélectionner sur la carte"),
                 onPressed: _openMapToSelectLocation,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 255, 166, 125),
                   foregroundColor: Colors.white,
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildDateRow("Début", startDate, _selectStartDate),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildDateRow("Fin", endDate, _selectEndDate),
-              SizedBox(height: 32),
+              const SizedBox(height: 32),
               _buildSaveButton(),
             ],
           ),
@@ -316,9 +313,9 @@ class _EditEventScreenState extends State<EditEventScreen> {
         labelText: label,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey),
+          borderSide: const BorderSide(color: Colors.grey),
         ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
       maxLines: maxLines,
     );
@@ -331,7 +328,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -343,10 +340,10 @@ class _EditEventScreenState extends State<EditEventScreen> {
                   label,
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   _formatDate(date),
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -366,13 +363,13 @@ class _EditEventScreenState extends State<EditEventScreen> {
     return Center(
       child: ElevatedButton(
         onPressed: _saveChanges,
-        child:
-            Text("Enregistrer", style: TextStyle(fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.orange,
-          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
+        child:
+            Text("Enregistrer", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

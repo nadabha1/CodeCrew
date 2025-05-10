@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class TermsConditionsScreen extends StatelessWidget {
+  const TermsConditionsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Terms and Conditions")),
-      body: Padding(
+      appBar: AppBar(title: const Text("Terms and Conditions")),
+      body: const Padding(
         padding: EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Text(

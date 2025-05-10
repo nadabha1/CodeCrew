@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 class CarnetDetailsPage extends StatefulWidget {
   final Carnet carnet;
 
-  CarnetDetailsPage({required this.carnet});
+  const CarnetDetailsPage({super.key, required this.carnet});
 
   @override
   _CarnetDetailsPageState createState() => _CarnetDetailsPageState();
@@ -32,12 +32,12 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
 
       print("✅ Mise à jour réussie !");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Carnet mis à jour avec succès")),
+        const SnackBar(content: Text("Carnet mis à jour avec succès")),
       );
     } catch (e) {
       print("❌ Erreur updateCarnet: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur lors de la mise à jour du carnet")),
+        const SnackBar(content: Text("Erreur lors de la mise à jour du carnet")),
       );
     }
   }
@@ -54,11 +54,11 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Modifier le nom du Carnet",
+        title: const Text("Modifier le nom du Carnet",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         content: TextField(
           controller: controller,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: "Nouveau nom",
             border: OutlineInputBorder(),
           ),
@@ -66,7 +66,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Annuler"),
+            child: const Text("Annuler"),
           ),
           TextButton(
             onPressed: () {
@@ -76,7 +76,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
               }
               Navigator.pop(context);
             },
-            child: Text("Enregistrer"),
+            child: const Text("Enregistrer"),
           ),
         ],
       ),
@@ -89,15 +89,15 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
             context: context,
             builder: (context) => AlertDialog(
               title: Text('Supprimer ${place.name}?'),
-              content: Text('Êtes-vous sûr de vouloir supprimer cet endroit?'),
+              content: const Text('Êtes-vous sûr de vouloir supprimer cet endroit?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: Text('Annuler'),
+                  child: const Text('Annuler'),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: Text('Supprimer'),
+                  child: const Text('Supprimer'),
                 ),
               ],
             ),
@@ -105,7 +105,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           false;
 
       if (shouldDelete) {
-        final jwtToken = 'YOUR_JWT_TOKEN'; // À récupérer dynamiquement
+        const jwtToken = 'YOUR_JWT_TOKEN'; // À récupérer dynamiquement
         print("🛠 Suppression de ${place.name} avec ID: ${place.id}");
 
         await Provider.of<CarnetProvider>(context, listen: false)
@@ -134,17 +134,17 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
         backgroundColor: const Color(0xFFDBD9FE),
         actions: [
           IconButton(
-            icon: Icon(Icons.edit),
+            icon: const Icon(Icons.edit),
             onPressed: _editCarnetTitle,
           ),
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFFDBD9FE),
-              const Color.fromARGB(255, 233, 185, 241)
+              Color(0xFFDBD9FE),
+              Color.fromARGB(255, 233, 185, 241)
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -155,7 +155,7 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Places in this Carnet:',
                 style: TextStyle(
                     fontSize: 20,
@@ -197,12 +197,12 @@ class _CarnetDetailsPageState extends State<CarnetDetailsPage> {
           } else {
             // Handle the case when carnetId is not available
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Carnet ID is missing!")),
+              const SnackBar(content: Text("Carnet ID is missing!")),
             );
           }
         },
         backgroundColor: const Color(0xFFF3C7F9),
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -212,34 +212,34 @@ class PlaceCard extends StatelessWidget {
   final Place place;
   final VoidCallback onDelete;
 
-  PlaceCard({required this.place, required this.onDelete});
+  const PlaceCard({super.key, required this.place, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 8,
-      margin: EdgeInsets.symmetric(vertical: 12),
+      margin: const EdgeInsets.symmetric(vertical: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
       child: ListTile(
-        contentPadding: EdgeInsets.all(12),
+        contentPadding: const EdgeInsets.all(12),
         title: Text(
           place.name,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(place.description,
-                style: TextStyle(fontSize: 14, color: Colors.grey)),
-            SizedBox(height: 8),
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Text('Unlock Cost: ${place.unlockCost}',
-                    style: TextStyle(fontSize: 14, color: Colors.green)),
-                Spacer(),
+                    style: const TextStyle(fontSize: 14, color: Colors.green)),
+                const Spacer(),
                 IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () => onDelete(),
                 ),
               ],
@@ -271,7 +271,7 @@ class PlaceCard extends StatelessWidget {
                   ),
                 ),
               )
-            : Icon(Icons.place),
+            : const Icon(Icons.place),
         onTap: () {
           Navigator.push(
             context,

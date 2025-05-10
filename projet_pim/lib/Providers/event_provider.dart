@@ -25,16 +25,17 @@ class EventProvider with ChangeNotifier {
     final regex = RegExp(r'^[a-fA-F0-9]{24}$');
     return regex.hasMatch(userId);
   }
-  Future<Event> getEventById(String eventId) async {
-  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    return Event.fromJson(data, userId);
-  } else {
-    throw Exception('Erreur lors du chargement de l’événement');
-  }
-}
 
+  Future<Event> getEventById(String eventId) async {
+    final response =
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return Event.fromJson(data, userId);
+    } else {
+      throw Exception('Erreur lors du chargement de l’événement');
+    }
+  }
 
   Future<void> fetchEvents(String userId) async {
     if (!_isValidUserId(userId)) {
@@ -104,15 +105,17 @@ class EventProvider with ChangeNotifier {
   }
 
   Future<void> createEvent(
-    String userId,
-    String title,
-    String description,
-    String startDate, 
-    String endDate, 
-    String location,
-    int joinPrice,
-    String type,
-  ) async {
+      String userId,
+      String title,
+      String description,
+      String startDate,
+      String endDate,
+      String location,
+      int joinPrice,
+      String type,
+      {String? imagePath} // Accept imagePath as an optional parameter
+
+      ) async {
     if (!_isValidUserId(userId)) {
       print('Invalid userId format');
       return;
@@ -133,6 +136,7 @@ class EventProvider with ChangeNotifier {
           'joinPrice': joinPrice,
           'type': type,
           'participants': [userId],
+          'imagePath': imagePath,
         }),
       );
       if (response.statusCode == 201) {
@@ -178,10 +182,13 @@ class EventProvider with ChangeNotifier {
       print('Invalid userId format');
       return [];
     }
+
     final response = await http.get(
       Uri.parse('${ApiConstants.baseUrl}/events/user/$userId'),
       headers: {'Authorization': 'Bearer $token'},
     );
+
+    print("Réponse brute : ${response.body}"); // ← ICI, juste après la réponse
 
     if (response.statusCode == 200) {
       List<dynamic> data = jsonDecode(response.body);

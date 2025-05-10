@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
-import 'package:projet_pim/View/UserPreferences/CompleteProfilePage.dart';
 import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
-import 'package:projet_pim/View/settings/UpdateChoiceScreen.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +11,7 @@ import 'package:projet_pim/View/EditProfileScreen.dart';
 class SettingsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const SettingsScreen({required this.userData, Key? key}) : super(key: key);
+  const SettingsScreen({required this.userData, super.key});
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -39,23 +37,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// ✅ **Navigate to Edit Profile & Update UI on Return**
   Future<void> _navigateToEditProfile() async {
-  final session = await _loadUserSession();
+    final session = await _loadUserSession();
 
-  if (session['userId'] == null || session['token'] == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("User session expired. Please log in again.")),
+    if (session['userId'] == null || session['token'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("User session expired. Please log in again.")),
+      );
+      return;
+    }
+
+    final updatedProfileData = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(
+          userId: session['userId']!,
+          token: session['token']!,
+          userData: userData,
+          name: userData['name'] ?? 'Unknown Name',
+          job: userData['job'] ?? 'No Job Specified',
+          location: userData['location'] ?? 'No Location Specified',
+          currentProfilePicture: userData['profilePicture'],
+        ),
+      ),
     );
-    return;
+
+    // ✅ Update UI if user changed profile details
+    if (updatedProfileData != null) {
+      setState(() {
+        userData['name'] = updatedProfileData['name'];
+        userData['job'] = updatedProfileData['job'];
+        userData['location'] = updatedProfileData['location'];
+        userData['bio'] = updatedProfileData['bio'];
+        userData['profilePicture'] = updatedProfileData['profileImage'];
+      });
+    }
   }
-
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => UpdateChoiceScreen(userData: userData),
-    ),
-  );
-}
-
 
   /// ✅ **Confirm and Delete User Account**
   void _confirmDeleteAccount(BuildContext context) async {
@@ -70,17 +87,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool confirmDelete = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Delete Account"),
-        content: Text(
+        title: const Text("Delete Account"),
+        content: const Text(
             "Are you sure you want to delete your account? This action cannot be undone."),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -95,11 +112,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
-                  Text(result['error'], style: TextStyle(color: Colors.red))),
+                  Text(result['error'], style: const TextStyle(color: Colors.red))),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("✅ Account deleted successfully!")),
+          const SnackBar(content: Text("✅ Account deleted successfully!")),
         );
         // ✅ Log out the user and redirect to login page
         final loginViewModel =
@@ -124,15 +141,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (userData['preferences'] == null) {
       // Navigate to the first step of the profile completion process (Gender Selection Page)
       Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => CompleteProfilePage(
-      userId: session['userId']!,
-      token: session['token']!,
-    ),
-     ),
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              GenderSelectionPage(), // Navigate to GenderSelectionPage
+        ),
       );
-
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

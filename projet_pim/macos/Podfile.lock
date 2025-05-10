@@ -1,4 +1,50 @@
 PODS:
+  - agora_rtc_engine (0.0.1):
+    - AgoraIrisRTC_macOS (= 4.5.1-build.1)
+    - AgoraRtcEngine_macOS (= 4.5.1)
+    - FlutterMacOS
+  - AgoraInfra_macOS (1.2.13)
+  - AgoraIrisRTC_macOS (4.5.1-build.1)
+  - AgoraRtcEngine_macOS (4.5.1):
+    - AgoraRtcEngine_macOS/AIAEC (= 4.5.1)
+    - AgoraRtcEngine_macOS/AIAECLL (= 4.5.1)
+    - AgoraRtcEngine_macOS/AINS (= 4.5.1)
+    - AgoraRtcEngine_macOS/AINSLL (= 4.5.1)
+    - AgoraRtcEngine_macOS/AudioBeauty (= 4.5.1)
+    - AgoraRtcEngine_macOS/ClearVision (= 4.5.1)
+    - AgoraRtcEngine_macOS/ContentInspect (= 4.5.1)
+    - AgoraRtcEngine_macOS/FaceCapture (= 4.5.1)
+    - AgoraRtcEngine_macOS/FaceDetection (= 4.5.1)
+    - AgoraRtcEngine_macOS/LipSync (= 4.5.1)
+    - AgoraRtcEngine_macOS/RtcBasic (= 4.5.1)
+    - AgoraRtcEngine_macOS/ScreenCapture (= 4.5.1)
+    - AgoraRtcEngine_macOS/SpatialAudio (= 4.5.1)
+    - AgoraRtcEngine_macOS/VideoAv1CodecDec (= 4.5.1)
+    - AgoraRtcEngine_macOS/VideoAv1CodecEnc (= 4.5.1)
+    - AgoraRtcEngine_macOS/VideoCodecDec (= 4.5.1)
+    - AgoraRtcEngine_macOS/VideoCodecEnc (= 4.5.1)
+    - AgoraRtcEngine_macOS/VirtualBackground (= 4.5.1)
+    - AgoraRtcEngine_macOS/VQA (= 4.5.1)
+  - AgoraRtcEngine_macOS/AIAEC (4.5.1)
+  - AgoraRtcEngine_macOS/AIAECLL (4.5.1)
+  - AgoraRtcEngine_macOS/AINS (4.5.1)
+  - AgoraRtcEngine_macOS/AINSLL (4.5.1)
+  - AgoraRtcEngine_macOS/AudioBeauty (4.5.1)
+  - AgoraRtcEngine_macOS/ClearVision (4.5.1)
+  - AgoraRtcEngine_macOS/ContentInspect (4.5.1)
+  - AgoraRtcEngine_macOS/FaceCapture (4.5.1)
+  - AgoraRtcEngine_macOS/FaceDetection (4.5.1)
+  - AgoraRtcEngine_macOS/LipSync (4.5.1)
+  - AgoraRtcEngine_macOS/RtcBasic (4.5.1):
+    - AgoraInfra_macOS (= 1.2.13)
+  - AgoraRtcEngine_macOS/ScreenCapture (4.5.1)
+  - AgoraRtcEngine_macOS/SpatialAudio (4.5.1)
+  - AgoraRtcEngine_macOS/VideoAv1CodecDec (4.5.1)
+  - AgoraRtcEngine_macOS/VideoAv1CodecEnc (4.5.1)
+  - AgoraRtcEngine_macOS/VideoCodecDec (4.5.1)
+  - AgoraRtcEngine_macOS/VideoCodecEnc (4.5.1)
+  - AgoraRtcEngine_macOS/VirtualBackground (4.5.1)
+  - AgoraRtcEngine_macOS/VQA (4.5.1)
   - file_selector_macos (0.0.1):
     - FlutterMacOS
   - flutter_local_notifications (0.0.1):
@@ -7,10 +53,14 @@ PODS:
   - geolocator_apple (1.2.0):
     - Flutter
     - FlutterMacOS
+  - iris_method_channel (0.0.1):
+    - FlutterMacOS
   - location (0.0.1):
     - FlutterMacOS
   - path_provider_foundation (0.0.1):
     - Flutter
+    - FlutterMacOS
+  - share_plus (0.0.1):
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
     - Flutter
@@ -19,16 +69,27 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - agora_rtc_engine (from `Flutter/ephemeral/.symlinks/plugins/agora_rtc_engine/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - flutter_local_notifications (from `Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - geolocator_apple (from `Flutter/ephemeral/.symlinks/plugins/geolocator_apple/darwin`)
+  - iris_method_channel (from `Flutter/ephemeral/.symlinks/plugins/iris_method_channel/macos`)
   - location (from `Flutter/ephemeral/.symlinks/plugins/location/macos`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
+  - share_plus (from `Flutter/ephemeral/.symlinks/plugins/share_plus/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
 
+SPEC REPOS:
+  trunk:
+    - AgoraInfra_macOS
+    - AgoraIrisRTC_macOS
+    - AgoraRtcEngine_macOS
+
 EXTERNAL SOURCES:
+  agora_rtc_engine:
+    :path: Flutter/ephemeral/.symlinks/plugins/agora_rtc_engine/macos
   file_selector_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   flutter_local_notifications:
@@ -37,22 +98,32 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral
   geolocator_apple:
     :path: Flutter/ephemeral/.symlinks/plugins/geolocator_apple/darwin
+  iris_method_channel:
+    :path: Flutter/ephemeral/.symlinks/plugins/iris_method_channel/macos
   location:
     :path: Flutter/ephemeral/.symlinks/plugins/location/macos
   path_provider_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
+  share_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/share_plus/macos
   shared_preferences_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
   url_launcher_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
+  agora_rtc_engine: 1685e7c88448e67c99cc3036c7575fc3184c7d62
+  AgoraInfra_macOS: 65ed0889c332d398679ec5268d272b365af092f7
+  AgoraIrisRTC_macOS: a17a6c3354ebf7523b2a2e28b67043a7282877b6
+  AgoraRtcEngine_macOS: 5dee3007e2c9b1d04b8fe2c6e7516bdde8c25ade
   file_selector_macos: 6280b52b459ae6c590af5d78fc35c7267a3c4b31
   flutter_local_notifications: 13862b132e32eb858dea558a86d45d08daeacfe7
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
+  iris_method_channel: 2d6fa907b586c973a1cf06f0e6c7df1ef8375ffa
   location: c002b64375c0739e7afa30cbd0b675554830d208
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
+  share_plus: 3c787998077d6b31e839225a282e9e27edf99274
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
 

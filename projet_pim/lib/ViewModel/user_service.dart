@@ -28,36 +28,14 @@ class UserService {
     }
   }
   Future<List<dynamic>> getMatchingUsers(String userId) async {
-   final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
 
-   if (response.statusCode == 200) {
+  if (response.statusCode == 200) {
     return jsonDecode(response.body);
-   } else {
+  } else {
     throw Exception("Erreur lors du chargement des utilisateurs similaires");
-   }
- }
-  Future<List<Map<String, dynamic>>> matchUser(String userId) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}/match/$userId'); // Change to your real backend URL
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 201) {
-      final data = json.decode(response.body);
-      if (data['success'] == true) {
-        return List<Map<String, dynamic>>.from(data['results']);
-      } else {
-        throw Exception('Failed to match users');
-      }
-    } else {
-      throw Exception('Failed to match users: ${response.statusCode}');
-    }
   }
-
+}
 
 
   // Récupérer la liste de tous les utilisateurs
@@ -367,7 +345,7 @@ class UserService {
       Navigator.pop(context, json.decode(response.body));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text("Erreur lors de la création de la conversation")),
       );
     }

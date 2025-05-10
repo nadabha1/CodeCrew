@@ -30,6 +30,7 @@ import 'package:projet_pim/ViewModel/login.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -42,6 +43,8 @@ void main() async {
   String? token = prefs.getString("jwt_token");
   String? userId = prefs.getString("user_id");
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
+  MapboxOptions.setAccessToken(
+      "pk.eyJ1Ijoic2FsbWF5Y2IiLCJhIjoiY205bGV4YzhuMDFvODJtcjdudWdnc2Z4aiJ9.QOLpg1lQZCsB0fy0_3Cekg");
 
   // 🛠️ Proper initialization settings for both platforms
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -66,7 +69,7 @@ void main() async {
   );
 
   // ✅ Initialiser Socket.IO
-  socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+  socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });
@@ -135,7 +138,7 @@ class MyApp extends StatelessWidget {
   final String? userId;
   final String? token;
 
-  const MyApp({Key? key, this.userId, this.token}) : super(key: key);
+  const MyApp({super.key, this.userId, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -145,14 +148,13 @@ class MyApp extends StatelessWidget {
         title: "Flutter App",
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
-        
         themeMode: ThemeProvider.themeMode,
-        home: userId != null && token != null ? MainScreen() : LoginView(),
+        home: userId != null && token != null ? const MainScreen() : LoginView(),
         routes: {
           '/home': (context) =>
-              HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),
+              const HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),
           '/signup': (context) => SignUpPage(),
-           '/gender-selection': (context) => GenderSelectionPage(),
+          '/gender-selection': (context) => GenderSelectionPage(),
           '/activity-selection': (context) => ActivitySelectionPage(),
           '/event-preference': (context) => EventPreferencePage(),
           '/social-interaction': (context) => SocialInteractionPage(),
@@ -171,11 +173,10 @@ class MyApp extends StatelessWidget {
                     ModalRoute.of(context)?.settings.arguments as String? ?? '',
                 userId: userId ?? '',
               ),
-              '/place': (context) {
-  final place = ModalRoute.of(context)?.settings.arguments as Place;
-  return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
-},
-
+          '/place': (context) {
+            final place = ModalRoute.of(context)?.settings.arguments as Place;
+            return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
+          },
         },
       );
     });

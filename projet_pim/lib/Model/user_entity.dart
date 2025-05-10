@@ -1,4 +1,6 @@
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:projet_pim/CustomAnnotation.dart';
 
 class User {
   final String id;
@@ -34,29 +36,32 @@ class User {
     required this.favorites,
   });
 
-  // Factory method to create a User instance from JSON
   factory User.fromJson(Map<String, dynamic> json) {
-    LatLng parsedLocation = LatLng(0, 0); // Valeur par défaut
+    LatLng parsedLocation = const LatLng(0, 0); // Valeur par défaut
 
+    // Handle the location field, whether it's a string or map
     if (json['location'] != null) {
       if (json['location'] is String) {
         try {
           List<String> coordinates = json['location'].split(',');
-          parsedLocation = LatLng(
-            double.parse(coordinates[0].trim()), // Latitude
-            double.parse(coordinates[1].trim()), // Longitude
-          );
+          if (coordinates.length == 2) {
+            parsedLocation = LatLng(
+              double.tryParse(coordinates[0].trim()) ?? 0.0, // Latitude
+              double.tryParse(coordinates[1].trim()) ?? 0.0, // Longitude
+            );
+          }
         } catch (e) {
           print("❌ Erreur parsing location: $e");
         }
       } else if (json['location'] is Map<String, dynamic>) {
         parsedLocation = LatLng(
-          (json['location']['latitude'] ?? 0).toDouble(),
-          (json['location']['longitude'] ?? 0).toDouble(),
+          (json['location']['latitude'] ?? 0.0).toDouble(),
+          (json['location']['longitude'] ?? 0.0).toDouble(),
         );
       }
     }
 
+    // Parse the user data, ensuring correct types are assigned
     return User(
       id: json['_id'] as String,
       name: json['name'] ?? '',
@@ -65,15 +70,21 @@ class User {
       role: json['role'] ?? 'user',
       resetPasswordOtp: json['resetPasswordOtp'],
       resetPasswordOtpExpires: json['resetPasswordOtpExpires'] != null
-          ? DateTime.parse(json['resetPasswordOtpExpires'])
+          ? DateTime.tryParse(json['resetPasswordOtpExpires'])
           : null,
       job: json['job'] as String? ?? '',
-      location: parsedLocation, // ✅ Gère string ou Map
+      location: parsedLocation, // ✅ Handles string or map format
       bio: json['bio'] as String? ?? '',
       profileImage: json['profileImage'] as String?,
-      likes: json['likes'] as int? ?? 0,
-      coins: json['coins'] as int? ?? 0,
-      favorites: json['favorites'] as int? ?? 0,
+      likes: (json['likes'] is int)
+          ? json['likes'] as int
+          : 0, // Safely cast to int
+      coins: (json['coins'] is int)
+          ? json['coins'] as int
+          : 0, // Safely cast to int
+      favorites: (json['favorites'] is int)
+          ? json['favorites'] as int
+          : 0, // Safely cast to int
     );
   }
 
@@ -98,5 +109,29 @@ class User {
       'coins': coins,
       'favorites': favorites,
     };
+  }
+
+  /// ✅ Convertir un utilisateur en CustomAnnotation pour la vue AR
+  CustomAnnotation toAnnotation() {
+    // Convert LatLng to Position
+    Position position = Position(
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timestamp: DateTime.now(),
+      altitude: 10.0, // Set default values for missing parameters
+      accuracy: 5.0, // Set default values for missing parameters
+      speed: 0, // Set default values for missing parameters
+      heading: 0.0, // Set default heading (can be updated if needed)
+      headingAccuracy: 1.0, // Set default heading accuracy
+      altitudeAccuracy: 5.0, // Set default altitude accuracy
+      speedAccuracy: 1.0, // Set default speed accuracy);
+    );
+    return CustomAnnotation(
+      uid: id,
+      position: position, // Pass Position instead of LatLng
+      title: name,
+      subtitle: job,
+      imageUrl: profileImage,
+    );
   }
 }

@@ -55,7 +55,7 @@ class _ChatListPageState extends State<ChatListPage> {
                       subtitle: convo.lastMessage != null &&
                               convo.lastMessage!.isNotEmpty
                           ? Text(convo.lastMessage!)
-                          : Text('Aucun message'),
+                          : const Text('Aucun message'),
                       onTap: () {
                         // Redirect to conversation screen
                       },

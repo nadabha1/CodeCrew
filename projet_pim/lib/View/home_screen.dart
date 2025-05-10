@@ -1,3 +1,5 @@
+// ✅ Version complète HomeScreen avec UI/UX + User Cards + Navigation vers leurs lieux + filtre et recherche
+
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,6 +7,7 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
+import 'package:projet_pim/View/ARViewScreen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
@@ -39,11 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _token;
   List<String> _selectedCategories = [];
   bool isShowingFallbackUsers = false;
-  bool showMatches = false; // false = show People, true = show Matches
-  List<dynamic> matches = [];
-  bool isLoadingMatches = true; // par défaut en cours de chargement
-  
-
 
   TextEditingController _searchController = TextEditingController();
 
@@ -69,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
     _loadWeather();
-    _preloadMatches(); 
   }
 
   Widget _buildDrawer() {
@@ -123,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => CalendarEventsScreen()),
+                MaterialPageRoute(
+                    builder: (context) => CalendarEventsScreen(
+                        userId: widget.userId, token: _token!)),
               );
             },
           ),
@@ -166,47 +165,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
- Future<List<dynamic>> _fetchMatches() async {
-  try {
-    final userService = UserService();
-    final matches = await userService.matchUser(widget.userId);
-    return matches ?? []; // 👈 return the list
-  } catch (e) {
-    print('Error fetching matches: $e');
-    return [];
-  }
- }
-
-   Future<void> _preloadMatches() async {
-  try {
-    final fetchedMatches = await _fetchMatches();
-    matches = fetchedMatches;
-  } catch (e) {
-    print('Erreur lors du chargement des matches: $e');
-  } finally {
-    setState(() {
-      isLoadingMatches = false;
-    });
-  }
-}
-
-
-
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString('user_id') ?? '';
     _token = prefs.getString('jwt_token') ?? '';
     provider = Provider.of<CarnetProvider>(context, listen: false);
     eventProvider = Provider.of<EventProvider>(context, listen: false);
-    await Future.wait([
-    provider!.fetchCarnetsExcludingUser(widget.userId),
-    provider!.fetchUnlockedPlaces(widget.userId),
-    eventProvider!.fetchAllEvents(),
-    eventProvider!.fetchSpecificEvents(widget.userId),
-    fetchUsers(),
-    //_fetchMatches(),
-    _preloadMatches(),]);
-
+    await provider!.fetchCarnetsExcludingUser(widget.userId);
+    await provider!.fetchUnlockedPlaces(widget.userId);
+    await eventProvider!.fetchAllEvents();
+    await eventProvider!.fetchSpecificEvents(widget.userId);
+    await fetchUsers();
   }
 
   void _loadWeather() async {
@@ -566,141 +535,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              blurRadius: 6,
-                              spreadRadius: 2,
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    showMatches = true;
-                                   
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: !showMatches
-                                        ? Color(0xFFDBD9FE)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'People You May Like',
-                                      style: TextStyle(
-                                        color: !showMatches
-                                            ? Colors.black
-                                            : Colors.grey,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    showMatches = true;
-                                   
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: showMatches
-                                        ? Color(0xFFDBD9FE)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'Matches You May Like',
-                                      style: TextStyle(
-                                        color: showMatches
-                                            ? Colors.black
-                                            : Colors.grey,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Text("People You May Like",
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
-                    if (showMatches)
-  isLoadingMatches
-      ? Center(child: CircularProgressIndicator())
-      : matches.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Center(
-                child: Text(
-                  "Aucun match trouvé.",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            )
-          : ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: matches.length,
-              itemBuilder: (context, index) {
-                final match = matches[index];
-                return Card(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 5,
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: AssetImage('assets/default_profile.png'),
-                    ),
-                    title: Text(match['name']),
-                    subtitle: Text('Score: ${match['score'].toStringAsFixed(2)} ⭐'),
-                  ),
-                );
-              },
-            )
-
-                    else
-                      users.isEmpty && !isLoadingUsers
-                          ? Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Center(
-                                child: Text(
-                                  "Aucun utilisateur trouvé.",
-                                  style: TextStyle(
-                                      fontSize: 16, color: Colors.grey),
-                                ),
+                    users.isEmpty && !isLoadingUsers
+                        ? Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Center(
+                              child: Text(
+                                "Aucun utilisateur trouvé.",
+                                style:
+                                    TextStyle(fontSize: 16, color: Colors.grey),
                               ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: users.length,
-                              itemBuilder: (context, index) =>
-                                  _buildUserCard(users[index]),
                             ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: users.length,
+                            itemBuilder: (context, index) =>
+                                _buildUserCard(users[index]),
+                          ),
                   ],
                 ),
               ),

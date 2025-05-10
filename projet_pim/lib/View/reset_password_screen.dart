@@ -7,7 +7,7 @@ class ResetPasswordScreen extends StatelessWidget {
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  ResetPasswordScreen({required this.email});
+  ResetPasswordScreen({super.key, required this.email});
 
   @override
   Widget build(BuildContext context) {

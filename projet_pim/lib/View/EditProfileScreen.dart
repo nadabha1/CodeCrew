@@ -30,8 +30,8 @@ class EditProfileScreen extends StatefulWidget {
     required this.job,
     required this.location,
     this.currentProfilePicture,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   _EditProfileScreenState createState() => _EditProfileScreenState();
@@ -99,7 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickImage() async {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => Padding(
@@ -107,8 +107,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Wrap(
           children: [
             ListTile(
-              leading: Icon(Icons.camera_alt),
-              title: Text('Prendre une photo'),
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Prendre une photo'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -119,8 +119,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text('Choisir depuis la galerie'),
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choisir depuis la galerie'),
               onTap: () async {
                 Navigator.pop(context);
                 final pickedFile =
@@ -149,7 +149,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     print("   - Name: ${nameController.text}");
     print("   - Job: ${jobController.text}");
     print("   - Bio: ${bioController.text}");
-    print("   - Profile Image: ${_profileImageUrl}");
+    print("   - Profile Image: $_profileImageUrl");
     print("   - Location: $latitudeLongitude"); // ✅ Log coordinates
 
     final result = await userService.updateUserProfile(
@@ -203,7 +203,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Impossible de récupérer la localisation!"),
           backgroundColor: Colors.red,
         ),
@@ -280,11 +280,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               controller: jobController,
               decoration: const InputDecoration(labelText: 'Métier'),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Utiliser ma localisation automatique"),
+                const Text("Utiliser ma localisation automatique"),
                 Switch(
                   value: _useAutoLocation,
                   onChanged: (value) {
@@ -298,16 +298,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             TextField(
               controller: locationController,
-              decoration: InputDecoration(labelText: "Localisation"),
+              decoration: const InputDecoration(labelText: "Localisation"),
               readOnly: true,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton.icon(
-              icon: Icon(Icons.map),
-              label: Text("Sélectionner sur la carte"),
+              icon: const Icon(Icons.map),
+              label: const Text("Sélectionner sur la carte"),
               onPressed: _openMapToSelectLocation,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
               controller: bioController,
               decoration: const InputDecoration(labelText: 'Bio'),

@@ -5,11 +5,13 @@ import 'help_screen.dart';
 import 'about_screen.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
+  const AccountSettingsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Account Settings"),
+        title: const Text("Account Settings"),
         backgroundColor:  const Color.fromRGBO(219, 217, 254, 1),
         centerTitle: true,
       ),
@@ -65,7 +67,7 @@ class AccountSettingsScreen extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: Colors.deepPurple),
       title: Text(title),
-      trailing: Icon(Icons.arrow_forward_ios, size: 18),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
       onTap: onTap,
     );
   }

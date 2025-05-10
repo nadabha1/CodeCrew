@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../ViewModel/login.dart';
 
 class LoginView extends StatefulWidget {
+  const LoginView({super.key});
+
   @override
   _LoginViewState createState() => _LoginViewState();
 }
