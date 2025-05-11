@@ -230,7 +230,8 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                     CircleAvatar(
                                       radius: 50,
                                       backgroundImage: NetworkImage(
-                                          '${ApiConstants.baseUrl}'+matchedUser!.profileImage!),
+                                          '${ApiConstants.baseUrl}' +
+                                              matchedUser!.profileImage!),
                                       onBackgroundImageError: (_, __) =>
                                           const Icon(Icons.person, size: 50),
                                     ),
@@ -308,7 +309,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                   SizedBox(height: 10),
                                   ElevatedButton.icon(
                                     icon: Icon(Icons.person),
-                                    label: Text("Voir le profil"),
+                                    label: Text("View Profile"),
                                     style: ElevatedButton.styleFrom(
                                         minimumSize: Size(double.infinity, 45),
                                         backgroundColor:
@@ -350,7 +351,8 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
                                       child: Image.network(
-                                        '${ApiConstants.baseUrl}'+matchedPlace!.images[0],
+                                        '${ApiConstants.baseUrl}' +
+                                            matchedPlace!.images[0],
                                         width: double.infinity,
                                         height: 180,
                                         fit: BoxFit.cover,
@@ -383,17 +385,17 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    "Catégories: ${matchedPlace!.categories.join(", ")}",
+                                    "Categories: ${matchedPlace!.categories.join(", ")}",
                                     style: TextStyle(fontSize: 14),
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    "Note Moyenne: ${matchedPlace!.averageRating.toStringAsFixed(1)}",
+                                    "Average Rating: ${matchedPlace!.averageRating.toStringAsFixed(1)}",
                                     style: TextStyle(fontSize: 14),
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    "Coût de Déblocage: ${matchedPlace!.unlockCost} coins",
+                                    "Unlock Cost: ${matchedPlace!.unlockCost} coins",
                                     style: TextStyle(fontSize: 14),
                                   ),
                                   SizedBox(height: 12),
@@ -401,8 +403,8 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                     icon: Icon(
                                         isUnlocked ? Icons.place : Icons.lock),
                                     label: Text(isUnlocked
-                                        ? "Voir les détails"
-                                        : "Débloquer ce lieu"),
+                                        ? "View details"
+                                        : "Unlock this place"),
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: Size(double.infinity, 45),
                                       backgroundColor: isUnlocked
@@ -435,23 +437,35 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                             context: context,
                                             builder: (BuildContext context) {
                                               return AlertDialog(
-                                                title: Text("Confirmer"),
-                                                content: Text(
-                                                    "Voulez-vous vraiment débloquer ce lieu pour ${matchedPlace!.unlockCost} coins ?"),
+                                                title:
+                                                    Text("Unlock Confirmation"),
+                                                content: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                        "Are you ready to unlock '${matchedPlace!.name}'?"),
+                                                    const SizedBox(height: 10),
+                                                    Text(
+                                                        "It’s just ${matchedPlace!.unlockCost} coins!"),
+                                                  ],
+                                                ),
                                                 actions: [
                                                   TextButton(
                                                     onPressed: () {
                                                       Navigator.of(context)
                                                           .pop(false); // Cancel
                                                     },
-                                                    child: Text("Annuler"),
+                                                    child: Text("Cancel"),
                                                   ),
                                                   TextButton(
                                                     onPressed: () {
                                                       Navigator.of(context)
                                                           .pop(true); // Confirm
                                                     },
-                                                    child: Text("Confirmer"),
+                                                    child: Text("Confirm"),
                                                   ),
                                                 ],
                                               );
@@ -480,8 +494,8 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                                       .toString()
                                                       .contains(
                                                           "Not enough coins")
-                                                  ? "Vous n'avez pas assez de coins pour débloquer ce lieu."
-                                                  : "Échec du déblocage du lieu.";
+                                                  ? "You don't have enough coins to unlock this place."
+                                                  : "Failed to unlock the location";
 
                                               // Show error dialog
                                               showDialog(
@@ -489,7 +503,7 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                                 builder:
                                                     (BuildContext context) {
                                                   return AlertDialog(
-                                                    title: Text("Erreur"),
+                                                    title: Text("Error"),
                                                     content: Text(errorMessage),
                                                     actions: [
                                                       TextButton(
@@ -626,7 +640,8 @@ class _ARViewScreenState extends State<ARViewScreen> {
                                           borderRadius:
                                               BorderRadius.circular(8),
                                           child: Image.network(
-                                            '${ApiConstants.baseUrl}'+annotation.imageUrl!,
+                                            '${ApiConstants.baseUrl}' +
+                                                annotation.imageUrl!,
                                             width: 100,
                                             height: 100,
                                             fit: BoxFit.cover,

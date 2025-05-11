@@ -290,7 +290,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("🚪 You've left the event.")),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } else {
       print("Erreur lors de la requête : ${response.statusCode}");
       print("Détails de la réponse : ${response.body}");
@@ -347,6 +347,34 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             icon: const Icon(Icons.send, color: Colors.white),
             onPressed: shareEventToMessenger,
             tooltip: 'Partager sur Messenger',
+          ),
+          IconButton(
+            icon: const Icon(Icons.exit_to_app,
+                color: Color.fromARGB(255, 255, 255, 255)),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Confirm"),
+                  content: const Text(
+                      "Are you sure you want to dip out early? We were having fun!"),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        leaveEvent();
+                        Navigator.pop(context, true);
+                      },
+                      child: const Text("Leave"),
+                    ),
+                  ],
+                ),
+              );
+            },
+            tooltip: 'Leave the event',
           ),
         ],
       ),
@@ -608,34 +636,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       ),
                     ),
                   ),
-                IconButton(
-                  icon: const Icon(Icons.exit_to_app,
-                      color: Color.fromARGB(255, 0, 0, 0)),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Confirm"),
-                        content: const Text(
-                            "Are you sure you want to dip out early? We were having fun!"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              leaveEvent();
-                              Navigator.pop(context, true);
-                            },
-                            child: const Text("Leave"),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  tooltip: 'Leave the event',
-                ),
               ],
             ),
           ),

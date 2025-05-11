@@ -39,7 +39,7 @@ class TravelerProfileScreen extends StatefulWidget {
 }
 
 class _TravelerProfileScreenState extends State<TravelerProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   Map<String, dynamic>? travelerData;
   late Future<List<Carnet>> travelerCarnets =
       Future.value([]); // Initialize as empty list
@@ -63,6 +63,8 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
     fetchFollowerData();
     fetchTravelerRating();
     fetchTravelerEvents();
+    WidgetsBinding.instance.addObserver(this); // Add observer
+    WidgetsBinding.instance.addPostFrameCallback((_) => fetchTravelerEvents());
   }
 
   Future<void> fetchTravelerEvents() async {
@@ -212,9 +214,9 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                     ),
                     IconButton(
                       icon: const Icon(Icons.more_horiz),
-                      onPressed: () {
+                      onPressed: () async {
                         if (isParticipating) {
-                          Navigator.push(
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => EventDetailsScreen(
@@ -226,6 +228,12 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                               ),
                             ),
                           );
+
+                          // 🔁 Refresh traveler events if something changed
+                          await fetchTravelerEvents();
+                          if (result != null && result) {
+                            fetchTravelerEvents();
+                          }
                         } else {
                           showDialog(
                             context: context,
@@ -618,6 +626,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 20),
                       Text(
                         "Address Book : ${carnet.title}",
                         style: const TextStyle(
@@ -840,121 +849,120 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       }
     }
   }
+
   Future<Map<String, dynamic>> fetchPublicProfile(String userId) async {
-  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/users/$userId/public-profile'));
-  if (response.statusCode == 200) {
-    return json.decode(response.body);
-  } else {
-    throw Exception("Failed to load public profile");
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/users/$userId/public-profile'));
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception("Failed to load public profile");
+    }
   }
-}
 
-
-
-Widget _buildInfoTab() {
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ⭐ Note moyenne
-        Row(
-          children: [
-            const Icon(Icons.star, color: Colors.amber, size: 22),
-            const SizedBox(width: 6),
-            Text(
-              travelerAverageRating != null
-                  ? travelerAverageRating!.toStringAsFixed(2)
-                  : '0.0',
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 8),
-            const Text("Average Rating"),
-          ],
-        ),
-        const Divider(height: 30),
-
-        // 🧑‍💼 Job
-        Row(
-          children: [
-            const Icon(Icons.work_outline, color: Colors.black54, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              travelerData?['job'] ?? 'Unknown job',
-              style: const TextStyle(fontSize: 15),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // 📍 Localisation
-       Row(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    const Icon(Icons.location_on, color: Colors.black54, size: 20),
-    const SizedBox(width: 8),
-    Expanded( // 🔥 C'est ce qui empêche le débordement
-      child: FutureBuilder<String>(
-        future: getLocationName(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Text("Loading...");
-          }
-          if (snapshot.hasError) {
-            return const Text("Unknown location");
-          }
-          return Text(
-            snapshot.data ?? "Unknown location",
-            style: const TextStyle(fontSize: 15),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2, // ou 3 si tu veux encore plus de marge
-          );
-        },
-      ),
-    ),
-  ],
-)
-,
-        const Divider(height: 30),
-
-        // ✍️ Bio
-        const Text("Bio:",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 4),
-        Text(
-          travelerData?['bio']?.toString().trim().isEmpty == false
-              ? travelerData!['bio']
-              : "No bio provided.",
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
-        ),
-        const Divider(height: 30),
-
-        // 🧠 Tags
-        if (travelerData?['tags'] != null &&
-            (travelerData!['tags'] as List).isNotEmpty) ...[
-          const Text("Interests:",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List<String>.from(travelerData!['tags']).map((tag) {
-              return Chip(
-                label: Text(tag),
-                backgroundColor: const Color(0xFFE0E0F8),
-                labelStyle: const TextStyle(
-                    color: Color(0xFF3B3B7A), fontWeight: FontWeight.w500),
-              );
-            }).toList(),
+  Widget _buildInfoTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ⭐ Note moyenne
+          Row(
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 22),
+              const SizedBox(width: 6),
+              Text(
+                travelerAverageRating != null
+                    ? travelerAverageRating!.toStringAsFixed(2)
+                    : '0.0',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              const Text("Average Rating"),
+            ],
           ),
-        ] else
-          const Text("No interests shared."),
-      ],
-    ),
-  );
-}
+          const Divider(height: 30),
 
+          // 🧑‍💼 Job
+          Row(
+            children: [
+              const Icon(Icons.work_outline, color: Colors.black54, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                travelerData?['job'] ?? 'Unknown job',
+                style: const TextStyle(fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 📍 Localisation
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.location_on, color: Colors.black54, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                // 🔥 C'est ce qui empêche le débordement
+                child: FutureBuilder<String>(
+                  future: getLocationName(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Text("Loading...");
+                    }
+                    if (snapshot.hasError) {
+                      return const Text("Unknown location");
+                    }
+                    return Text(
+                      snapshot.data ?? "Unknown location",
+                      style: const TextStyle(fontSize: 15),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2, // ou 3 si tu veux encore plus de marge
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 30),
+
+          // ✍️ Bio
+          const Text("Bio:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 4),
+          Text(
+            travelerData?['bio']?.toString().trim().isEmpty == false
+                ? travelerData!['bio']
+                : "No bio provided.",
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+          const Divider(height: 30),
+
+          // 🧠 Tags
+          if (travelerData?['tags'] != null &&
+              (travelerData!['tags'] as List).isNotEmpty) ...[
+            const Text("Interests:",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: List<String>.from(travelerData!['tags']).map((tag) {
+                return Chip(
+                  label: Text(tag),
+                  backgroundColor: const Color(0xFFE0E0F8),
+                  labelStyle: const TextStyle(
+                      color: Color(0xFF3B3B7A), fontWeight: FontWeight.w500),
+                );
+              }).toList(),
+            ),
+          ] else
+            const Text("No interests shared."),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAvisTab() {
     return Column(
@@ -977,14 +985,17 @@ Widget _buildInfoTab() {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Color(0xFFDBD9FE),
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 20),
               child: Column(
                 children: [
                   // Profil de l'utilisateur
                   Container(
-                    padding: const EdgeInsets.all(20),
                     decoration: const BoxDecoration(
                       color: Color(0xFFDBD9FE),
                       borderRadius: BorderRadius.only(
@@ -994,7 +1005,6 @@ Widget _buildInfoTab() {
                     ),
                     child: Column(
                       children: [
-                        const SizedBox(height: 50),
                         CircleAvatar(
                           radius: 50,
                           backgroundImage: travelerData?['profileImage'] !=
@@ -1012,89 +1022,6 @@ Widget _buildInfoTab() {
                                     fontSize: 24, fontWeight: FontWeight.bold),
                               )
                             : const Text("Nom inconnu"),
-                        travelerData?['job'] != null
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.work_outline,
-                                      color: Colors.black54, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    travelerData!['job'],
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.work_outline,
-                                      color: Colors.black54, size: 18),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    "Unknown job",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        const SizedBox(height: 10),
-                       Row(
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: [
-    const Icon(
-      Icons.location_on,
-      color: Colors.black54,
-      size: 16,
-    ),
-    const SizedBox(width: 4),
-    Expanded( // Empêche le dépassement horizontal
-      child: FutureBuilder<String>(
-        future: getLocationName(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Text(
-              "Loading...",
-              style: TextStyle(color: Colors.black54, fontSize: 14),
-            );
-          }
-          if (snapshot.hasError) {
-            print("❌ Error in FutureBuilder: ${snapshot.error}");
-            return const Text(
-              "Location error",
-              style: TextStyle(color: Colors.red, fontSize: 14),
-            );
-          }
-          print("📍 Location displayed: ${snapshot.data}");
-          return Text(
-            snapshot.data ?? "Unknown place",
-            style: const TextStyle(color: Colors.black54, fontSize: 14),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis, // coupe proprement si nécessaire
-          );
-        },
-      ),
-    ),
-  ],
-),
-
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: toggleFollow,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isFollowing
-                                ? const Color(0x0f6f6666)
-                                : const Color(0xFFD4F98F),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: Text(isFollowing ? "Unfollow" : "Follow"),
-                        ),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1141,9 +1068,22 @@ Widget _buildInfoTab() {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: toggleFollow,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isFollowing
+                                ? const Color(0x0f6f6666)
+                                : const Color(0xFFD4F98F),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Text(isFollowing ? "Unfollow" : "Follow"),
+                        ),
                       ],
                     ),
                   ),
+
                   SingleChildScrollView(
                     child: Column(
                       children: [

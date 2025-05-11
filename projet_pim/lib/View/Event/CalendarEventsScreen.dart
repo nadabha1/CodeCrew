@@ -31,7 +31,7 @@ class CalendarEventsScreen extends StatefulWidget {
 }
 
 class _CalendarEventsScreenState extends State<CalendarEventsScreen>
-    with TickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   late DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin;
   late EventProvider _eventProvider;
   final CalendarService _calendarService = CalendarService();
@@ -66,6 +66,8 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     _eventProvider = EventProvider(userId: widget.userId);
     _fetchAllEvents();
     _displayedEvents = []; // Initially empty, will be set after fetching events
+    WidgetsBinding.instance.addObserver(this); // Add observer
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchAllEvents());
   }
 
   void _resetFilters() {
@@ -175,7 +177,6 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       } else {
         if (!mounted) return;
         setState(() {
-
           _locationName = "Error fetching location.";
         });
       }
@@ -444,7 +445,6 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
             .toList(),
       ),
     );
-    
   }
 
   List<CustomEvent.Event> _getEventsInFreeSlots() {
@@ -866,9 +866,9 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                     ),
                     IconButton(
                       icon: Icon(Icons.more_horiz, color: Color(0xFF161055)),
-                      onPressed: () {
+                      onPressed: () async {
                         if (isParticipating) {
-                          Navigator.push(
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => EventDetailsScreen(
@@ -880,6 +880,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                               ),
                             ),
                           );
+
+                          // 🔁 Refresh events after returning from EventDetailsScreen
+                          await _fetchAllEvents();
+                          await _fetchNonConflictingEvents();
+
+                          if (mounted) {
+                            setState(() {}); // rebuild UI with fresh data
+                          }
                         } else {
                           showDialog(
                             context: context,
@@ -923,7 +931,6 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
             Tab(text: "Calendar"),
             Tab(text: "All Events"),
             Tab(text: "Joined Events"), // ✅ NEW TAB
-
           ],
         ),
       ),
@@ -1051,15 +1058,15 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                     ],
                   ),
                 ),
-                  Padding(
-      padding: const EdgeInsets.all(16),
-      child: ListView(
-        children: _filteredEvents
-            .where((event) => event.isParticipating)
-            .map(_buildStyledEventCard)
-            .toList(),
-      ),
-    ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ListView(
+                    children: _filteredEvents
+                        .where((event) => event.isParticipating)
+                        .map(_buildStyledEventCard)
+                        .toList(),
+                  ),
+                ),
               ],
             ),
     );
