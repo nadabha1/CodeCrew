@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For formatting dates
 import 'package:projet_pim/Model/trip.dart';
-import 'package:projet_pim/View/TripCalendarScreen.dart'; // For the TripCalendarScreen page
+import 'package:projet_pim/View/TripCalendarScreen.dart';
+import 'package:projet_pim/View/tripdetails.dart'; // For the TripCalendarScreen page
 
 class MyTripsScreen extends StatelessWidget {
   final List<Trip> trips;
@@ -88,7 +89,7 @@ class MyTripsScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => TripCalendarScreen(
+                            builder: (_) => TripDetailsScreen(
                               itinerary: trip.itinerary,
                               destination: trip.destination,
                               startDate: trip.startDate.toIso8601String(),

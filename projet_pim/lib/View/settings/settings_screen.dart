@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
-import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
+import 'package:projet_pim/View/CompleteProfile/GenderSelectionPage.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';

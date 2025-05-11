@@ -28,7 +28,7 @@ class _PreferredEventTimePageState extends State<PreferredEventTimePage> {
     Navigator.pushNamed(
       context,
       "/final-confirmation",
-      arguments: {"fromSignup": true}, // Comes from Signup
+       // Comes from Signup
     );
   }
 

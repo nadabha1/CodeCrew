@@ -155,7 +155,14 @@ Future<void> verifyOtp(BuildContext context, String email, String otp) async {
     await prefs.remove('token');
     notifyListeners();
   }
-
+  
+  Future<void> restoreSessionFromPrefs() async {
+  final prefs = await SharedPreferences.getInstance();
+  _token = prefs.getString("jwt_token");
+  _userId = prefs.getString("user_id");
+  notifyListeners();
+  debugPrint("✅ Restored session: userId=$_userId, token=$_token");
+}
   Future<bool> registerUser(
       String name,
       String email,

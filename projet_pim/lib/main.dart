@@ -10,6 +10,8 @@ import 'package:projet_pim/Providers/user_provider.dart';
 import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
+import 'package:projet_pim/View/CompleteProfile/FinalConfirmationCompletePage.dart'
+    show FinalConfirmationCompletePage;
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
 import 'package:projet_pim/View/UserPreferences/FinalConfirmationPage.dart';
 import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
@@ -53,8 +55,6 @@ void main() async {
   String? token = prefs.getString("jwt_token");
   String? userId = prefs.getString("user_id");
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
-  MapboxOptions.setAccessToken(
-      "pk.eyJ1Ijoic2FsbWF5Y2IiLCJhIjoiY205bGV4YzhuMDFvODJtcjdudWdnc2Z4aiJ9.QOLpg1lQZCsB0fy0_3Cekg");
 
   // 🛠️ Proper initialization settings for both platforms
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -171,6 +171,8 @@ class MyApp extends StatelessWidget {
           '/social-interaction': (context) => SocialInteractionPage(),
           '/preferred-event-time': (context) => PreferredEventTimePage(),
           '/final-confirmation': (context) => FinalConfirmationPage(),
+          '/complete-profile-confirmation': (context) =>
+              FinalConfirmationCompletePage(),
           '/forgot-password': (context) => ForgotPasswordScreen(),
           '/reset-password': (context) => ResetPasswordScreen(email: ''),
           '/login': (context) => LoginView(),
@@ -187,15 +189,12 @@ class MyApp extends StatelessWidget {
           '/place': (context) {
             final place = ModalRoute.of(context)?.settings.arguments as Place;
             return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
-
           },
           '/explore': (context) => ExploreScreen(userId: userId ?? ''),
-  '/trip': (context) => TripPlanningScreen(userId: userId ?? ''),
-  '/calendar': (context) =>
-      CalendarEventsScreen(userId: userId ?? '', token: token ?? ''),
-  '/messages': (context) => const ConversationListScreen(),
-
-
+          '/trip': (context) => TripPlanningScreen(userId: userId ?? ''),
+          '/calendar': (context) =>
+              CalendarEventsScreen(userId: userId ?? '', token: token ?? ''),
+          '/messages': (context) => const ConversationListScreen(),
         },
       );
     });
