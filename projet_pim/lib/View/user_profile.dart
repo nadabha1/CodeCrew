@@ -5,8 +5,12 @@ import 'package:projet_pim/Model/trip.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/my_events_screen.dart';
+import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/MyTripsScreen.dart';
+import 'package:projet_pim/View/TripPlanningScreen.dart';
+import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
 import 'package:projet_pim/View/carnet&place/CarnetDetailsScreen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
 import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
@@ -15,8 +19,11 @@ import 'package:projet_pim/View/carnet&place/AddPlaceScreenStep1.dart';
 import 'package:projet_pim/View/carnet&place/Details.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/carnet_dtetails_screen.dart';
+import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:projet_pim/View/follow/FollowersScreen.dart';
 import 'package:projet_pim/View/follow/FollowingScreen.dart';
+import 'package:projet_pim/View/home_screen.dart';
+import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/ViewModel/TripService.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
@@ -46,6 +53,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   List<Carnet> userCarnet = [];
   Map<String, dynamic>? travelerData;
   List<Trip> acceptedTrips = [];
+int _selectedIndex =4; // 4 = Messages/Profile selon ta logique
+
 
   @override
   void initState() {
@@ -287,7 +296,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
     final eventProvider = Provider.of<EventProvider>(context);
-
+final List<Widget> _pages = [
+  HomeScreen(userId: widget.userId!, token: widget.token!),        // index 0
+  ExploreScreen(userId: widget.userId!),                     // index 1
+  TripPlanningScreen(userId: widget.userId!),                // index 2
+  CalendarEventsScreen(userId: widget.userId!, token: widget.token!), // index 3
+  ConversationListScreen(),                            // index 4
+];
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -914,6 +929,54 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
             ),
+             bottomNavigationBar: CustomBottomNavigationBar(
+    selectedIndex: _selectedIndex,
+    userId: widget.userId,
+    unreadNotifications: 0, // Mets ici la valeur réelle si dispo
+    onItemTapped: (index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      // Navigation en fonction de l’index
+      switch (index) {
+        case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(initialIndex: 0,),
+            ),
+            ) ;         
+          break;
+        case 1:
+Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(initialIndex: 1,),
+            ),
+            ) ;         
+        break;
+        case 2:
+          Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(initialIndex: 2,),
+            ),
+            ) ;         
+          break;
+        case 3:
+          Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(initialIndex: 3,),
+            ),
+            ) ;         
+          break;
+        case 4:
+          // On est déjà sur le profil, ne rien faire ou faire un refresh
+          break;
+      }
+    },
+  ),
     );
   }
 }

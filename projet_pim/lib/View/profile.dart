@@ -840,21 +840,121 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
       }
     }
   }
-
-  Widget _buildInfoTab() {
-    return Column(
-      children: [
-        Text('⭐'),
-        Text(
-          travelerAverageRating != null
-              ? travelerAverageRating.toString()
-              : '0.0',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        Text('Rating', style: TextStyle(fontSize: 12)),
-      ],
-    );
+  Future<Map<String, dynamic>> fetchPublicProfile(String userId) async {
+  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/users/$userId/public-profile'));
+  if (response.statusCode == 200) {
+    return json.decode(response.body);
+  } else {
+    throw Exception("Failed to load public profile");
   }
+}
+
+
+
+Widget _buildInfoTab() {
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ⭐ Note moyenne
+        Row(
+          children: [
+            const Icon(Icons.star, color: Colors.amber, size: 22),
+            const SizedBox(width: 6),
+            Text(
+              travelerAverageRating != null
+                  ? travelerAverageRating!.toStringAsFixed(2)
+                  : '0.0',
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            const Text("Average Rating"),
+          ],
+        ),
+        const Divider(height: 30),
+
+        // 🧑‍💼 Job
+        Row(
+          children: [
+            const Icon(Icons.work_outline, color: Colors.black54, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              travelerData?['job'] ?? 'Unknown job',
+              style: const TextStyle(fontSize: 15),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 📍 Localisation
+       Row(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const Icon(Icons.location_on, color: Colors.black54, size: 20),
+    const SizedBox(width: 8),
+    Expanded( // 🔥 C'est ce qui empêche le débordement
+      child: FutureBuilder<String>(
+        future: getLocationName(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Text("Loading...");
+          }
+          if (snapshot.hasError) {
+            return const Text("Unknown location");
+          }
+          return Text(
+            snapshot.data ?? "Unknown location",
+            style: const TextStyle(fontSize: 15),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2, // ou 3 si tu veux encore plus de marge
+          );
+        },
+      ),
+    ),
+  ],
+)
+,
+        const Divider(height: 30),
+
+        // ✍️ Bio
+        const Text("Bio:",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 4),
+        Text(
+          travelerData?['bio']?.toString().trim().isEmpty == false
+              ? travelerData!['bio']
+              : "No bio provided.",
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+        const Divider(height: 30),
+
+        // 🧠 Tags
+        if (travelerData?['tags'] != null &&
+            (travelerData!['tags'] as List).isNotEmpty) ...[
+          const Text("Interests:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List<String>.from(travelerData!['tags']).map((tag) {
+              return Chip(
+                label: Text(tag),
+                backgroundColor: const Color(0xFFE0E0F8),
+                labelStyle: const TextStyle(
+                    color: Color(0xFF3B3B7A), fontWeight: FontWeight.w500),
+              );
+            }).toList(),
+          ),
+        ] else
+          const Text("No interests shared."),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildAvisTab() {
     return Column(
@@ -944,46 +1044,45 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                                 ],
                               ),
                         const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              color: Colors.black54,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            FutureBuilder<String>(
-                              future: getLocationName(),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Text(
-                                    "Loading...",
-                                    style: TextStyle(
-                                        color: Colors.black54, fontSize: 14),
-                                  );
-                                }
-                                if (snapshot.hasError) {
-                                  print(
-                                      "❌ Error in FutureBuilder: ${snapshot.error}");
-                                  return const Text(
-                                    "Location error",
-                                    style: TextStyle(
-                                        color: Colors.red, fontSize: 14),
-                                  );
-                                }
-                                print(
-                                    "📍 Location displayed: ${snapshot.data}");
-                                return Text(
-                                  snapshot.data ?? "Unknown place",
-                                  style: const TextStyle(
-                                      color: Colors.black54, fontSize: 14),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
+                       Row(
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    const Icon(
+      Icons.location_on,
+      color: Colors.black54,
+      size: 16,
+    ),
+    const SizedBox(width: 4),
+    Expanded( // Empêche le dépassement horizontal
+      child: FutureBuilder<String>(
+        future: getLocationName(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Text(
+              "Loading...",
+              style: TextStyle(color: Colors.black54, fontSize: 14),
+            );
+          }
+          if (snapshot.hasError) {
+            print("❌ Error in FutureBuilder: ${snapshot.error}");
+            return const Text(
+              "Location error",
+              style: TextStyle(color: Colors.red, fontSize: 14),
+            );
+          }
+          print("📍 Location displayed: ${snapshot.data}");
+          return Text(
+            snapshot.data ?? "Unknown place",
+            style: const TextStyle(color: Colors.black54, fontSize: 14),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis, // coupe proprement si nécessaire
+          );
+        },
+      ),
+    ),
+  ],
+),
+
                         const SizedBox(height: 10),
                         ElevatedButton(
                           onPressed: toggleFollow,
@@ -1065,7 +1164,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
                             children: [
                               _buildCarnetSection(),
                               _buildEventsTab(),
-                              _buildAvisTab(),
+                              _buildInfoTab(),
                             ],
                           ),
                         ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/flutter_sound_player.dart';
@@ -41,6 +42,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   FlutterSoundPlayer _player = FlutterSoundPlayer();
   bool isPlaying = false;
   String? currentlyPlayingUrl;
+    Timer? _pollingTimer; // ✅ Add this line
+
 
   @override
   void initState() {
@@ -48,6 +51,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     initChat();
     initRecorder();
     _player.openPlayer();
+    _pollingTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+    fetchMessages();
+  });
   }
 
   Future<void> initRecorder() async {
@@ -75,6 +81,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     socket.off('receiveMessage');
     socket.on('receiveMessage', (data) {
       print("📩 Message received on client: $data");
+      if (!mounted) return;
       setState(() {
         if (!messages.any((msg) => msg['_id'] == data['_id'])) {
           messages.add(data);
@@ -92,6 +99,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         '${ApiConstants.baseUrl}/messages/c/${widget.conversationId}'));
     if (response.statusCode == 200) {
       final List<dynamic> jsonData = jsonDecode(response.body);
+      if (!mounted) return;
       setState(() {
         messages = jsonData.cast<Map<String, dynamic>>();
       });
@@ -105,6 +113,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       print("⚠️ Empty message or already sending!");
       return;
     }
+    
 
     _isSending = true;
     print("🛑 Button pressed, sending message...");
@@ -114,6 +123,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       'senderId': _userId,
       'content': text, // Use the passed text here
     };
+    
 
     try {
       final response = await http.post(
@@ -127,6 +137,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       if (response.statusCode == 201 || response.statusCode == 200) {
         print("✅ Message sent successfully: ${response.body}");
         final newMessage = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           messages.add(newMessage);
         });
@@ -148,8 +159,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _recorder?.closeRecorder();
     _recorder = null;
     _messageController.dispose();
-    super.dispose();
     _player.closePlayer();
+        _pollingTimer?.cancel();
+          socket.off('receiveMessage'); // Remove socket listeners
+  super.dispose(); // Call th
+
   }
 
   Future<void> startRecording() async {
@@ -165,11 +179,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _audioPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.aac';
 
     await _recorder!.startRecorder(toFile: _audioPath);
+    if (!mounted) return;
     setState(() => isRecording = true);
   }
 
   Future<void> stopRecording() async {
     await _recorder!.stopRecorder();
+  if (!mounted) return; // Ensure the widget is still in the tree
     setState(() => isRecording = false);
     if (_audioPath != null) {
       await sendAudioMessage(_audioPath!);
@@ -214,6 +230,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             onPressed: () async {
               if (isPlaying && currentlyPlayingUrl == url) {
                 await _player.stopPlayer();
+                if (!mounted) return;
                 setState(() {
                   isPlaying = false;
                   currentlyPlayingUrl = null;
@@ -222,12 +239,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 await _player.startPlayer(
                   fromURI: "${ApiConstants.baseUrl}/$url",
                   whenFinished: () {
+                    if (!mounted) return;
                     setState(() {
                       isPlaying = false;
                       currentlyPlayingUrl = null;
                     });
                   },
                 );
+                if (!mounted) return;
                 setState(() {
                   isPlaying = true;
                   currentlyPlayingUrl = url;
@@ -276,6 +295,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final message = messages[index];
+                  final avatarUrl = (message['sender'] is String)
+                  ? null
+                  : message['sender']['profileImage'];
+
                   final isMe = (message['sender'] is String)
                       ? message['sender'] == _userId
                       : message['sender']['_id'] == _userId;
@@ -284,79 +307,96 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       ? 'Unknown User'
                       : message['sender']['name'] ?? 'Unknown User';
 
-                  return Align(
-                    alignment:
-                        isMe ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      padding: EdgeInsets.all(8),
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isMe
-                            ? const Color.fromARGB(255, 241, 214, 250)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 3,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (!isMe)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4.0),
-                              child: Text(
-                                senderName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                            ),
-                          if (message['type'] == 'audio')
-                            _buildAudioPlayer(message['content'], isMe)
-                          else if (message['content'] != null &&
-                              message['content'].toString().startsWith('call:'))
-                            GestureDetector(
-                              onTap: () {
-                                final channelName = message['content']
-                                    .toString()
-                                    .substring(5); // remove 'call:'
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CallScreen(
-                                      channelName: channelName,
-                                      conversationId: widget.conversationId,
-                                      userId: widget.userId,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                "📞 Join the call",
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            )
-                          else
-                            Text(
-                              message['content'] ?? '',
-                              style: TextStyle(color: Colors.black),
-                            ),
-                        ],
-                      ),
+                  return Padding(
+  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+  child: Row(
+    mainAxisAlignment:
+        isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // ✅ Show avatar for other users
+      if (!isMe)
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: CircleAvatar(
+            radius: 18,
+            backgroundImage: avatarUrl != null
+                ? NetworkImage("${ApiConstants.baseUrl}$avatarUrl")
+                : AssetImage("assets/default_avatar.png") as ImageProvider,
+          ),
+        ),
+
+      Flexible(
+        child: Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isMe
+                ? const Color.fromARGB(255, 241, 214, 250)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 3,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!isMe)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: Text(
+                    senderName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.grey[800],
                     ),
-                  );
+                  ),
+                ),
+              if (message['type'] == 'audio')
+                _buildAudioPlayer(message['content'], isMe)
+              else if (message['content'] != null &&
+                  message['content'].toString().startsWith('call:'))
+                GestureDetector(
+                  onTap: () {
+                    final channelName = message['content']
+                        .toString()
+                        .substring(5);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CallScreen(
+                          channelName: channelName,
+                          conversationId: widget.conversationId,
+                          userId: widget.userId,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    "📞 Join the call",
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  message['content'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  ),
+);
+
                 },
               ),
             ),

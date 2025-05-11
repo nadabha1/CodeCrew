@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/View/chat/NewGroupConversationScreen.dart';
 import 'package:projet_pim/View/chat/chat_screen.dart';
@@ -39,11 +40,27 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
 
     if (response.statusCode == 200) {
       print(response.body); // ✅ Inspect the received data
+      if (!mounted) return;
       setState(() {
-        conversations = json.decode(response.body);
-        isLoading = false;
-      });
+  conversations = json.decode(response.body);
+
+  conversations.sort((a, b) {
+    final aDate = a['lastMessage']?['createdAt'] != null
+        ? DateTime.parse(a['lastMessage']['createdAt']).millisecondsSinceEpoch
+        : 0;
+
+    final bDate = b['lastMessage']?['createdAt'] != null
+        ? DateTime.parse(b['lastMessage']['createdAt']).millisecondsSinceEpoch
+        : 0;
+
+    return bDate - aDate; // Sort by most recent
+  });
+
+  isLoading = false;
+});
+
     } else {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -60,10 +77,12 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
 
     if (response.statusCode == 200) {
       final followers = json.decode(response.body);
+      if (!mounted) return;
       setState(() {
         hasFollowers = followers.isNotEmpty;
       });
     } else {
+      if (!mounted) return;
       setState(() {
         hasFollowers = false;
       });
@@ -94,13 +113,14 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         (p) => p['_id'] != _userId,
         orElse: () => null,
       );
+      print(otherParticipant);
 
       if (otherParticipant != null &&
           otherParticipant is Map &&
           otherParticipant.containsKey('profileImage')) {
         final profileImage = otherParticipant['profileImage'];
         return (profileImage != null && profileImage.isNotEmpty)
-            ? profileImage
+            ? "${ApiConstants.baseUrl}$profileImage"
             : 'https://example.com/default-avatar.png'; // ✅ Default image URL
       }
     } catch (e) {
@@ -123,9 +143,9 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
               : ListView.builder(
                   itemCount: conversations.length,
                   itemBuilder: (context, index) {
+                    
                     final conversation = conversations[index];
-                    final lastMessage =
-                        conversation['lastMessage']?['content'] ?? 'No message';
+                    final lastMessage = conversation['lastMessage']?['content'] ?? 'No message';
                     final List participants = conversation['participants'];
                     final isGroupChat = conversation['title'] != null &&
                         conversation['title'].isNotEmpty;
@@ -150,13 +170,24 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                         participantName,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      subtitle: Text(
-                        lastMessage != null && lastMessage.isNotEmpty
-                            ? lastMessage
-                            : 'No message', // ✅ Default message displayed
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      lastMessage,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    if (conversation['lastMessage']?['createdAt'] != null)
+      Text(
+        DateFormat('HH:mm dd/MM/yyyy').format(
+          DateTime.parse(conversation['lastMessage']['createdAt']),
+        ),
+        style: TextStyle(fontSize: 11, color: Colors.grey),
+      ),
+  ],
+),
+
                       onTap: () {
                         Navigator.push(
                           context,

@@ -58,7 +58,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     initializeDateFormatting('fr_FR'); // Initialize locale data for French
     _deviceCalendarPlugin = DeviceCalendar.DeviceCalendarPlugin();
     _loadUserData();
@@ -108,6 +108,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      if (!mounted) return;
       setState(() {
         _locationName = "Location services are disabled. Please enable them.";
       });
@@ -120,6 +121,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
         setState(() {
           _locationName =
               "Location permissions are permanently denied. Please enable them in settings.";
@@ -127,6 +129,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
         print("Error: Location permissions are permanently denied.");
         return;
       } else if (permission == LocationPermission.denied) {
+        if (!mounted) return;
         setState(() {
           _locationName =
               "Location permissions are denied. Please allow access.";
@@ -149,12 +152,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
       );
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
+        if (!mounted) return;
         setState(() {
           _currentLocation = LatLng(position.latitude, position.longitude);
           _locationName = "${place.locality}, ${place.country}";
         });
         print("Location fetched successfully: $_locationName");
       } else {
+        if (!mounted) return;
         setState(() {
           _locationName = "Unable to determine location.";
         });
@@ -163,11 +168,14 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
     } catch (e) {
       print("Error in getting location: $e");
       if (e.toString().contains("Failed host lookup")) {
+        if (!mounted) return;
         setState(() {
           _locationName = "No internet connection. Please check your network.";
         });
       } else {
+        if (!mounted) return;
         setState(() {
+
           _locationName = "Error fetching location.";
         });
       }
@@ -436,6 +444,7 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
             .toList(),
       ),
     );
+    
   }
 
   List<CustomEvent.Event> _getEventsInFreeSlots() {
@@ -913,6 +922,8 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
           tabs: [
             Tab(text: "Calendar"),
             Tab(text: "All Events"),
+            Tab(text: "Joined Events"), // ✅ NEW TAB
+
           ],
         ),
       ),
@@ -1040,6 +1051,15 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                     ],
                   ),
                 ),
+                  Padding(
+      padding: const EdgeInsets.all(16),
+      child: ListView(
+        children: _filteredEvents
+            .where((event) => event.isParticipating)
+            .map(_buildStyledEventCard)
+            .toList(),
+      ),
+    ),
               ],
             ),
     );
