@@ -1,0 +1,2 @@
+/Users/salma/Desktop/CodeCrew/projet_pim/android/app/.cxx/Debug/5f176i6h/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/salma/Desktop/CodeCrew/projet_pim/android/app/.cxx/Debug/5f176i6h/arm64-v8a/CMakeFiles/rebuild_cache.dir

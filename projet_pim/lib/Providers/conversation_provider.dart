@@ -15,7 +15,8 @@ class ConversationProvider with ChangeNotifier {
   void updateLastMessage(String conversationId, String newMessage) {
     for (var convo in _conversations) {
       if (convo.id == conversationId) {
-        convo.lastMessage = newMessage;
+        convo.lastMessage =
+            newMessage.isNotEmpty ? newMessage : 'Aucun message';
         notifyListeners();
         break;
       }
@@ -23,9 +24,8 @@ class ConversationProvider with ChangeNotifier {
   }
 
   Future<void> loadConversations(String userId) async {
-   final conversations = await UserService.getUserConversations(userId);
+    final conversations = await UserService.getUserConversations(userId);
     _conversations = conversations;
     notifyListeners();
   }
 }
-

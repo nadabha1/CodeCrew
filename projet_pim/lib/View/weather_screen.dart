@@ -1,10 +1,12 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/carnet_provider.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/carnet_service.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +40,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Future<void> _initializeScreen() async {
     await _loadUserData();
     if (userId != null) {
-      _loadWeather();
+      _getCurrentLocation();
     }
   }
 
@@ -60,19 +62,53 @@ class _WeatherScreenState extends State<WeatherScreen> {
     }
   }
 
-  // Fonction pour charger la météo et les lieux en fonction de la météo
-  void _loadWeather() async {
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifiez si les services de localisation sont activés
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Si les services de localisation ne sont pas activés, afficher une erreur
+      print('Les services de localisation ne sont pas activés');
+      return;
+    }
+
+    // Vérifiez les permissions de localisation
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // Si la permission est refusée, demandez-la
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Si l'utilisateur refuse encore la permission
+        print('La permission d\'accès à la localisation est refusée');
+        return;
+      }
+    }
+
+    // Si la permission est autorisée, récupérez la position actuelle
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _loadWeather(position.latitude, position.longitude);
+  }
+
+  void _loadWeather(double latitude, double longitude) async {
     try {
-      final data = await _weatherService.fetchWeather("Tunis");
+      final data =
+          await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
       setState(() {
         weatherData = data;
+        isLoading = false;
       });
 
       // Extraire la condition météo
       String weatherCondition = weatherData!['weather'][0]['main'];
       _loadPlacesBasedOnWeather(weatherCondition);
     } catch (e) {
-      print("Erreur : $e");
+      print("Erreur de chargement de la météo : $e");
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -288,6 +324,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SizedBox(
+          height: 20,
+        ),
         Text(
           "Lieux à visiter selon la météo",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -306,15 +345,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 ),
                 elevation: 5,
                 child: Container(
-                  width: 200, // Width of the card
+                  width: 200,
+                  height: 320, // Hauteur fixe pour toutes les cartes
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     color: const Color.fromARGB(234, 249, 225, 225),
                   ),
                   child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween, // Répartition uniforme
                     children: [
-                      // Displaying image with blur effect if not unlocked
+                      // Image avec flou si non débloquée
                       if (place.images.isNotEmpty)
                         Stack(
                           children: [
@@ -322,7 +364,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               borderRadius: BorderRadius.circular(15),
                               child: isUnlocked
                                   ? Image.network(
-                                      place.images.first,
+                                      '${ApiConstants.baseUrl}' +
+                                          place.images.first,
                                       width: 160,
                                       height: 120,
                                       fit: BoxFit.cover,
@@ -336,7 +379,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                       imageFilter: ImageFilter.blur(
                                           sigmaX: 5, sigmaY: 5),
                                       child: Image.network(
-                                        place.images.first,
+                                        '${ApiConstants.baseUrl}' +
+                                            place.images.first,
                                         width: 160,
                                         height: 120,
                                         fit: BoxFit.cover,
@@ -362,16 +406,16 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         )
                       else
                         Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                      SizedBox(height: 10),
-                      // Displaying place name
+
+                      // Nom du lieu
                       Text(
                         place.name,
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 8),
-                      // Additional information (short description or location)
+
+                      // Description ou message par défaut
                       Text(
                         place.description ?? 'No description available',
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -379,8 +423,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 8),
-                      // Show button based on place unlocked state
+
+                      // Bouton : voir ou déverrouiller
                       ElevatedButton(
                         onPressed: isUnlocked
                             ? () {
@@ -408,7 +452,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               : Color(0xFFD4F98F),
                           padding: EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       )
@@ -418,7 +462,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               );
             }).toList(),
           ),
-        ),
+        )
       ],
     );
   }
@@ -450,6 +494,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               fontWeight: FontWeight.bold,
                               color: Colors.black87),
                         ),
+                        SizedBox(height: 10),
                         Image.network(
                           "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
                           width: 120,

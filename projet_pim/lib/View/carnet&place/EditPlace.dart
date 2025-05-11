@@ -9,12 +9,11 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart'; // Import FlutterMap package
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart'; // Import LatLng
 
 class EditPlace extends StatefulWidget {
   final Place place;
 
-  const EditPlace({Key? key, required this.place}) : super(key: key);
+  const EditPlace({super.key, required this.place});
 
   @override
   _EditPlaceState createState() => _EditPlaceState();
@@ -31,15 +30,48 @@ class _EditPlaceState extends State<EditPlace> {
       []; // Liste pour stocker les URLs des images téléchargées
 
   final ImagePicker _picker = ImagePicker();
-  List<XFile>? _imageFileList = [];
+  final List<XFile>? _imageFileList = [];
   File? _selectedImage;
 
   // Méthode pour sélectionner des images
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      await _uploadImage(pickedFile);
-    }
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile =
+                    await _picker.pickImage(source: ImageSource.camera);
+                if (pickedFile != null) {
+                  await _uploadImage(pickedFile);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile =
+                    await _picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null) {
+                  await _uploadImage(pickedFile);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Méthode pour uploader une image
@@ -54,8 +86,7 @@ class _EditPlaceState extends State<EditPlace> {
         final responseBody = await response.stream.bytesToString();
         final uploadedImage = jsonDecode(responseBody);
         if (uploadedImage != null && uploadedImage['filename'] != null) {
-          final fullImageUrl =
-              '${ApiConstants.baseUrl}/uploads/${uploadedImage['filename']}';
+          final fullImageUrl = '/uploads/${uploadedImage['filename']}';
           setState(() {
             _imageUrls.add(fullImageUrl);
           });
@@ -129,8 +160,23 @@ class _EditPlaceState extends State<EditPlace> {
           Provider.of<CarnetProvider>(context, listen: false);
       carnetProvider.updatePlace(updatedPlace, _carnetId);
 
-      // Fermer la page une fois les modifications enregistrées
-      Navigator.pop(context, updatedPlace); // Passer la place mise à jour
+      // Afficher un popup pour informer l'utilisateur
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("All Set!"),
+          content: const Text("Nice! The place just got a fresh update! "),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Fermer le popup
+                Navigator.pop(context, updatedPlace); // Fermer la page
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -138,7 +184,7 @@ class _EditPlaceState extends State<EditPlace> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Modifier le lieu"),
+        title: const Text("Edit location"),
         backgroundColor: const Color(0xFFDBD9FE),
       ),
       body: Padding(
@@ -148,12 +194,12 @@ class _EditPlaceState extends State<EditPlace> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 "Categories ",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-              Container(
+              const SizedBox(height: 8),
+              SizedBox(
                 height: 80,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -194,25 +240,26 @@ class _EditPlaceState extends State<EditPlace> {
               ),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: "Nom"),
+                decoration: const InputDecoration(labelText: "Name"),
                 validator: (value) =>
-                    value!.isEmpty ? "Veuillez entrer un nom" : null,
+                    value!.isEmpty ? "Please enter a name" : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(labelText: "Description"),
                 validator: (value) =>
-                    value!.isEmpty ? "Veuillez entrer une description" : null,
+                    value!.isEmpty ? "Please enter a description" : null,
               ),
               const SizedBox(height: 8),
 
               // Ajout de FlutterMap pour afficher la localisation
+
               Container(
                 height: 250,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 10,
@@ -230,7 +277,7 @@ class _EditPlaceState extends State<EditPlace> {
                     TileLayer(
                       urlTemplate:
                           "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: ['a', 'b', 'c'],
+                      subdomains: const ['a', 'b', 'c'],
                     ),
                     MarkerLayer(
                       markers: [
@@ -256,8 +303,8 @@ class _EditPlaceState extends State<EditPlace> {
 
               // Affichage des images
               const SizedBox(height: 8),
-              Text(
-                "Images enregistrées",
+              const Text(
+                "Pictures",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(
@@ -274,7 +321,7 @@ class _EditPlaceState extends State<EditPlace> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: Image.network(
-                                  imageUrl,
+                                  '${ApiConstants.baseUrl}' + imageUrl,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
@@ -289,7 +336,7 @@ class _EditPlaceState extends State<EditPlace> {
                                       _imageUrls.remove(imageUrl);
                                     });
                                   },
-                                  child: CircleAvatar(
+                                  child: const CircleAvatar(
                                     radius: 12,
                                     backgroundColor: Colors.red,
                                     child: Icon(Icons.close,
@@ -300,10 +347,10 @@ class _EditPlaceState extends State<EditPlace> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                       GestureDetector(
                         onTap: _pickImage,
-                        child: CircleAvatar(
+                        child: const CircleAvatar(
                           backgroundColor: Colors.orange,
                           radius: 30,
                           child: Icon(Icons.add, color: Colors.white),
@@ -322,7 +369,7 @@ class _EditPlaceState extends State<EditPlace> {
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFE7B32)),
-                child: const Text("Enregistrer"),
+                child: const Text("Save"),
               ),
             ],
           ),

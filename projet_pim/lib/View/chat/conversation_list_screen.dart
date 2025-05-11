@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/chat/NewGroupConversationScreen.dart';
 import 'package:projet_pim/View/chat/chat_screen.dart';
 import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'dart:convert';
@@ -8,6 +11,8 @@ import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConversationListScreen extends StatefulWidget {
+  const ConversationListScreen({super.key});
+
   @override
   _ConversationListScreenState createState() => _ConversationListScreenState();
 }
@@ -16,10 +21,12 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   List conversations = [];
   bool isLoading = true;
   String? _userId;
+  bool hasFollowers = false;
 
   @override
   void initState() {
     super.initState();
+    checkFollowers();
     fetchConversations();
   }
 
@@ -27,9 +34,11 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString("user_id");
 
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/conversations/$_userId'));
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/conversations/$_userId'));
 
     if (response.statusCode == 200) {
+      print(response.body); // ✅ Inspect the received data
       setState(() {
         conversations = json.decode(response.body);
         isLoading = false;
@@ -38,7 +47,26 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       setState(() {
         isLoading = false;
       });
-      throw Exception('Erreur lors du chargement des conversations');
+      throw Exception('Error loading conversations');
+    }
+  }
+
+  Future<void> checkFollowers() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString("user_id");
+
+    final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/follow/followers/count/$_userId'));
+
+    if (response.statusCode == 200) {
+      final followers = json.decode(response.body);
+      setState(() {
+        hasFollowers = followers.isNotEmpty;
+      });
+    } else {
+      setState(() {
+        hasFollowers = false;
+      });
     }
   }
 
@@ -49,33 +77,58 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         orElse: () => null,
       );
 
-      if (otherParticipant != null && otherParticipant is Map && otherParticipant.containsKey('name')) {
-        return otherParticipant['name'] ?? 'Utilisateur inconnu';
+      if (otherParticipant != null &&
+          otherParticipant is Map &&
+          otherParticipant.containsKey('name')) {
+        return otherParticipant['name'] ?? 'Unknown User';
       }
     } catch (e) {
-      print("🚨 Erreur lors de la récupération du nom: $e");
+      print("🚨 Error retrieving name: $e");
     }
-    return 'Utilisateur inconnu';
+    return 'Unknown User';
+  }
+
+  String getParticipantProfileImage(List<dynamic> participants) {
+    try {
+      final otherParticipant = participants.firstWhere(
+        (p) => p['_id'] != _userId,
+        orElse: () => null,
+      );
+
+      if (otherParticipant != null &&
+          otherParticipant is Map &&
+          otherParticipant.containsKey('profileImage')) {
+        final profileImage = otherParticipant['profileImage'];
+        return (profileImage != null && profileImage.isNotEmpty)
+            ? profileImage
+            : 'https://example.com/default-avatar.png'; // ✅ Default image URL
+      }
+    } catch (e) {
+      print("🚨 Error retrieving profile image: $e");
+    }
+    return 'https://example.com/default-avatar.png'; // ✅ Default image URL
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Conversations"),
+        title: const Text("Conversations"),
         backgroundColor: const Color(0xFFC8C4FF),
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : conversations.isEmpty
-              ? Center(child: Text("Aucune conversation."))
+              ? const Center(child: Text("No conversations."))
               : ListView.builder(
                   itemCount: conversations.length,
                   itemBuilder: (context, index) {
                     final conversation = conversations[index];
-                    final lastMessage = conversation['lastMessage']?['content'] ?? 'Aucun message';
+                    final lastMessage =
+                        conversation['lastMessage']?['content'] ?? 'No message';
                     final List participants = conversation['participants'];
-                    final isGroupChat = conversation['title'] != null && conversation['title'].isNotEmpty;
+                    final isGroupChat = conversation['title'] != null &&
+                        conversation['title'].isNotEmpty;
                     final participantName = isGroupChat
                         ? conversation['title']
                         : getParticipantName(participants);
@@ -83,56 +136,89 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundImage: NetworkImage(
-                          participants.firstWhere(
-                            (p) => p['_id'] != _userId,
-                            orElse: () => {'avatarUrl': null},
-                          )['avatarUrl'] ?? 'https://example.com/default-avatar.png',
+                          isGroupChat
+                              ? 'https://example.com/default-group-avatar.png'
+                              : getParticipantProfileImage(participants) ??
+                                  'https://example.com/default-avatar.png',
                         ),
+                        backgroundColor: const Color(0xFFC8C4FF),
                         child: isGroupChat
                             ? Icon(Icons.group, color: Colors.white)
-                            : Icon(Icons.person, color: Colors.white),
-                        backgroundColor: const Color(0xFFC8C4FF),
+                            : null,
                       ),
                       title: Text(
                         participantName,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        lastMessage,
+                        lastMessage != null && lastMessage.isNotEmpty
+                            ? lastMessage
+                            : 'No message', // ✅ Default message displayed
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => isGroupChat
-          ? GroupChatScreen(
-              conversationId: conversation['_id'],
-              groupName: conversation['title'],  // ✅ Passe le titre du groupe
-            )
-          : ChatScreen(
-              conversationId: conversation['_id'],
-            ),
-    ),
-  );
-},
-
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => isGroupChat
+                                ? GroupChatScreen(
+                                    eventProvider:
+                                        EventProvider(userId: _userId!),
+                                    userId: _userId!,
+                                    conversationId: conversation['_id'],
+                                    groupName: conversation[
+                                        'title'], // ✅ Pass the group title
+                                  )
+                                : ChatScreen(
+                                    eventProvider:
+                                        EventProvider(userId: _userId!),
+                                    token: "",
+                                    userId: _userId!,
+                                    conversationId: conversation['_id'],
+                                  ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => NewConversationScreen()),
-          );
-          if (result != null) {
-            fetchConversations(); // ✅ Mettre à jour les conversations
-          }
-        },
+      floatingActionButton: SpeedDial(
         backgroundColor: const Color(0xFFC8C4FF),
-        child: Icon(Icons.add, color: Colors.white),
+        animatedIcon: AnimatedIcons.menu_close,
+        overlayColor: Colors.black,
+        overlayOpacity: 0.3,
+        spacing: 10,
+        spaceBetweenChildren: 10,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.chat),
+            label: 'Private Conversation',
+            backgroundColor: Colors.deepPurple.shade100,
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => NewConversationScreen()),
+              );
+              if (result != null) fetchConversations();
+            },
+          ),
+          if (hasFollowers) // ✅ Only show if the user has followers
+            SpeedDialChild(
+              child: const Icon(Icons.group),
+              label: 'Create a Group',
+              backgroundColor: Colors.deepPurple.shade100,
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => NewGroupConversationScreen()),
+                );
+                if (result != null) fetchConversations();
+              },
+            ),
+        ],
       ),
     );
   }

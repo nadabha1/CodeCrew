@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/conversation.dart';
-import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:projet_pim/Providers/conversation_provider.dart';
+import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
 
 class ChatListPage extends StatefulWidget {
@@ -24,7 +24,7 @@ class _ChatListPageState extends State<ChatListPage> {
   Future<void> _loadUserConversations() async {
     // Now calling loadConversations and passing context from widget
     await Provider.of<ConversationProvider>(context, listen: false)
-        .loadConversations(widget.userId); 
+        .loadConversations(widget.userId);
   }
 
   @override
@@ -52,9 +52,10 @@ class _ChatListPageState extends State<ChatListPage> {
                     var convo = conversations[index];
                     return ListTile(
                       title: Text(convo.participants.join(', ')),
-                      subtitle: convo.lastMessage != null
+                      subtitle: convo.lastMessage != null &&
+                              convo.lastMessage!.isNotEmpty
                           ? Text(convo.lastMessage!)
-                          : Text('Aucun message'),
+                          : const Text('Aucun message'),
                       onTap: () {
                         // Redirect to conversation screen
                       },
@@ -69,3 +70,4 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 }
+*/

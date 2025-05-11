@@ -250,4 +250,24 @@ class CarnetService {
       return [];
     }
   }
+
+  Future<List<String>> fetchUnlockedPlaces(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/users/$userId/unlocked-places'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the response as a list of strings
+        final List<dynamic> data = jsonDecode(response.body);
+        return List<String>.from(data); // Convert to a list of strings
+      } else {
+        throw Exception('Failed to fetch unlocked places: ${response.body}');
+      }
+    } catch (e) {
+      print("Error fetching unlocked places: $e");
+      throw Exception('Error fetching unlocked places');
+    }
+  }
 }

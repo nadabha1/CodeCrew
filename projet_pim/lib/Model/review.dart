@@ -3,7 +3,7 @@ class Review {
   final String userId;
   final int rating;
   final String comment;
-  final DateTime createdAt; // Change to DateTime
+  final DateTime createdAt;
 
   Review({
     required this.placeId,
@@ -13,27 +13,39 @@ class Review {
     required this.createdAt,
   });
 
-  // Modify fromJson to handle the response format
   factory Review.fromJson(Map<String, dynamic> json) {
     return Review(
       placeId: json['placeId'],
-      userId: json['userId']['_id'], // Access the nested _id from userId object
+      userId: json['userId']['_id'],
       rating: json['rating'],
       comment: json['comment'],
-      createdAt: DateTime.parse(
-          json['createdAt']), // Parse the createdAt string to DateTime
+      createdAt: DateTime.parse(json['createdAt']),
     );
   }
 
-  // Modify toJson if necessary
   Map<String, dynamic> toJson() {
     return {
       'placeId': placeId,
       'userId': userId,
       'rating': rating,
       'comment': comment,
-      'createdAt': createdAt
-          .toIso8601String(), // Convert DateTime to string when sending data
+      'createdAt': createdAt.toIso8601String(),
     };
+  }
+
+  Review copyWith({
+    String? placeId,
+    String? userId,
+    int? rating,
+    String? comment,
+    DateTime? createdAt,
+  }) {
+    return Review(
+      placeId: placeId ?? this.placeId,
+      userId: userId ?? this.userId,
+      rating: rating ?? this.rating,
+      comment: comment ?? this.comment,
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 }

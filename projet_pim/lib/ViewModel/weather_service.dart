@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class WeatherService {
   Future<Map<String, dynamic>> fetchWeather(String city) async {
@@ -12,6 +11,20 @@ class WeatherService {
       return json.decode(response.body);
     } else {
       throw Exception("Erreur lors du chargement des données météo");
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchWeatherByCoordinates(
+      double latitude, double longitude) async {
+    final Uri url = Uri.parse(
+        'https://api.openweathermap.org/data/2.5/weather?lat=$latitude&lon=$longitude&appid=5bc701952b4dc3e313b4cecff7006cd0&units=metric&lang=fr');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load weather data');
     }
   }
 }

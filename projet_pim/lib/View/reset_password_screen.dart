@@ -7,7 +7,7 @@ class ResetPasswordScreen extends StatelessWidget {
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  ResetPasswordScreen({required this.email});
+  ResetPasswordScreen({super.key, required this.email});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,9 @@ class ResetPasswordScreen extends StatelessWidget {
               children: [
                 // Title
                 Text(
-                  resetPasswordProvider.isOtpVerified ? "Set New Password" : "Verify OTP",
+                  resetPasswordProvider.isOtpVerified
+                      ? "Set New Password"
+                      : "Verify OTP",
                   style: const TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
@@ -32,7 +34,6 @@ class ResetPasswordScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-
 
                 // Subtitle
                 Text(
@@ -52,18 +53,21 @@ class ResetPasswordScreen extends StatelessWidget {
                     controller: _otpController,
                     decoration: InputDecoration(
                       labelText: 'OTP',
-                      labelStyle: TextStyle(color: Colors.grey[700], fontSize: 14),
+                      labelStyle:
+                          TextStyle(color: Colors.grey[700], fontSize: 14),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 16),
                     ),
                     keyboardType: TextInputType.number,
                   ),
-                if (!resetPasswordProvider.isOtpVerified) const SizedBox(height: 20),
+                if (!resetPasswordProvider.isOtpVerified)
+                  const SizedBox(height: 20),
 
                 // New Password Input
                 if (resetPasswordProvider.isOtpVerified)
@@ -71,18 +75,21 @@ class ResetPasswordScreen extends StatelessWidget {
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: 'New Password',
-                      labelStyle: TextStyle(color: Colors.grey[700], fontSize: 14),
+                      labelStyle:
+                          TextStyle(color: Colors.grey[700], fontSize: 14),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 16),
                     ),
                     obscureText: true,
                   ),
-                if (resetPasswordProvider.isOtpVerified) const SizedBox(height: 20),
+                if (resetPasswordProvider.isOtpVerified)
+                  const SizedBox(height: 20),
 
                 // Verify or Reset Button
                 resetPasswordProvider.isLoading
@@ -105,15 +112,26 @@ class ResetPasswordScreen extends StatelessWidget {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6A1B9A), // Purple button
+                          backgroundColor:
+                              const Color(0xFF2C1055), // Purple button
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white, // Set text color to white
+                          ),
                         ),
                         child: Center(
-                          child: Text(resetPasswordProvider.isOtpVerified ? 'Reset Password' : 'Verify OTP'),
+                          child: Text(
+                            resetPasswordProvider.isOtpVerified
+                                ? 'Reset Password'
+                                : 'Verify OTP',
+                            style: const TextStyle(
+                                color: Colors.white), // Ensure text is white
+                          ),
                         ),
                       ),
               ],

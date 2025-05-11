@@ -22,7 +22,7 @@ class ActivityLoggerService {
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||response.statusCode == 201 ) {
         print("✅ Activité enregistrée : [$type] $value");
       } else {
         print("❌ Erreur API: ${response.statusCode}");

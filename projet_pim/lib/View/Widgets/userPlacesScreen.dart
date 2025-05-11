@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class UserPlacesScreen extends StatelessWidget {
   final String userId;
-  const UserPlacesScreen({required this.userId});
+  const UserPlacesScreen({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -20,16 +20,16 @@ class UserPlacesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lieux de l’utilisateur'),
-        backgroundColor: Color(0xFF6C63FF),
+        title: const Text('Lieux de l’utilisateur'),
+        backgroundColor: const Color(0xFF6C63FF),
       ),
       body: ListView.builder(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         itemCount: fakePlaces.length,
         itemBuilder: (context, index) {
           final place = fakePlaces[index];
           return Card(
-            margin: EdgeInsets.only(bottom: 16),
+            margin: const EdgeInsets.only(bottom: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -37,7 +37,7 @@ class UserPlacesScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   child: Image.network(
                     place['image']!,
                     height: 180,
@@ -46,10 +46,10 @@ class UserPlacesScreen extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12),
                   child: Text(
                     place['name']!,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],

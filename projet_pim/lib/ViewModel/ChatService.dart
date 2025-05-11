@@ -21,7 +21,8 @@ class ChatService {
     socket.on('receiveMessage', (data) {
       print('New message: $data');
       // Update the conversation's last message using the provider
-      conversationProvider.updateLastMessage(data['conversationId'], data['content']);
+      conversationProvider.updateLastMessage(
+          data['conversationId'], data['content']);
     });
 
     socket.onDisconnect((_) {

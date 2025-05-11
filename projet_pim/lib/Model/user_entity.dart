@@ -1,4 +1,6 @@
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:projet_pim/CustomAnnotation.dart';
 
 class User {
   final String id;
@@ -9,16 +11,12 @@ class User {
   final String? resetPasswordOtp;
   final DateTime? resetPasswordOtpExpires;
   final String job;
-  final String location;
+  final LatLng location;
   final String bio;
-  final String? profileImage;
+  final String? profileImage; // Peut être null
   final int likes;
   final int coins;
   final int favorites;
-
-  // Simplified location fields (keep only what mock AR needs)
-  final LatLng? coordinates;
-  final List<String> searchHistory;
 
   User({
     required this.id,
@@ -31,15 +29,39 @@ class User {
     required this.job,
     required this.location,
     required this.bio,
-    this.profileImage,
+    this.profileImage, // Optionnel
+
     required this.likes,
     required this.coins,
     required this.favorites,
-    this.coordinates,
-    this.searchHistory = const [],
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    LatLng parsedLocation = const LatLng(0, 0); // Valeur par défaut
+
+    // Handle the location field, whether it's a string or map
+    if (json['location'] != null) {
+      if (json['location'] is String) {
+        try {
+          List<String> coordinates = json['location'].split(',');
+          if (coordinates.length == 2) {
+            parsedLocation = LatLng(
+              double.tryParse(coordinates[0].trim()) ?? 0.0, // Latitude
+              double.tryParse(coordinates[1].trim()) ?? 0.0, // Longitude
+            );
+          }
+        } catch (e) {
+          print("❌ Erreur parsing location: $e");
+        }
+      } else if (json['location'] is Map<String, dynamic>) {
+        parsedLocation = LatLng(
+          (json['location']['latitude'] ?? 0.0).toDouble(),
+          (json['location']['longitude'] ?? 0.0).toDouble(),
+        );
+      }
+    }
+
+    // Parse the user data, ensuring correct types are assigned
     return User(
       id: json['_id'] as String,
       name: json['name'] ?? '',
@@ -48,22 +70,25 @@ class User {
       role: json['role'] ?? 'user',
       resetPasswordOtp: json['resetPasswordOtp'],
       resetPasswordOtpExpires: json['resetPasswordOtpExpires'] != null
-          ? DateTime.parse(json['resetPasswordOtpExpires'])
+          ? DateTime.tryParse(json['resetPasswordOtpExpires'])
           : null,
-      job: json['job'] ?? '',
-      location: json['location'] ?? '',
-      bio: json['bio'] ?? '',
-      profileImage: json['profileImage'],
-      likes: json['likes'] ?? 0,
-      coins: json['coins'] ?? 0,
-      favorites: json['favorites'] ?? 0,
-      coordinates: json['coordinates'] != null
-          ? LatLng(json['coordinates']['lat'], json['coordinates']['lng'])
-          : null,
-      searchHistory: (json['searchHistory'] as List?)?.cast<String>() ?? [],
+      job: json['job'] as String? ?? '',
+      location: parsedLocation, // ✅ Handles string or map format
+      bio: json['bio'] as String? ?? '',
+      profileImage: json['profileImage'] as String?,
+      likes: (json['likes'] is int)
+          ? json['likes'] as int
+          : 0, // Safely cast to int
+      coins: (json['coins'] is int)
+          ? json['coins'] as int
+          : 0, // Safely cast to int
+      favorites: (json['favorites'] is int)
+          ? json['favorites'] as int
+          : 0, // Safely cast to int
     );
   }
 
+  // Method to convert a User instance to JSON
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
@@ -74,16 +99,39 @@ class User {
       'resetPasswordOtp': resetPasswordOtp,
       'resetPasswordOtpExpires': resetPasswordOtpExpires?.toIso8601String(),
       'job': job,
-      'location': location,
+      'location': {
+        'latitude': location.latitude,
+        'longitude': location.longitude,
+      },
       'bio': bio,
       'profileImage': profileImage,
       'likes': likes,
       'coins': coins,
       'favorites': favorites,
-      'coordinates': coordinates != null
-          ? {'lat': coordinates!.latitude, 'lng': coordinates!.longitude}
-          : null,
-      'searchHistory': searchHistory,
     };
+  }
+
+  /// ✅ Convertir un utilisateur en CustomAnnotation pour la vue AR
+  CustomAnnotation toAnnotation() {
+    // Convert LatLng to Position
+    Position position = Position(
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timestamp: DateTime.now(),
+      altitude: 10.0, // Set default values for missing parameters
+      accuracy: 5.0, // Set default values for missing parameters
+      speed: 0, // Set default values for missing parameters
+      heading: 0.0, // Set default heading (can be updated if needed)
+      headingAccuracy: 1.0, // Set default heading accuracy
+      altitudeAccuracy: 5.0, // Set default altitude accuracy
+      speedAccuracy: 1.0, // Set default speed accuracy);
+    );
+    return CustomAnnotation(
+      uid: id,
+      position: position, // Pass Position instead of LatLng
+      title: name,
+      subtitle: job,
+      imageUrl: profileImage,
+    );
   }
 }

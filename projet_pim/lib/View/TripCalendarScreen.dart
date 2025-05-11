@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -33,7 +34,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/trip/accept'),
+        Uri.parse('${ApiConstants.baseUrl}/trip/accept'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'userId': widget.userId,
@@ -52,7 +53,8 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
           context: context,
           builder: (_) => AlertDialog(
             title: const Text('Trip Saved 🎉'),
-            content: const Text('Your trip has been accepted and saved successfully!'),
+            content: const Text(
+                'Your trip has been accepted and saved successfully!'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -69,6 +71,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      print(e.toString() + " error in acceptTrip()");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
@@ -97,7 +100,8 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Appointment> events = widget.itinerary.expand<Appointment>((day) {
+    final List<Appointment> events =
+        widget.itinerary.expand<Appointment>((day) {
       final date = DateTime.parse(day['date']);
       final activities = List<String>.from(day['activities']);
       return activities.map((activity) {
@@ -107,15 +111,22 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
         return Appointment(
           startTime: date.add(Duration(hours: hour)),
           endTime: date.add(Duration(hours: hour + 1)),
-          subject: activity.length > 60 ? activity.substring(0, 60) + '...' : activity,
+          subject: activity.length > 60
+              ? activity.substring(0, 60) + '...'
+              : activity,
           notes: activity,
           color: color,
         );
       }).toList();
     }).toList();
 
-    final DateTime? minDate = widget.itinerary.isNotEmpty ? DateTime.parse(widget.itinerary.first['date']) : null;
-    final DateTime? maxDate = widget.itinerary.isNotEmpty ? DateTime.parse(widget.itinerary.last['date']).add(const Duration(days: 1)) : null;
+    final DateTime? minDate = widget.itinerary.isNotEmpty
+        ? DateTime.parse(widget.itinerary.first['date'])
+        : null;
+    final DateTime? maxDate = widget.itinerary.isNotEmpty
+        ? DateTime.parse(widget.itinerary.last['date'])
+            .add(const Duration(days: 1))
+        : null;
 
     final numberOfDays = calculateNumberOfDays();
     final totalActivities = calculateTotalActivities();
@@ -123,7 +134,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Calendar View'),
-        backgroundColor: Colors.blue.shade800,
+        backgroundColor: Color(0xFFDBD9FE),
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -132,36 +143,50 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
             padding: const EdgeInsets.all(12.0),
             child: Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              color: Colors.blue.shade50,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Color(0xFF161055), width: 1.5),
+              ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Trip Statistics 📈', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                    Text('Trip Statistics 📈',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF161055))),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.location_on, color: Colors.blue),
+                        Icon(Icons.location_on, color: Color(0xFF161055)),
                         const SizedBox(width: 8),
-                        Expanded(child: Text('Destination: ${widget.destination}', style: TextStyle(fontSize: 16))),
+                        Expanded(
+                            child: Text('Destination: ${widget.destination}',
+                                style: TextStyle(fontSize: 16))),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, color: Colors.blue),
+                        Icon(Icons.calendar_today, color: Color(0xFF161055)),
                         const SizedBox(width: 8),
-                        Expanded(child: Text('Days: $numberOfDays', style: TextStyle(fontSize: 16))),
+                        Expanded(
+                            child: Text('Days: $numberOfDays',
+                                style: TextStyle(fontSize: 16))),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.check_circle_outline, color: Colors.blue),
+                        Icon(Icons.check_circle_outline,
+                            color: Color(0xFF161055)),
                         const SizedBox(width: 8),
-                        Expanded(child: Text('Activities: $totalActivities', style: TextStyle(fontSize: 16))),
+                        Expanded(
+                            child: Text('Activities: $totalActivities',
+                                style: TextStyle(fontSize: 16))),
                       ],
                     ),
                   ],
@@ -174,10 +199,22 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: const [
-                _LegendBadge(color: Colors.orange, label: 'Morning', icon: Icons.wb_sunny),
-                _LegendBadge(color: Colors.green, label: 'Afternoon', icon: Icons.wb_cloudy),
-                _LegendBadge(color: Colors.indigo, label: 'Evening', icon: Icons.brightness_3),
-                _LegendBadge(color: Colors.blueGrey, label: 'Night', icon: Icons.nights_stay),
+                _LegendBadge(
+                    color: Colors.orange,
+                    label: 'Morning',
+                    icon: Icons.wb_sunny),
+                _LegendBadge(
+                    color: Colors.green,
+                    label: 'Afternoon',
+                    icon: Icons.wb_cloudy),
+                _LegendBadge(
+                    color: Colors.indigo,
+                    label: 'Evening',
+                    icon: Icons.brightness_3),
+                _LegendBadge(
+                    color: Colors.blueGrey,
+                    label: 'Night',
+                    icon: Icons.nights_stay),
               ],
             ),
           ),
@@ -196,8 +233,10 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
                 timeIntervalHeight: 60,
               ),
               onTap: (CalendarTapDetails details) {
-                if (details.appointments != null && details.appointments!.isNotEmpty) {
-                  final Appointment appt = details.appointments!.first as Appointment;
+                if (details.appointments != null &&
+                    details.appointments!.isNotEmpty) {
+                  final Appointment appt =
+                      details.appointments!.first as Appointment;
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -230,7 +269,7 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
               child: ElevatedButton.icon(
                 onPressed: _isAccepting ? null : acceptTrip,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
+                  backgroundColor: Color.fromARGB(198, 243, 199, 249),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -240,7 +279,8 @@ class _TripCalendarScreenState extends State<TripCalendarScreen> {
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
                       )
                     : const Icon(Icons.check_circle_outline),
                 label: Text(
@@ -283,7 +323,9 @@ class _LegendBadge extends StatelessWidget {
   final String label;
   final IconData icon;
 
-  const _LegendBadge({required this.color, required this.label, required this.icon, Key? key}) : super(key: key);
+  const _LegendBadge(
+      {required this.color, required this.label, required this.icon, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {

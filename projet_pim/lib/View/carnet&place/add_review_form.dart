@@ -7,8 +7,8 @@ class AddReviewForm extends StatefulWidget {
   final String placeId; // Add placeId as a parameter
   final Function(Review) onSubmit;
 
-  const AddReviewForm({required this.onSubmit, required this.placeId, Key? key})
-      : super(key: key);
+  const AddReviewForm(
+      {required this.onSubmit, required this.placeId, super.key});
 
   @override
   _AddReviewFormState createState() => _AddReviewFormState();
@@ -53,14 +53,8 @@ class _AddReviewFormState extends State<AddReviewForm> {
       });
 
       // Afficher un message de confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Avis ajouté avec succès !')),
-      );
     } else {
       // Gérer le cas où le formulaire est incomplet
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veuillez remplir tous les champs.')),
-      );
     }
   }
 
@@ -70,18 +64,18 @@ class _AddReviewFormState extends State<AddReviewForm> {
       children: [
         TextField(
           controller: _commentController,
-          decoration: InputDecoration(labelText: 'Commentaire'),
+          decoration: const InputDecoration(labelText: 'Comment'),
           maxLines: 3,
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         RatingBar.builder(
           initialRating: _rating,
           minRating: 1,
           direction: Axis.horizontal,
           itemCount: 5,
           itemSize: 40,
-          itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
-          itemBuilder: (context, _) => Icon(
+          itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+          itemBuilder: (context, _) => const Icon(
             Icons.star,
             color: Colors.amber,
           ),
@@ -91,10 +85,10 @@ class _AddReviewFormState extends State<AddReviewForm> {
             });
           },
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         ElevatedButton(
           onPressed: _submitReview,
-          child: Text('Ajouter un avis'),
+          child: const Text('Add a review'),
         ),
       ],
     );

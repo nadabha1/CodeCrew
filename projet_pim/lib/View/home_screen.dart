@@ -1,31 +1,40 @@
-import 'dart:ui';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:projet_pim/Model/event.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/Event/all_events_screen.dart';
+import 'package:projet_pim/View/Event/my_events_screen.dart';
+import 'package:projet_pim/View/NotificationScreen.dart';
 import 'package:projet_pim/View/TripPlanningScreen.dart';
-import 'package:projet_pim/View/Widgets/userPlacesScreen.dart';
-import 'package:projet_pim/View/chat/group_chat_screen.dart';
 import 'package:projet_pim/View/profile.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/View/weather_screen.dart';
 import 'package:projet_pim/ViewModel/activityLoggerService.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
+import 'package:projet_pim/ViewModel/notification_service.dart';
 import 'package:projet_pim/ViewModel/weather_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../Model/carnet.dart';
 import '../Providers/carnet_provider.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
-  const HomeScreen({required this.userId});
+  final String token;
+
+  const HomeScreen({required this.userId, required this.token, Key? key})
+      : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   CarnetProvider? provider;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   EventProvider? eventProvider;
@@ -35,9 +44,15 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> allUsers = [];
   bool isLoadingUsers = true;
   String? _userId;
+  int _unreadNotifications = 0;
   String? _token;
   List<String> _selectedCategories = [];
-
+  bool isShowingFallbackUsers = false;
+  bool showMatches = false; // false = show People, true = show Matches
+  List<dynamic> matches = [];
+  bool isLoadingMatches = true; // par défaut en cours de chargement
+  final NotificationService _notificationService = NotificationService();
+  bool isLoading = true;
   TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, dynamic>> categories = [
@@ -49,15 +64,42 @@ class _HomeScreenState extends State<HomeScreen> {
     {'icon': Icons.local_bar, 'name': 'Nightlife', 'color': Colors.pink},
     {'icon': Icons.hotel, 'name': 'Hotels', 'color': Colors.indigo},
     {'icon': Icons.directions_bus, 'name': 'Transport', 'color': Colors.brown},
-    {'icon': Icons.theater_comedy, 'name': 'Entertainment', 'color': Colors.teal},
+    {
+      'icon': Icons.theater_comedy,
+      'name': 'Entertainment',
+      'color': Colors.teal
+    },
   ];
 
   @override
   void initState() {
     super.initState();
+    if (!mounted) return;
+    WidgetsBinding.instance.addObserver(this); // Add observer
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     _loadData();
-    _loadWeather();
+    _getCurrentLocation();
+    _preloadMatches();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reload notifications when returning to the app
+      _fetchUnreadNotifications();
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Called when returning to this screen
+    _fetchUnreadNotifications();
   }
 
   Widget _buildDrawer() {
@@ -77,27 +119,55 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundImage: AssetImage('assets/default_profile.png'),
                 ),
                 SizedBox(height: 10),
-                Text('Bienvenue !', style: TextStyle(color: Colors.white, fontSize: 18)),
+                Text('Bienvenue !',
+                    style: TextStyle(color: Colors.white, fontSize: 18)),
               ],
             ),
           ),
           ListTile(
             leading: Icon(Icons.person),
-            title: Text('Mon profil'),
+            title: Text('Mes evenements'),
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) =>
-                UserProfileScreen(userId: widget.userId, token: _token!))
-              );
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        MyEventsScreen(userId: widget.userId, token: _token!),
+                  ));
             },
           ),
           ListTile(
             leading: Icon(Icons.chat),
             title: Text('Events'),
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) =>
-                AllEventsScreen(userId: widget.userId!, token: _token!))
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => AllEventsScreen(
+                          userId: widget.userId, token: _token!)));
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.calendar_month),
+            title: Text('Recommandations'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => CalendarEventsScreen(
+                        userId: widget.userId, token: _token!)),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.flight_takeoff),
+            title: Text('Plan Your Trip'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        TripPlanningScreen(userId: widget.userId)),
               );
             },
           ),
@@ -105,8 +175,12 @@ class _HomeScreenState extends State<HomeScreen> {
             leading: Icon(Icons.cloud),
             title: Text('Météo'),
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) => WeatherScreen(userId: widget.userId)),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => WeatherScreen(
+                          userId: widget.userId,
+                        )),
               );
             },
           ),
@@ -116,12 +190,56 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
-              Navigator.of(context).popUntil((route) => route.isFirst); // or navigate to login
+              Navigator.of(context)
+                  .popUntil((route) => route.isFirst); // or navigate to login
             },
           ),
         ],
       ),
     );
+  }
+
+  Future<List<dynamic>> _fetchMatches() async {
+    try {
+      final userService = UserService();
+      final matches = await userService.matchUser(widget.userId);
+      return matches ?? []; // 👈 return the list
+    } catch (e) {
+      print('Error fetching matches: $e');
+      return [];
+    }
+  }
+
+  Future<void> _preloadMatches() async {
+    try {
+      final fetchedMatches = await _fetchMatches();
+      matches = fetchedMatches;
+    } catch (e) {
+      print('Erreur lors du chargement des matches: $e');
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        isLoadingMatches = false;
+      });
+    }
+  }
+
+  Future<void> _fetchUnreadNotifications() async {
+    if (_userId != null) {
+      try {
+        final count =
+            await _notificationService.getUnreadNotificationsCount(_userId!);
+        print("Fetched unread notifications count: $count"); // Debug print
+        if (!mounted) return;
+        setState(() {
+          _unreadNotifications = count;
+          print(
+              "Updated _unreadNotifications: $_unreadNotifications"); // Debug print
+        });
+      } catch (e) {
+        print("Error fetching unread notifications: $e");
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -130,29 +248,77 @@ class _HomeScreenState extends State<HomeScreen> {
     _token = prefs.getString('jwt_token') ?? '';
     provider = Provider.of<CarnetProvider>(context, listen: false);
     eventProvider = Provider.of<EventProvider>(context, listen: false);
-    await provider!.fetchCarnetsExcludingUser(widget.userId);
-    await provider!.fetchUnlockedPlaces(widget.userId);
-    await eventProvider!.fetchAllEvents();
-    await eventProvider!.fetchSpecificEvents(widget.userId);
-    await fetchUsers();
+    if (!mounted) return;
+    await Future.wait([
+      provider!.fetchCarnetsExcludingUser(widget.userId),
+      provider!.fetchUnlockedPlaces(widget.userId),
+      eventProvider!.fetchAllEvents(),
+      eventProvider!.fetchSpecificEvents(widget.userId),
+      fetchUsers(),
+      //_fetchMatches(),
+      _preloadMatches(),
+      _fetchUnreadNotifications(),
+    ]);
   }
 
-  void _loadWeather() async {
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Vérifiez si les services de localisation sont activés
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Si les services de localisation ne sont pas activés, afficher une erreur
+      print('Les services de localisation ne sont pas activés');
+      return;
+    }
+
+    // Vérifiez les permissions de localisation
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // Si la permission est refusée, demandez-la
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Si l'utilisateur refuse encore la permission
+        print('La permission d\'accès à la localisation est refusée');
+        return;
+      }
+    }
+
+    // Si la permission est autorisée, récupérez la position actuelle
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _loadWeather(position.latitude, position.longitude);
+  }
+
+  void _loadWeather(double latitude, double longitude) async {
     try {
-      final data = await _weatherService.fetchWeather("Tunis");
+      final data =
+          await _weatherService.fetchWeatherByCoordinates(latitude, longitude);
+      if (!mounted) return;
+
       setState(() {
         weatherData = data;
+        isLoading = false;
       });
-    } catch (_) {}
+    } catch (e) {
+      print("Erreur de chargement de la météo : $e");
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> fetchUsers() async {
     try {
       UserService userService = UserService();
-      List<dynamic> fetchedUsers = await userService.getMatchingUsers(widget.userId);
+      List<dynamic> fetchedUsers = await userService.getAllUsers(widget.userId);
       final prefs = await SharedPreferences.getInstance();
       _userId = prefs.getString("userId");
-      allUsers = fetchedUsers.where((user) => user['_id'] != _userId).toList();
+      allUsers =
+          fetchedUsers.where((user) => user['_id'] != widget.userId).toList();
       _applySmartFilter();
     } catch (_) {
       setState(() => isLoadingUsers = false);
@@ -162,81 +328,394 @@ class _HomeScreenState extends State<HomeScreen> {
   void _applySmartFilter() {
     final query = _searchController.text.toLowerCase();
 
+    List<dynamic> filtered = allUsers.where((user) {
+      final nameMatch = user['name'].toLowerCase().contains(query);
+      final List<String> userTags = List<String>.from(user['tags'] ?? [])
+          .map((e) => e.toLowerCase())
+          .toList();
+
+      bool tagMatch = true;
+
+      if (_selectedCategories.isNotEmpty) {
+        String normalize(String input) {
+          return input
+              .toLowerCase()
+              .replaceAll(RegExp(r'\s+'), '') // remove spaces
+              .replaceAll(RegExp(r'[éèêë]'), 'e')
+              .replaceAll(RegExp(r'[àâä]'), 'a')
+              .replaceAll(RegExp(r'[îï]'), 'i')
+              .replaceAll(RegExp(r'[ôö]'), 'o')
+              .replaceAll(RegExp(r'[ùûü]'), 'u')
+              .replaceAll(RegExp(r's$'), ''); // remove trailing "s" for plurals
+        }
+
+        final selectedTags =
+            _selectedCategories.map((e) => normalize(e)).toList();
+        final userTags = List<String>.from(user['tags'] ?? [])
+            .map((e) => normalize(e))
+            .toList();
+        print(" ❤❤❤ $selectedTags");
+        print(" ❤❤❤ $userTags");
+
+        // ✅ logique AND stricte
+        tagMatch =
+            selectedTags.every((selected) => userTags.contains(selected));
+      }
+
+      return nameMatch && tagMatch;
+    }).toList();
+    print(
+        "🧠 Résultat filtré (${filtered.length} users) avec: $_selectedCategories");
+    if (!mounted) return;
     setState(() {
-      users = allUsers.where((user) {
-        final nameMatch = user['name'].toLowerCase().contains(query);
-        final List<String> userTags = List<String>.from(user['tags'] ?? []);
-
-        final tagMatch = _selectedCategories.isEmpty ||
-            _selectedCategories.every((selected) =>
-              userTags.any((tag) => tag.toLowerCase().contains(selected.toLowerCase()) ||
-                                      selected.toLowerCase().contains(tag.toLowerCase())));
-
-        return nameMatch && tagMatch;
-      }).toList();
+      users = filtered;
+      isShowingFallbackUsers = false; // (ou inutile à ce stade)
       isLoadingUsers = false;
     });
   }
 
+  Future<String> getAddressFromLatLng(LatLng location) async {
+    try {
+      print(
+          "🌍 Fetching address for coordinates: ${location.latitude}, ${location.longitude}");
+
+      if (location.latitude == 0.0 && location.longitude == 0.0) {
+        print(
+            "⚠️ Invalid coordinates: ${location.latitude}, ${location.longitude}");
+        return "Lieu inconnu";
+      }
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(location.latitude, location.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+
+        // Extraire les informations utiles
+        String street = place.thoroughfare ?? place.street ?? "Rue inconnue";
+        String city = place.locality ?? place.subLocality ?? "Ville inconnue";
+        String region = place.administrativeArea ?? "Région inconnue";
+        String country = place.country ?? "Pays inconnu";
+
+        // Construire une adresse détaillée
+        String formattedAddress = "$street, $city, $region, $country";
+        print("✅ Geocoding successful: $formattedAddress");
+
+        return formattedAddress;
+      } else {
+        print("⚠️ No placemarks found for the given coordinates.");
+      }
+    } catch (e) {
+      print("❌ Erreur lors du géocodage : $e");
+    }
+
+    return "Lieu inconnu";
+  }
+
+  LatLng _parseLocation(dynamic location) {
+    try {
+      if (location is Map<String, dynamic>) {
+        print("📍 Parsing location as Map: $location");
+        return LatLng(
+          location['latitude'] ?? 0.0,
+          location['longitude'] ?? 0.0,
+        );
+      } else if (location is String) {
+        print("📍 Parsing location as String: $location");
+        // Split the string into latitude and longitude
+        List<String> coordinates = location.split(',');
+        if (coordinates.length == 2) {
+          return LatLng(
+            double.parse(coordinates[0].trim()), // Latitude
+            double.parse(coordinates[1].trim()), // Longitude
+          );
+        } else {
+          print("⚠️ Invalid string format for location: $location");
+        }
+      }
+    } catch (e) {
+      print("❌ Error parsing location: $e");
+    }
+    print("⚠️ Invalid location format. Returning default coordinates.");
+    return LatLng(0, 0); // Default value
+  }
+
+  Future<Map<String, dynamic>?> _fetchUserCarnet(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/carnets/user/$userId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print('Failed to fetch carnet for user $userId: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching carnet for user $userId: $e');
+      return null;
+    }
+  }
+
+  Widget buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        if (index < rating.floor()) {
+          return const Icon(Icons.star, color: Colors.amber, size: 20);
+        } else if (index < rating && rating - index < 1) {
+          return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+        } else {
+          return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+        }
+      }),
+    );
+  }
+
   Widget _buildUserCard(dynamic user) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TravelerProfileScreen(
-            travelerId: user['_id'],
-            loggedInUserId: widget.userId,
-          ),
-        ),
-      ),
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 5,
-        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 35,
-                backgroundImage: user['profileImageUrl'] != null && user['profileImageUrl'].isNotEmpty
-                    ? NetworkImage(user['profileImageUrl'])
-                    : AssetImage('assets/default_profile.png') as ImageProvider,
+    // Appel de la fonction asynchrone pour récupérer la localisation
+    return FutureBuilder<String>(
+      future: _getLocationName(user), // Appeler ta logique asynchrone ici
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator(); // Affiche un indicateur de chargement pendant l'attente
+        }
+
+        if (snapshot.hasError) {
+          return Text('❌ Erreur : ${snapshot.error}');
+        }
+
+        // Utiliser la localisation récupérée
+        String locationName = snapshot.data ?? "Lieu inconnu";
+
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TravelerProfileScreen(
+                travelerId: user['_id'],
+                loggedInUserId: widget.userId,
+                token: _token!,
               ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user['name'], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 4),
-                    Text(user['location'] ?? "Localisation inconnue", style: TextStyle(color: Colors.grey[600])),
-                    SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      children: (user['tags'] ?? []).map<Widget>((tag) {
-                        return Chip(
-                          label: Text(tag),
-                          backgroundColor: Color(0xFFE5E5F7),
-                          labelStyle: TextStyle(fontSize: 12),
-                        );
-                      }).toList(),
-                    ),
-                    Row(
+            ),
+          ),
+          child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 5,
+            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundImage: user['profileImage'] != null &&
+                            user['profileImage'].isNotEmpty
+                        ? NetworkImage(
+                            '${ApiConstants.baseUrl}' + user['profileImage'])
+                        : AssetImage('assets/default_profile.png')
+                            as ImageProvider,
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.star, color: Colors.orange, size: 16),
-                        SizedBox(width: 4),
-                        Text('${user['rating'] ?? 0} (${user['reviewsCount'] ?? 0} avis)'),
+                        Text(user['name'],
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text(locationName, // Afficher la localisation récupérée
+                            style: TextStyle(color: Colors.grey[600])),
+                        SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          children: (user['tags'] ?? []).map<Widget>((tag) {
+                            return Chip(
+                              label: Text(tag),
+                              backgroundColor: Color(0xFFE5E5F7),
+                              labelStyle: TextStyle(fontSize: 12),
+                            );
+                          }).toList(),
+                        ),
+                        Row(
+                          children: [
+                            FutureBuilder<Map<String, dynamic>?>(
+                              future: _fetchUserCarnet(user['_id']),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const CircularProgressIndicator();
+                                } else {
+                                  final userCarnet = snapshot.data!;
+                                  final rating =
+                                      (userCarnet['globalAverageRating'] ?? 0)
+                                          .toDouble(); // Ensure double
+                                  return Row(
+                                    children: [
+                                      buildStarRating(rating),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        rating.toStringAsFixed(1),
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54),
+                                      ),
+                                    ],
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              )
-            ],
+                  )
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+
+// Fonction asynchrone pour récupérer la localisation
+  Future<String> _getLocationName(dynamic userData) async {
+    try {
+      if (userData?['location'] != null) {
+        LatLng parsedLocation = _parseLocation(userData['location']);
+        return await getAddressFromLatLng(parsedLocation);
+      } else {
+        print("⚠️ No location data found in userData.");
+      }
+    } catch (e) {
+      print("❌ Error fetching location name: $e");
+    }
+    return "Lieu inconnu"; // Valeur par défaut
+  }
+
+  Widget _buildMatchCard(dynamic match) {
+    if (match == null || match['id'] == null) {
+      return SizedBox
+          .shrink(); // Return an empty widget if match or 'id' is null
+    }
+
+    return GestureDetector(
+        onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TravelerProfileScreen(
+                  travelerId: match['id'], // Use the correct 'id' field
+                  loggedInUserId: widget.userId,
+                  token: _token!,
+                ),
+              ),
+            ),
+        child: Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 5,
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 35,
+                  backgroundImage: match['profileImage'] != null &&
+                          match['profileImage'].isNotEmpty
+                      ? NetworkImage(
+                          '${ApiConstants.baseUrl}${match['profileImage']}')
+                      : AssetImage('assets/default_profile.png')
+                          as ImageProvider,
+                  onBackgroundImageError: (_, __) {
+                    // Handle image loading errors
+                    print(
+                        'Error loading profile image for match: ${match['id']}');
+                  },
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              match['name'] ??
+                                  'Unknown Name', // Fallback for null name
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '${match['score'] != null ? (match['score'] * 100).toStringAsFixed(1) + '% compatibility' : 'N/A'}',
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      if (match['tags'] != null && match['tags'].isNotEmpty)
+                        Wrap(
+                          spacing: 6,
+                          children: (match['tags'] is String
+                                  ? match['tags']
+                                      .split(' ')
+                                      .map((tag) => tag.trim())
+                                      .toList()
+                                  : List<String>.from(match['tags']))
+                              .map<Widget>((tag) {
+                            return Chip(
+                              label: Text(tag),
+                              backgroundColor: Color(0xFFE5E5F7),
+                              labelStyle: TextStyle(fontSize: 12),
+                            );
+                          }).toList(),
+                        ),
+                      SizedBox(height: 4),
+                      FutureBuilder<Map<String, dynamic>?>(
+                        future: _fetchUserCarnet(match['id']),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          } else if (snapshot.hasData) {
+                            final userCarnet = snapshot.data!;
+                            final rating =
+                                (userCarnet['globalAverageRating'] ?? 0)
+                                    .toDouble(); // Ensure double
+                            return Row(
+                              children: [
+                                buildStarRating(rating),
+                                const SizedBox(width: 6),
+                                Text(
+                                  rating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black54),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Text(
+                              'No Rating',
+                              style: TextStyle(color: Colors.grey[600]),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ));
   }
 
   void onSearch(String keyword) {
@@ -259,147 +738,316 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eventProvider = Provider.of<EventProvider>(context);
+    return Navigator(
+      observers: [NavigatorObserver()],
+      onPopPage: (route, result) {
+        if (route.didPop(result)) {
+          _fetchUnreadNotifications(); // Reload notifications on pop
+          return true;
+        }
+        return false;
+      },
+      pages: [
+        MaterialPage(
+          child: Scaffold(
+            key: _scaffoldKey, // Ajout ici
+            backgroundColor: Color(0xFFF7F4FC),
+            drawer: _buildDrawer(), // Ajout ici
+            body: SafeArea(
+              child: Provider.of<EventProvider>(context).isLoading ||
+                      isLoadingUsers
+                  ? Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(),
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: TextField(
+                              controller: _searchController,
+                              onSubmitted: onSearch,
+                              decoration: InputDecoration(
+                                hintText: 'Search for a user...',
+                                prefixIcon: Icon(Icons.search),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              onChanged: (_) => _applySmartFilter(),
+                            ),
+                          ),
+                          SingleChildScrollView(
+                            padding: const EdgeInsets.only(left: 12),
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: categories.map((category) {
+                                final name = category['name'];
+                                final isSelected =
+                                    _selectedCategories.contains(name);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5.0),
+                                  child: ChoiceChip(
+                                    avatar: Icon(category['icon'],
+                                        color: isSelected
+                                            ? Colors.white
+                                            : category['color'],
+                                        size: 20),
+                                    label: Text(name),
+                                    selected: isSelected,
+                                    selectedColor: category['color'],
+                                    backgroundColor: Colors.white,
+                                    labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.black),
+                                    onSelected: (selected) {
+                                      if (!mounted) return;
+                                      setState(() {
+                                        selected
+                                            ? {
+                                                _selectedCategories.add(name),
+                                                onPlaceClick(name, "click add")
+                                              }
+                                            : {
+                                                _selectedCategories
+                                                    .remove(name),
+                                                onPlaceClick(name, "remove")
+                                              };
+                                        _applySmartFilter();
+                                      });
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          if (_selectedCategories.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _selectedCategories.clear();
+                                    _searchController.clear();
+                                    _applySmartFilter();
+                                  });
+                                },
+                                icon:
+                                    Icon(Icons.refresh, color: Colors.black87),
+                                label: Text("Reset filters",
+                                    style: TextStyle(color: Colors.black87)),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: Colors.grey[200],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.3),
+                                    blurRadius: 6,
+                                    spreadRadius: 2,
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          showMatches = false;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: !showMatches
+                                              ? Color(0xFFDBD9FE)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(25),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'People You May Like',
+                                            style: TextStyle(
+                                              color: !showMatches
+                                                  ? Colors.black
+                                                  : Colors.grey,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          showMatches = true;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: showMatches
+                                              ? Color(0xFFDBD9FE)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(25),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Matches You May Like',
+                                            style: TextStyle(
+                                              color: showMatches
+                                                  ? Colors.black
+                                                  : Colors.grey,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (showMatches)
+                            isLoadingMatches
+                                ? Center(child: CircularProgressIndicator())
+                                : matches.isEmpty
+                                    ? Padding(
+                                        padding: const EdgeInsets.all(20.0),
+                                        child: Center(
+                                          child: Text(
+                                            "No match found.",
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey),
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemCount: matches.length,
+                                        itemBuilder: (context, index) =>
+                                            _buildMatchCard(matches[index]),
+                                      )
+                          else
+                            users.isEmpty && !isLoadingUsers
+                                ? Padding(
+                                    padding: const EdgeInsets.all(20.0),
+                                    child: Center(
+                                      child: Text(
+                                        "No user found.",
+                                        style: TextStyle(
+                                            fontSize: 16, color: Colors.grey),
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: users.length,
+                                    itemBuilder: (context, index) =>
+                                        _buildUserCard(users[index]),
+                                  ),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        )
+      ],
+    );
+  }
 
-    return Scaffold(
-      key: _scaffoldKey, // Ajout ici
-      backgroundColor: Color(0xFFF7F4FC),
-      drawer: _buildDrawer(), // Ajout ici
-      body: SafeArea(
-        child: eventProvider.isLoading || isLoadingUsers
-            ? Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: TextField(
-                        controller: _searchController,
-                        onSubmitted: onSearch,
-                        decoration: InputDecoration(
-                          hintText: 'Rechercher un utilisateur...',
-                          prefixIcon: Icon(Icons.search),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        onChanged: (_) => _applySmartFilter(),
+  Widget _buildNotificationsIcon() {
+    return FutureBuilder<int>(
+      future: _notificationService.getUnreadNotificationsCount(widget.userId),
+      builder: (context, snapshot) {
+        int unreadCount = snapshot.data ?? 0;
+
+        return Stack(
+          children: [
+            IconButton(
+              icon: Icon(Icons.notifications, color: Colors.white, size: 28),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        NotificationScreen(userId: widget.userId),
+                  ),
+                ).then((_) {
+                  setState(
+                      () {}); // Trigger rebuild to refresh the FutureBuilder
+                });
+              },
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: BoxConstraints(
+                    minWidth: 20,
+                    minHeight: 20,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$unreadCount',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    // Add "Plan Your Trip" Button here
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Navigate to the Trip Planning Page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => TripPlanningScreen(userId: widget.userId)),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue, // Background color of the button
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12), // Rounded corners
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                        ),
-                        child: Text(
-                          "Plan Your Trip",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SingleChildScrollView(
-                      padding: const EdgeInsets.only(left: 12),
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: categories.map((category) {
-                          final name = category['name'];
-                          final isSelected = _selectedCategories.contains(name);
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                            child: ChoiceChip(
-                              avatar: Icon(category['icon'],
-                                  color: isSelected ? Colors.white : category['color'],
-                                  size: 20),
-                              label: Text(name),
-                              selected: isSelected,
-                              selectedColor: category['color'],
-                              backgroundColor: Colors.white,
-                              labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.black),
-                              onSelected: (selected) {
-                                setState(() {
-                                  selected
-                                      ? {_selectedCategories.add(name),
-                                          onPlaceClick(name,"click add")
-                                      }
-                                      :{
-                                        _selectedCategories.remove(name),
-                                        onPlaceClick(name,"remove")
-                                      } ;
-                                  _applySmartFilter();
-                                });
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    if (_selectedCategories.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _selectedCategories.clear();
-                              _searchController.clear();
-                              _applySmartFilter();
-                            });
-                          },
-                          icon: Icon(Icons.refresh, color: Colors.black87),
-                          label: Text("Réinitialiser les filtres",
-                              style: TextStyle(color: Colors.black87)),
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.grey[200],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text("People You May Like",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    ),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: users.length,
-                      itemBuilder: (context, index) => _buildUserCard(users[index]),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-      ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       decoration: BoxDecoration(
         color: Color(0xFFDBD9FE),
         borderRadius: BorderRadius.only(
@@ -407,55 +1055,61 @@ class _HomeScreenState extends State<HomeScreen> {
           bottomRight: Radius.circular(30),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: Icon(Icons.menu, color: Colors.white, size: 28),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          // Weather section
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WeatherScreen(userId: widget.userId),
               ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WeatherScreen(userId: widget.userId)),
-                    ),
-                    child: weatherData != null
-                        ? Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 4, spreadRadius: 1),
-                                  ],
-                                ),
-                                child: ClipOval(
-                                  child: Image.network(
-                                    "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 15,
-                                child: Text(
-                                  "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text("N/A °C", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)),
+            ),
+            child: weatherData != null
+                ? Row(
+                    children: [
+                      Image.network(
+                        "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        "${weatherData!['main']['temp'].toStringAsFixed(1)}°C",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    "N/A °C",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
-                ],
+          ),
+
+          // Notifications and profile section
+          Row(
+            children: [
+              _buildNotificationsIcon(),
+              SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.person, color: Colors.white, size: 28),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileScreen(
+                        userId: widget.userId,
+                        token: widget.token,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

@@ -19,7 +19,7 @@ class CarnetProvider with ChangeNotifier {
   List<Map<String, dynamic>> get places => _places;
 
   // Liste des images uploadées
-  List<String> _imageUrls = [];
+  final List<String> _imageUrls = [];
   List<String> get imageUrls => _imageUrls;
 
   // Fetch all carnets
@@ -299,9 +299,6 @@ class CarnetProvider with ChangeNotifier {
   Future<String> getCarnetIdByPlaceId(String placeId) async {
     try {
       String? carnetId = await _carnetService.getCarnetIdByPlaceId(placeId);
-      if (carnetId == null) {
-        throw Exception('Carnet ID not found');
-      }
       return carnetId;
     } catch (e) {
       print("Error fetching carnetId: $e");
@@ -368,6 +365,10 @@ class CarnetProvider with ChangeNotifier {
     final url =
         Uri.parse('${ApiConstants.baseUrl}/carnets/$carnetId/places/$placeId');
 
+    print(
+        "🛠 Attempting to delete place with ID: $placeId from carnet ID: $carnetId");
+    print("📋 Available carnet IDs: ${_carnets.map((c) => c.id).toList()}");
+
     final response = await http.delete(
       url,
       headers: {
@@ -376,12 +377,27 @@ class CarnetProvider with ChangeNotifier {
     );
 
     if (response.statusCode == 201 || response.statusCode == 200) {
-      // Remove the place from the local list if deletion is successful
-      final carnet = _carnets.firstWhere((carnet) => carnet.id == carnetId);
+      final carnet = _carnets.firstWhere(
+        (carnet) => carnet.id == carnetId,
+        orElse: () {
+          print("❌ Carnet with ID $carnetId not found.");
+          throw Exception("Carnet with ID $carnetId not found.");
+        },
+      );
+
+      // Vérifiez si la place existe avant de la supprimer
+      final placeExists = carnet.places.any((place) => place.id == placeId);
+      if (!placeExists) {
+        print("❌ Place with ID $placeId not found in carnet $carnetId.");
+        return;
+      }
+
       carnet.places.removeWhere((place) => place.id == placeId);
       notifyListeners();
+      print(
+          "✅ Place with ID $placeId successfully deleted from carnet $carnetId.");
     } else {
-      throw Exception('');
+      throw Exception('Failed to delete place');
     }
   }
 }

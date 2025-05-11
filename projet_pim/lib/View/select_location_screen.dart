@@ -5,6 +5,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 
 class SelectLocationScreen extends StatefulWidget {
+  const SelectLocationScreen({super.key});
+
   @override
   _SelectLocationScreenState createState() => _SelectLocationScreenState();
 }
@@ -61,7 +63,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lieu introuvable. Veuillez réessayer.")),
+        const SnackBar(content: Text("Lieu introuvable. Veuillez réessayer.")),
       );
     }
   }
@@ -69,7 +71,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Sélectionnez un emplacement")),
+      appBar: AppBar(title: const Text("Select a location")),
       body: Column(
         children: [
           Padding(
@@ -77,9 +79,9 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: "Rechercher un lieu...",
+                hintText: "Search for a location...",
                 suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
+                  icon: const Icon(Icons.search),
                   onPressed: () =>
                       _searchLocationByName(_searchController.text),
                 ),
@@ -96,7 +98,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
             child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                center: _currentLocation ?? LatLng(48.8566, 2.3522),
+                center: _currentLocation ?? const LatLng(48.8566, 2.3522),
                 zoom: 12.0,
                 onTap: (tapPosition, latLng) {
                   setState(() {
@@ -108,7 +110,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                 TileLayer(
                   urlTemplate:
                       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: ['a', 'b', 'c'],
+                  subdomains: const ['a', 'b', 'c'],
                 ),
                 if (_selectedLocation != null)
                   MarkerLayer(
@@ -117,7 +119,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                         width: 40.0,
                         height: 40.0,
                         point: _selectedLocation!,
-                        child: Icon(Icons.location_pin,
+                        child: const Icon(Icons.location_pin,
                             color: Colors.red, size: 40),
                       ),
                     ],
@@ -128,13 +130,13 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.check),
+        child: const Icon(Icons.check),
         onPressed: () {
           if (_selectedLocation != null) {
             Navigator.pop(context, _selectedLocation);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Veuillez sélectionner un emplacement")),
+              const SnackBar(content: Text("Please select a location")),
             );
           }
         },

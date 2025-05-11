@@ -58,7 +58,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _fetchInitialNotifications() async {
     try {
-      final notifications = await _notificationService.fetchNotifications(widget.userId);
+      final notifications =
+          await _notificationService.fetchNotifications(widget.userId);
       setState(() {
         _notifications = notifications;
         _isLoading = false;
@@ -78,9 +79,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
   }
 
-  Future<void> _handleNotificationTap(String notificationId, Map<String, dynamic> notification) async {
+  Future<void> _handleNotificationTap(
+      String notificationId, Map<String, dynamic> notification) async {
     try {
       await _notificationService.markAsRead(notificationId);
+      _fetchInitialNotifications();
 
       if (notification['type'] == 'NEW_EVENT_All') {
         final eventId = notification['data']?['eventId'] ?? '';
@@ -109,6 +112,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               builder: (context) => TravelerProfileScreen(
                 travelerId: followerId,
                 loggedInUserId: widget.userId,
+                token: _token!,
               ),
             ),
           );
@@ -118,6 +122,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
+              eventProvider: EventProvider(userId: _userId!),
+              token: _token!,
+              userId: widget.userId,
               conversationId: notification['data']?['conversationId'] ?? '',
             ),
           ),
@@ -125,7 +132,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
       } else if (notification['type'] == 'NEW_Event') {
         // 🟢 Trip reminder notification clicked
         final tripId = notification['data']?['tripId'] ?? '';
-        final destination = notification['message'].toString().split('to ').last.split(' starts').first;
+        final destination = notification['message']
+            .toString()
+            .split('to ')
+            .last
+            .split(' starts')
+            .first;
 
         showDialog(
           context: context,
@@ -137,7 +149,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
               children: [
                 Text('Get ready for your trip!'),
                 const SizedBox(height: 8),
-                Text('Destination: $destination', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('Destination: $destination',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             actions: [
@@ -155,7 +168,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<bool> _isUserJoined(String eventId) async {
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId/joined/${widget.userId}'));
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/events/$eventId/joined/${widget.userId}'));
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       return jsonResponse['joined'] == true;
@@ -166,7 +180,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<Event> _fetchEventDetails(String eventId) async {
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
+    final response =
+        await http.get(Uri.parse('${ApiConstants.baseUrl}/events/$eventId'));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final eventData = data['data'] ?? data;
@@ -193,22 +208,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   itemCount: _notifications.length,
                   itemBuilder: (context, index) {
                     final notification = _notifications[index];
-                    final iconType = notificationIcons[notification['type']] ?? Icons.notifications;
+                    final iconType = notificationIcons[notification['type']] ??
+                        Icons.notifications;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 5, horizontal: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
                       child: ListTile(
-                        onTap: () => _handleNotificationTap(notification['_id'], notification),
-                        leading: Icon(iconType, color: Colors.blue),
-                        title: Text(notification['message'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                        onTap: () => _handleNotificationTap(
+                            notification['_id'], notification),
+                        leading: Icon(iconType, color: Color(0xFF1A1055)),
+                        title: Text(notification['message'],
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           formatDate(notification['createdAt']),
                           style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: !notification['isRead']
-                            ? const Icon(Icons.circle, color: Colors.blue, size: 10)
+                            ? const Icon(Icons.circle,
+                                color: Color(0xFF1A1055), size: 10)
                             : null,
                       ),
                     );

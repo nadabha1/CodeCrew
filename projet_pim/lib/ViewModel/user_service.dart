@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projet_pim/Model/conversation.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
-import 'package:provider/provider.dart';
-
-import '../Providers/conversation_provider.dart';
 
 class UserService {
   final http.Client client = http.Client();
@@ -13,33 +10,67 @@ class UserService {
   // Récupérer les informations de l'utilisateur avec un token
   Future<Map<String, dynamic>> getUserById(String userId, String token) async {
     try {
-      final response = await client.get(
-        Uri.parse('${ApiConstants.baseUrl}/users/$userId'),
+      final url = Uri.parse('${ApiConstants.baseUrl}/users/$userId');
+      print("Making GET request to: $url");
+
+      final response = await http.get(
+        url,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-      ).timeout(const Duration(seconds: 10));
+      );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        // Debugging: Print the response body
+        print("API Response: ${response.body}");
+        return jsonDecode(response.body);
       } else {
-        return {'error': 'Erreur ${response.statusCode}: ${response.body}'};
+        // Debugging: Print the error response
+        print(
+            "Failed to fetch user details. Status Code: ${response.statusCode}");
+        print("Response Body: ${response.body}");
+        throw Exception('Failed to fetch user details');
       }
     } catch (e) {
-      return {'error': 'Erreur lors de la récupération de l’utilisateur: $e'};
+      print("Error in getUserById: $e");
+      throw Exception('Error fetching user details');
     }
   }
+
   Future<List<dynamic>> getMatchingUsers(String userId) async {
-  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl}/preferences/matching/$userId'));
 
-  if (response.statusCode == 200) {
-    return jsonDecode(response.body);
-  } else {
-    throw Exception("Erreur lors du chargement des utilisateurs similaires");
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Erreur lors du chargement des utilisateurs similaires");
+    }
   }
-}
 
+  Future<List<Map<String, dynamic>>> matchUser(String userId) async {
+    final url = Uri.parse(
+        '${ApiConstants.baseUrl}/match/$userId'); // Change to your real backend URL
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 201) {
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        return List<Map<String, dynamic>>.from(data['results']);
+      } else {
+        throw Exception('Failed to match users');
+      }
+    } else {
+      throw Exception('Failed to match users: ${response.statusCode}');
+    }
+  }
 
   // Récupérer la liste de tous les utilisateurs
   Future<List<Map<String, dynamic>>> getAllUsers(String token) async {
@@ -153,8 +184,9 @@ class UserService {
     String token,
     String name,
     String job,
-    String location,
     String bio,
+    String? profileImageUrl,
+    String? location, // ✅ Add latitudeLongitude parameter
   ) async {
     try {
       print("🔄 Preparing Profile Update Request...");
@@ -168,8 +200,9 @@ class UserService {
         body: jsonEncode({
           'name': name,
           'job': job,
-          'location': location,
           'bio': bio,
+          'profileImage': profileImageUrl,
+          'location': location, // ✅ Include in payload
         }),
       );
 
@@ -322,30 +355,21 @@ class UserService {
     }
   }
 
-static Future<List<Conversation>> getUserConversations(String userId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
+  static Future<List<Conversation>> getUserConversations(String userId) async {
+    final response = await http
+        .get(Uri.parse('${ApiConstants.baseUrl2}/conversations/$userId'));
 
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        List<Conversation> conversations = data.map((json) => Conversation.fromJson(json)).toList();
-        return conversations; // Return the fetched conversations
-      } else {
-        throw Exception('Failed to load conversations');
-      }
-    } catch (e) {
-      throw Exception('Error fetching conversations: $e');
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Conversation.fromJson(json)).toList();
+    } else {
+      throw Exception('Erreur lors du chargement des conversations');
     }
   }
 
   void startConversation(BuildContext context, String userId) async {
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/conversations/$userId'),
+      Uri.parse('${ApiConstants.baseUrl}/conversations'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"participantId": userId}),
     );
@@ -355,7 +379,7 @@ static Future<List<Conversation>> getUserConversations(String userId) async {
       Navigator.pop(context, json.decode(response.body));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text("Erreur lors de la création de la conversation")),
       );
     }

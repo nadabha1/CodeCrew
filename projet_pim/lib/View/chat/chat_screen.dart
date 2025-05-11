@@ -1,14 +1,32 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+
+import 'package:projet_pim/Model/event.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
+import 'package:projet_pim/View/chat/CallScreen.dart';
+import 'package:projet_pim/ViewModel/agora_service.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
+  final EventProvider eventProvider;
+  final String token;
+  final String userId;
 
-  ChatScreen({required this.conversationId});
+  ChatScreen({
+    required this.conversationId,
+    required this.eventProvider,
+    required this.token,
+    required this.userId,
+  });
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -17,121 +35,119 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _messageController = TextEditingController();
-  String? _userId;
-  String? otherUserName; // Stocke le nom du correspondant
-  List conversations = [];
+  String? otherUserName;
+  FlutterSoundRecorder? _recorder;
+  bool isRecording = false;
+  String? _audioPath;
+  FlutterSoundPlayer _player = FlutterSoundPlayer();
+  bool isPlaying = false;
+  String? currentlyPlayingUrl;
 
   @override
   void initState() {
     super.initState();
-    getUserId();
-    fetchConversations(); // ✅ Appel pour récupérer les noms des participants
+    fetchConversations();
     fetchMessages();
-  }
-
-  Future<void> getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString("user_id");
-  }
-  Future<void> fetchConversations() async {
-  final prefs = await SharedPreferences.getInstance();
-  _userId = prefs.getString("user_id");
-  bool isLoading = true;
-
-  final response = await http.get(Uri.parse('${ApiConstants.baseUrl}/conversations/name/${widget.conversationId}'));
-
-  if (response.statusCode == 200) {
-    // ✅ Correction: utilise Map au lieu de List
-    final Map<String, dynamic> conversationData = json.decode(response.body);
-
-    setState(() {
-      isLoading = false;
-
-      // ✅ Accède aux participants de la conversation
-      final List participants = conversationData['participants'] ?? [];
-      
-      // ✅ Récupère le nom du participant
-      String name = getParticipantName(participants);
-      setState(() {
-        otherUserName = name; // ✅ Met à jour le nom du correspondant
-      });
+    initRecorder();
+    _player.openPlayer().catchError((e) {
+      print("Error initializing player: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initialize player: $e')),
+      );
     });
-  } else {
-    setState(() {
-      isLoading = false;
-    });
-    print('❌ Erreur lors du chargement des conversations');
   }
-}
-String getParticipantName(List<dynamic> participants) {
-  try {
-    final otherParticipant = participants.firstWhere(
-      (p) => p['_id'] != _userId,
-      orElse: () => null,
-    );
 
-    if (otherParticipant != null && otherParticipant is Map && otherParticipant.containsKey('name')) {
-      return otherParticipant['name'] ?? 'Utilisateur inconnu';
+  Future<void> initRecorder() async {
+    try {
+      // Requesting microphone and camera permissions
+      await [
+        Permission.microphone,
+        Permission.camera,
+      ].request();
+
+      // Check if microphone permission is granted
+      if (await Permission.microphone.isDenied) {
+        throw Exception('Microphone permission not granted');
+      }
+
+      // Check if camera permission is denied
+      if (await Permission.camera.isDenied) {
+        throw Exception('Camera permission not granted');
+      }
+
+      // Initializing recorder
+      _recorder = FlutterSoundRecorder();
+      await _recorder!.openRecorder();
+    } catch (e) {
+      print("Error initializing recorder: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initialize recorder: $e')),
+      );
     }
-  } catch (e) {
-    print("🚨 Erreur lors de la récupération du nom: $e");
   }
-  return 'Utilisateur inconnu';
-}
 
+  @override
+  void dispose() {
+    _recorder?.closeRecorder();
+    _recorder = null;
+    _messageController.dispose();
+    super.dispose();
+    _player.closePlayer();
+  }
+
+  Future<void> fetchConversations() async {
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/conversations/name/${widget.conversationId}'));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final participants = data['participants'];
+      final other = participants.firstWhere(
+        (p) => p['_id'] != widget.userId,
+        orElse: () => null,
+      );
+      setState(() {
+        otherUserName = other?['name'] ?? "User";
+      });
+    }
+  }
 
   Future<void> fetchMessages() async {
-    final url = '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}';
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(
+        '${ApiConstants.baseUrl}/messages/conversation/${widget.conversationId}'));
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonData = jsonDecode(response.body);
+      final List<dynamic> data = jsonDecode(response.body);
       setState(() {
-        messages = jsonData
-            .map((msg) => {
-                  'id': msg['_id'],
-                  'content': msg['content'],
-                  'sender': msg['sender'],
-                  'createdAt': msg['createdAt'],
-                })
-            .toList();
+        messages = data.map((msg) {
+          return {
+            'id': msg['_id'],
+            'sender': msg['sender'],
+            'content': msg['content'],
+            'type': msg['type'] ?? 'text',
+            'eventId': msg['event'],
+            'createdAt': msg['createdAt']
+          };
+        }).toList();
       });
-    } else {
-      print("❌ Erreur de chargement: ${response.body}");
     }
   }
 
-  String formatTimestamp(dynamic timestamp) {
-    if (timestamp == null || timestamp == "") return "⏳";
-    try {
-      DateTime dateTime;
-      if (timestamp is String) {
-        dateTime = DateTime.parse(timestamp).toLocal();
-      } else if (timestamp is int) {
-        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal();
-      } else {
-        return "⏳";
-      }
-      return DateFormat('HH:mm').format(dateTime);
-    } catch (e) {
-      print("Error parsing timestamp: $timestamp");
-      return "⏳";
-    }
+  String formatTimestamp(dynamic ts) {
+    if (ts == null) return "";
+    DateTime dateTime = DateTime.parse(ts).toLocal();
+    return DateFormat('HH:mm').format(dateTime);
   }
 
-  Future<void> sendMessage() async {
-    final messageText = _messageController.text;
-    if (messageText.isEmpty) return;
-
-    final url = '${ApiConstants.baseUrl}/messages';
+  Future<void> sendMessage({String? text, String? eventId}) async {
     final response = await http.post(
-      Uri.parse(url),
+      Uri.parse('${ApiConstants.baseUrl}/messages'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "conversationId": widget.conversationId,
-        "senderId": _userId,
-        "content": messageText,
-        "createdAt": DateTime.now().toIso8601String(),
+        "senderId": widget.userId,
+        "content": text ?? '',
+        "type": eventId != null ? "shared_event" : "text",
+        "eventId": eventId,
       }),
     );
 
@@ -139,106 +155,297 @@ String getParticipantName(List<dynamic> participants) {
       _messageController.clear();
       fetchMessages();
     } else {
-      print("❌ Erreur d'envoi: ${response.body}");
+      print("❌ Error sending: ${response.body}");
     }
+  }
+
+  Widget _buildSharedEventCard(String eventId) {
+    return FutureBuilder<Event>(
+      future: widget.eventProvider.getEventById(eventId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Text("Loading...");
+        }
+        if (!snapshot.hasData) {
+          return Text("Event not found");
+        }
+
+        final event = snapshot.data!;
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EventDetailsScreen(
+                  event: event,
+                  userId: widget.userId,
+                  token: widget.token,
+                  eventProvider: widget.eventProvider,
+                ),
+              ),
+            );
+          },
+          child: Card(
+            color: Color(0xFFE6F0FF),
+            margin: EdgeInsets.symmetric(vertical: 6),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("📢 ${event.title}",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 4),
+                  Text(
+                      "📍 Location: ${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}"),
+                  Text(
+                      "📅 Start: ${DateFormat('dd MMM yyyy, HH:mm').format(event.startDate)}"),
+                  Text("🔗 Join: chat/${event.id}"),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> startRecording() async {
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Microphone permission denied')),
+      );
+      return;
+    }
+
+    final dir = await getApplicationDocumentsDirectory();
+    _audioPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.aac';
+
+    await _recorder!.startRecorder(toFile: _audioPath);
+    setState(() => isRecording = true);
+  }
+
+  Future<void> stopRecording() async {
+    await _recorder!.stopRecorder();
+    setState(() => isRecording = false);
+    if (_audioPath != null) {
+      await sendAudioMessage(_audioPath!);
+    }
+  }
+
+  Future<void> sendAudioMessage(String path) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConstants.baseUrl}/messages/audio'),
+    );
+
+    request.fields['conversationId'] = widget.conversationId;
+    request.fields['senderId'] = widget.userId;
+    request.files.add(await http.MultipartFile.fromPath('audio', path));
+    final response = await request.send();
+    final respStr = await response.stream.bytesToString();
+
+    if (response.statusCode == 201) {
+      fetchMessages();
+    } else {
+      print("Audio send error: $respStr");
+    }
+  }
+
+  Widget _buildAudioPlayer(String url, bool isMe) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isMe ? Colors.deepPurple[100] : Colors.grey[300],
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
+          bottomLeft: Radius.circular(isMe ? 12 : 0),
+          bottomRight: Radius.circular(isMe ? 0 : 12),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.audiotrack, color: Colors.deepPurple),
+          SizedBox(width: 8),
+          IconButton(
+            icon: Icon(
+              isPlaying && currentlyPlayingUrl == url
+                  ? Icons.stop
+                  : Icons.play_arrow,
+              color: Colors.deepPurple,
+            ),
+            onPressed: () async {
+              if (isPlaying && currentlyPlayingUrl == url) {
+                await _player.stopPlayer();
+                setState(() {
+                  isPlaying = false;
+                  currentlyPlayingUrl = null;
+                });
+              } else {
+                await _player.startPlayer(
+                  fromURI: "${ApiConstants.baseUrl}/$url",
+                  whenFinished: () {
+                    setState(() {
+                      isPlaying = false;
+                      currentlyPlayingUrl = null;
+                    });
+                  },
+                );
+                setState(() {
+                  isPlaying = true;
+                  currentlyPlayingUrl = url;
+                });
+              }
+            },
+          ),
+          Text("Audio"),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(otherUserName ?? "Utilisateur inconnu"),
+        title: Text(otherUserName ?? "Conversation"),
         backgroundColor: const Color(0xFFFFCDB1),
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final callLink = 'call:${'monChannel'}';
+              await sendMessage(text: callLink);
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CallScreen(
+                    channelName: 'monChannel',
+                    conversationId: widget.conversationId,
+                    userId: widget.userId,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.call),
+          ),
+        ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.2,
-              child: Image.asset(
-                "assets/whatsapp.jpeg",
-                fit: BoxFit.cover,
-              ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.all(8),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                final isMe = msg['sender']?['_id'] == widget.userId;
+
+                return Align(
+                  alignment:
+                      isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: msg['type'] == 'shared_event'
+                      ? _buildSharedEventCard(msg['eventId'])
+                      : msg['type'] == 'audio'
+                          ? _buildAudioPlayer(msg['content'], isMe)
+                          : Container(
+                              margin: EdgeInsets.symmetric(vertical: 6),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isMe
+                                    ? Colors.deepPurple[100]
+                                    : Colors.grey[300],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  msg['content'] != null &&
+                                          msg['content']
+                                              .toString()
+                                              .startsWith('call:')
+                                      ? GestureDetector(
+                                          onTap: () {
+                                            final channelName = msg['content']
+                                                .toString()
+                                                .substring(5); // remove 'call:'
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => CallScreen(
+                                                  channelName: channelName,
+                                                  conversationId:
+                                                      widget.conversationId,
+                                                  userId: widget.userId,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            "📞 Join the call",
+                                            style: TextStyle(
+                                              color: Colors.blue,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(msg['content'] ?? ""),
+                                  SizedBox(height: 4),
+                                  Text(formatTimestamp(msg['createdAt']),
+                                      style: TextStyle(fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                );
+              },
             ),
           ),
-          Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: messages.length,
-                  padding: EdgeInsets.all(10),
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message['sender']?['_id'].toString() == _userId.toString();
-
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: isMe ? const Color(0xFFF3C7F9) : Colors.grey[300],
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                            bottomLeft: isMe ? Radius.circular(12) : Radius.circular(0),
-                            bottomRight: isMe ? Radius.circular(0) : Radius.circular(12),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              message['content'],
-                              style: TextStyle(
-                                  color: isMe ? Colors.white : Colors.black,
-                                  fontSize: 16),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              formatTimestamp(message['createdAt']),
-                              style: TextStyle(fontSize: 12, color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+          Divider(),
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    if (isRecording) {
+                      await stopRecording();
+                    } else {
+                      await startRecording();
+                    }
                   },
+                  icon: Icon(
+                    isRecording ? Icons.stop : Icons.mic,
+                    color: Colors.deepPurple,
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: "Écrire un message...",
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: "Enter a message",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFCDB1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.send, color: Colors.white),
-                        onPressed: sendMessage,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                IconButton(
+                  onPressed: () {
+                    final text = _messageController.text.trim();
+                    if (text.isNotEmpty) {
+                      sendMessage(text: text);
+                    }
+                  },
+                  icon: Icon(Icons.send, color: Colors.deepPurple),
+                ),
+              ],
+            ),
           ),
         ],
       ),

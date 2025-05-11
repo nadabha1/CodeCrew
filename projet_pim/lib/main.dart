@@ -7,6 +7,7 @@ import 'package:projet_pim/Providers/event_provider.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
 import 'package:projet_pim/Providers/user_provider.dart';
+import 'package:projet_pim/View/CompleteProfile/FinalConfirmationCompletePage.dart' show FinalConfirmationCompletePage;
 import 'package:projet_pim/View/UserPreferences/EventPreferencePage.dart';
 import 'package:projet_pim/View/UserPreferences/FinalConfirmationPage.dart';
 import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
@@ -14,13 +15,11 @@ import 'package:projet_pim/View/UserPreferences/PreferredEventTime.dart';
 import 'package:projet_pim/View/UserPreferences/SocialInteractionPage.dart';
 import 'package:projet_pim/View/UserPreferences/activity_selection_page.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsProviderScreen.dart';
-import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
 import 'package:projet_pim/View/carnet&place/add_place_screen.dart';
 import 'package:projet_pim/View/Event/event_chat_screen.dart';
 import 'package:projet_pim/View/forgot_password_screen.dart';
 import 'package:projet_pim/View/home_screen.dart';
 import 'package:projet_pim/View/reset_password_screen.dart';
-import 'package:projet_pim/View/settings/settings_screen.dart';
 import 'package:projet_pim/View/signup_page.dart';
 import 'package:projet_pim/View/user_profile.dart';
 import 'package:projet_pim/ViewModel/api_constants.dart';
@@ -29,10 +28,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/login.dart';
 import 'package:projet_pim/View/main_screen.dart';
 import 'package:projet_pim/ViewModel/login.dart';
+// ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-import 'Providers/conversation_provider.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -41,10 +40,17 @@ late IO.Socket socket;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print("❌ Uncaught Flutter error: ${details.exception}");
+  };
+
   final prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString("jwt_token");
   String? userId = prefs.getString("user_id");
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false;
+
 
   // 🛠️ Proper initialization settings for both platforms
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -69,7 +75,7 @@ void main() async {
   );
 
   // ✅ Initialiser Socket.IO
-  socket = IO.io('${ApiConstants.baseUrl}', <String, dynamic>{
+  socket = IO.io(ApiConstants.baseUrl, <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });
@@ -106,9 +112,7 @@ void main() async {
             create: (_) => ThemeProvider(isDarkMode)),
         ChangeNotifierProvider<EventProvider>(
             create: (_) => EventProvider(userId: userId ?? '')),
-             ChangeNotifierProvider<ConversationProvider>(create: (_) => ConversationProvider()),  // Added ConversationProvider
       ],
-      
       child: MyApp(userId: userId, token: token),
     ),
   );
@@ -140,7 +144,7 @@ class MyApp extends StatelessWidget {
   final String? userId;
   final String? token;
 
-  const MyApp({Key? key, this.userId, this.token}) : super(key: key);
+  const MyApp({super.key, this.userId, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -151,9 +155,11 @@ class MyApp extends StatelessWidget {
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
         themeMode: ThemeProvider.themeMode,
-        home: userId != null && token != null ? MainScreen() : LoginView(),
+        home:
+            userId != null && token != null ? const MainScreen() : LoginView(),
         routes: {
-          '/home': (context) => HomeScreen(userId: '67a37ac68b9e4e153a914e9e'),
+          '/home': (context) =>
+              const HomeScreen(userId: '67a37ac68b9e4e153a914e9e', token: ''),
           '/signup': (context) => SignUpPage(),
           '/gender-selection': (context) => GenderSelectionPage(),
           '/activity-selection': (context) => ActivitySelectionPage(),
@@ -161,11 +167,10 @@ class MyApp extends StatelessWidget {
           '/social-interaction': (context) => SocialInteractionPage(),
           '/preferred-event-time': (context) => PreferredEventTimePage(),
           '/final-confirmation': (context) => FinalConfirmationPage(),
+          '/complete-profile-confirmation': (context) => FinalConfirmationCompletePage(),
           '/forgot-password': (context) => ForgotPasswordScreen(),
           '/reset-password': (context) => ResetPasswordScreen(email: ''),
-           '/settings': (context) => SettingsScreen(userData: {}), 
           '/login': (context) => LoginView(),
-
           '/profile': (context) => const UserProfileScreen(
                 userId: 'exampleId',
                 token: 'exampleToken',
@@ -176,11 +181,10 @@ class MyApp extends StatelessWidget {
                     ModalRoute.of(context)?.settings.arguments as String? ?? '',
                 userId: userId ?? '',
               ),
-              '/place': (context) {
-  final place = ModalRoute.of(context)?.settings.arguments as Place;
-  return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
-},
-
+          '/place': (context) {
+            final place = ModalRoute.of(context)?.settings.arguments as Place;
+            return PlaceDetailsProviderScreen(place: place); // ✅ Avec provider
+          },
         },
       );
     });

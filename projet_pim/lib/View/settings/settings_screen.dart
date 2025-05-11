@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/theme_provider.dart';
-import 'package:projet_pim/View/UserPreferences/GenderSelectionPage.dart';
+import 'package:projet_pim/View/CompleteProfile/GenderSelectionPage.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/login.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projet_pim/View/settings/account_settings_screen.dart';
 import 'package:projet_pim/View/EditProfileScreen.dart';
-  // Import the Gender Selection page
 
 class SettingsScreen extends StatefulWidget {
-  final Map<String, dynamic> userData;
+  final Map<String, dynamic>? userData;
 
-  const SettingsScreen({required this.userData, Key? key}) : super(key: key);
+  const SettingsScreen({this.userData, super.key});
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -24,7 +24,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    userData = Map<String, dynamic>.from(widget.userData); // ✅ Clone userData
+    userData = Map<String, dynamic>.from(
+        widget.userData ?? {}); // ✅ Clone userData or use empty map
   }
 
   /// ✅ **Load User Session from SharedPreferences**
@@ -34,6 +35,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'userId': prefs.getString('user_id'),
       'token': prefs.getString('jwt_token'),
     };
+  }
+
+  /// ✅ **Navigate to Edit Profile & Update UI on Return**
+  Future<void> _navigateToEditProfile() async {
+    final session = await _loadUserSession();
+
+    if (session['userId'] == null || session['token'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("User session expired. Please log in again.")),
+      );
+      return;
+    }
+
+    final updatedProfileData = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(
+          userId: session['userId']!,
+          token: session['token']!,
+          userData: userData,
+          name: userData['name'] ?? 'Unknown Name',
+          job: userData['job'] ?? 'No Job Specified',
+          location: userData['location'] ?? 'No Location Specified',
+          currentProfilePicture:
+              '${ApiConstants.baseUrl}${userData['profileImage'] ?? ''}',
+        ),
+      ),
+    );
+
+    // ✅ Update UI if user changed profile details
+    if (updatedProfileData != null) {
+      setState(() {
+        userData['name'] = updatedProfileData['name'];
+        userData['job'] = updatedProfileData['job'];
+        userData['location'] = updatedProfileData['location'];
+        userData['bio'] = updatedProfileData['bio'];
+        userData['profileImage'] =
+            updatedProfileData['profileImage']; // Update profileImage
+      });
+    }
+  }
+
+  /// ✅ **Confirm and Delete User Account**
+  void _confirmDeleteAccount(BuildContext context) async {
+    final session = await _loadUserSession();
+    if (session['userId'] == null || session['token'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please log in again.")),
+      );
+      return;
+    }
+
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Account"),
+        content: const Text(
+            "Are you sure you want to delete your account? This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmDelete == true) {
+      final userService = UserService();
+      final result = await userService.deleteUserProfile(
+          session['userId']!, session['token']!);
+
+      if (result.containsKey('error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(result['error'],
+                  style: const TextStyle(color: Colors.red))),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("✅ Account deleted successfully!")),
+        );
+        // ✅ Log out the user and redirect to login page
+        final loginViewModel =
+            Provider.of<LoginViewModel>(context, listen: false);
+        await loginViewModel.logout(context);
+      }
+    }
   }
 
   /// ✅ **Navigate to Complete Profile Screen**
@@ -53,65 +147,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => GenderSelectionPage(), // Navigate to GenderSelectionPage
+          builder: (context) =>
+              GenderSelectionPage(), // Navigate to GenderSelectionPage
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You already indicated your preferences.")),
+        const SnackBar(
+            content: Text("You already indicated your preferences.")),
       );
-    }
-  }
-
-  /// ✅ **Confirm and Delete User Account**
-  void _confirmDeleteAccount(BuildContext context) async {
-    final session = await _loadUserSession();
-    if (session['userId'] == null || session['token'] == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Session expired. Please log in again.")),
-      );
-      return;
-    }
-
-    bool confirmDelete = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Delete Account"),
-        content: Text(
-            "Are you sure you want to delete your account? This action cannot be undone."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmDelete == true) {
-      final userService = UserService();
-      final result = await userService.deleteUserProfile(
-          session['userId']!, session['token']!);
-
-      if (result.containsKey('error')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text(result['error'], style: TextStyle(color: Colors.red))),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("✅ Account deleted successfully!")),
-        );
-        // ✅ Log out the user and redirect to login page
-        final loginViewModel =
-            Provider.of<LoginViewModel>(context, listen: false);
-        await loginViewModel.logout(context);
-      }
     }
   }
 
@@ -129,6 +173,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context, userData); // Pass updated userData back
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -138,13 +188,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // ✅ **Profile Section with Edit Option**
               GestureDetector(
-                onTap: _navigateToCompleteProfile,
+                onTap: _navigateToEditProfile, // Navigate to EditProfileScreen
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: userData['profilePicture'] != null
-                          ? NetworkImage(userData['profilePicture'])
+                      backgroundImage: userData['profileImage'] != null
+                          ? NetworkImage(
+                              '${ApiConstants.baseUrl}${userData['profileImage']}')
                           : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                     ),
@@ -155,44 +206,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             userData['name'] ?? 'Unknown Name',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color:
-                                  Theme.of(context).textTheme.bodyLarge?.color,
                             ),
                           ),
                           const SizedBox(height: 5),
                           Text(
                             userData['bio'] ?? 'Bio not specified',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color:
-                                  Theme.of(context).textTheme.bodyMedium?.color,
-                            ),
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.black54),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.edit,
-                        color: Theme.of(context).iconTheme.color, size: 20),
+                    const Icon(Icons.edit, size: 20),
                   ],
                 ),
               ),
 
               const SizedBox(height: 30),
-
-              // ✅ **Complete Your Profile Button**
-              if (userData['preferences'] == null) // Only show if preferences are not filled
+              if (userData['preferences'] ==
+                  null) // Only show if preferences are not filled
                 _buildSettingsTile(
                   context,
                   icon: Icons.person,
                   title: "Complete Your Profile",
                   subtitle: "Fill out your preferences",
                   iconColor: Colors.blue,
-                  onTap: _navigateToCompleteProfile, // Navigate to GenderSelectionPage
+                  onTap:
+                      _navigateToCompleteProfile, // Navigate to GenderSelectionPage
                 ),
-
               const SizedBox(height: 30),
 
               // ✅ **Dark Mode Toggle**

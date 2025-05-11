@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../ViewModel/login.dart';
 
 class LoginView extends StatefulWidget {
+  const LoginView({super.key});
+
   @override
   _LoginViewState createState() => _LoginViewState();
 }
@@ -64,7 +66,7 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: Color(0xFF603F3F),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -127,21 +129,22 @@ class _LoginViewState extends State<LoginView> {
 
                   // Login Button
                   loginViewModel.isLoading
-    ? const CircularProgressIndicator()
-    : ElevatedButton(
-        onPressed: () => loginViewModel.login(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.purple.shade900,
-          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-        ),
-        child: const Text(
-          "Login",
-          style: TextStyle(fontSize: 18),
-        ),
-      ),
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton(
+                          onPressed: () => loginViewModel.login(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF161055),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 50, vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                          child: const Text(
+                            "Login",
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
 
                   const SizedBox(height: 20),
 

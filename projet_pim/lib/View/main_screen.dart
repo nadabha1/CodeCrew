@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:projet_pim/View/Event/CalendarEventsScreen.dart';
 import 'package:projet_pim/View/ExploreScreen.dart';
 import 'package:projet_pim/View/NotificationScreen.dart';
+import 'package:projet_pim/View/TripPlanningScreen.dart';
 import 'package:projet_pim/View/Widgets/custom_bottom_nav.dart';
 import 'package:projet_pim/View/chat/conversation_list_screen.dart';
 import 'package:projet_pim/ViewModel/notification_service.dart';
@@ -45,11 +47,11 @@ class _MainScreenState extends State<MainScreen> {
       } else {
         _fetchUnreadNotifications();
         _pages = [
-          HomeScreen(userId: _userId!),
+          HomeScreen(userId: _userId!, token: _token!),
           ExploreScreen(userId: _userId!),
+          TripPlanningScreen(userId: _userId!), // <-- AJOUTER ici
+          CalendarEventsScreen(userId: _userId!, token: _token!),
           ConversationListScreen(),
-          NotificationScreen(userId: _userId!),
-          UserProfileScreen(userId: _userId!, token: _token!),
         ];
       }
     });
@@ -57,7 +59,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchUnreadNotifications() async {
     if (_userId != null) {
-      final count = await _notificationService.getUnreadNotificationsCount(_userId!);
+      final count =
+          await _notificationService.getUnreadNotificationsCount(_userId!);
       setState(() {
         _unreadNotifications = count;
       });
@@ -84,6 +87,7 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
         unreadNotifications: _unreadNotifications,
+        userId: _userId!,
       ),
     );
   }

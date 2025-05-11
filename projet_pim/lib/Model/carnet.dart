@@ -1,4 +1,5 @@
-import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:projet_pim/CustomAnnotation.dart';
 import 'package:projet_pim/Model/review.dart';
 
 class Place {
@@ -9,13 +10,10 @@ class Place {
   final String description;
   final List<String> categories;
   final int unlockCost;
-    LatLng? get coordinates {
-    return (latitude != null && longitude != null) 
-        ? LatLng(latitude!, longitude!)
-        : null;
-  }
   final List<String> images; // Liste des URLs des images
   final List<Review> reviews; // Liste des avis associés au lieu
+  final double averageRating;
+
   Place({
     required this.id,
     required this.name,
@@ -26,6 +24,7 @@ class Place {
     required this.unlockCost,
     required this.images,
     this.reviews = const [],
+    this.averageRating = 0.0, // Valeur par défaut
   });
 
   factory Place.fromJson(Map<String, dynamic> json) {
@@ -38,6 +37,8 @@ class Place {
       categories: List<String>.from(json['categories']),
       unlockCost: json['unlockCost'],
       images: List<String>.from(json['images']), // Initialisation des images
+      averageRating:
+          (json['averageRating'] ?? 0).toDouble(), // Récupérer la note moyenne
     );
   }
 
@@ -50,9 +51,10 @@ class Place {
     int? unlockCost,
     double? latitude,
     double? longitude,
+    double? averageRating,
   }) {
     return Place(
-      id: this.id, // Keep the same ID
+      id: id, // Keep the same ID
       name: name ??
           this.name, // If a new name is passed, use it; otherwise, keep the current one
       description: description ?? this.description,
@@ -62,6 +64,28 @@ class Place {
       unlockCost: unlockCost ?? this.unlockCost,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      averageRating: averageRating ?? this.averageRating,
+    );
+  }
+
+  CustomAnnotation toAnnotation() {
+    return CustomAnnotation(
+      uid: this.id,
+      position: Position(
+        latitude: this.latitude ?? 0.0,
+        longitude: this.longitude ?? 0.0,
+        timestamp: DateTime.now(),
+        accuracy: 5.0,
+        altitude: 10.0,
+        altitudeAccuracy: 5.0,
+        heading: 0.0,
+        headingAccuracy: 1.0,
+        speed: 0.0,
+        speedAccuracy: 1.0,
+      ),
+      title: this.name,
+      imageUrl:
+          images.isNotEmpty ? images[0] : null, // Utiliser la première image
     );
   }
 }
@@ -71,12 +95,14 @@ class Carnet {
   final String title;
   final String owner;
   final List<Place> places;
+  final double globalAverageRating;
 
   Carnet({
     required this.id,
     required this.title,
     required this.owner,
     required this.places,
+    this.globalAverageRating = 0.0, // Valeur par défaut
   });
 
   factory Carnet.fromJson(Map<String, dynamic> json) {
@@ -88,6 +114,7 @@ class Carnet {
       title: json['title'],
       owner: json['owner'],
       places: placesList,
+      globalAverageRating: (json['globalAverageRating'] ?? 0).toDouble(),
     );
   }
 }

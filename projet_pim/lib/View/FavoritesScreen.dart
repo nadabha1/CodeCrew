@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:projet_pim/Model/carnet.dart';
 import 'package:projet_pim/Providers/review_provider.dart';
 import 'package:projet_pim/View/carnet&place/PlaceDetailsScreen.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,10 +15,10 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  List<Place> favorites = []; // Stocke les objets Place
+  List<Place> favorites = [];
   String? userId;
   String? token;
-  bool isLoading = true; // Indicateur de chargement
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -59,8 +60,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             Place place = Place.fromJson(placeDetails);
             placesDetails.add(place);
           } catch (e) {
-            print(
-                "❌ Erreur lors de la récupération des détails du lieu $placeId: $e");
+            print("❌ Error retrieving place details for $placeId: $e");
           }
         }
 
@@ -69,13 +69,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           isLoading = false;
         });
       } else {
-        print("La réponse n'est pas une liste.");
+        print("Response is not a list.");
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
-      print("❌ Erreur lors de la récupération des favoris: $e");
+      print("❌ Error fetching favorites: $e");
       setState(() {
         isLoading = false;
       });
@@ -86,16 +86,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mes Favoris"),
+        title: const Text("Favorites"),
         backgroundColor: const Color(0xFFD1C4E9),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFD1C4E9), // Couleur bas
-
-              Color(0xFFEDE7F6), // Couleur haut
+              Color(0xFFD1C4E9),
+              Color(0xFFEDE7F6),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -106,7 +105,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             : favorites.isEmpty
                 ? Center(
                     child: Text(
-                      "Vous n'avez pas encore de favoris",
+                      "You don't have any favorites yet",
                       style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                   )
@@ -137,7 +136,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
-                                        place.images[0],
+                                        '${ApiConstants.baseUrl}'+place.images[0],
                                         height: 150,
                                         width: double.infinity,
                                         fit: BoxFit.cover,
