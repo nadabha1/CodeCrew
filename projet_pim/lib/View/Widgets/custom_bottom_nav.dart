@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:projet_pim/View/TripPlanningScreen.dart';
+
 class CustomBottomNavigationBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
   final int unreadNotifications;
-  final String userId; // ✅ AJOUTER
+  final String userId;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.selectedIndex,
     required this.onItemTapped,
     required this.unreadNotifications,
-    required this.userId, // ✅ AJOUTER
+    required this.userId,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
         Container(
-          height: 90,
+          height: screenHeight * 0.10, // Responsive height (10% of screen)
+          width: screenWidth,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -38,6 +42,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
           child: BottomNavigationBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            selectedFontSize: screenWidth * 0.030,
+            unselectedFontSize: screenWidth * 0.028,
             selectedItemColor: Colors.white,
             unselectedItemColor: Colors.white70,
             showUnselectedLabels: true,
@@ -45,11 +51,26 @@ class CustomBottomNavigationBar extends StatelessWidget {
             currentIndex: selectedIndex,
             onTap: onItemTapped,
             items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-              BottomNavigationBarItem(icon: Icon(Icons.explore), label: "Explore"),
-              BottomNavigationBarItem(icon: Icon(Icons.flight_takeoff), label: "trip"),
-              BottomNavigationBarItem(icon: Icon(Icons.event_note), label: "Evenements"),
-              BottomNavigationBarItem(icon: Icon(Icons.message), label: "Messages"),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: "Home",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.explore),
+                label: "Explore",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.flight_takeoff),
+                label: "Trip",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.event_note),
+                label: "Events",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.message),
+                label: "Messages",
+              ),
             ],
           ),
         ),

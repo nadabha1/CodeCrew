@@ -27,7 +27,6 @@ class AuthProvider with ChangeNotifier {
   String? _profileImageUrl;
   String? get profileImageUrl => _profileImageUrl;
 
-
   bool _isOtpVerified = false;
   bool get isOtpVerified => _isOtpVerified;
 // Méthode pour télécharger l'image
@@ -85,34 +84,35 @@ class AuthProvider with ChangeNotifier {
       rethrow;
     }
   }
-Future<void> verifyOtp(BuildContext context, String email, String otp) async {
-  if (otp.isEmpty) {
-    _showMessage(context, "Please enter the OTP");
-    return;
-  }
-  final String baseUrl = "${ApiConstants.baseUrl}/auth";
-  _setLoading(true);
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/verify-otp'), // ✅ Corrected here
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'otp': otp}),
-    );
-    _setLoading(false);
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      _isOtpVerified = true;
-      notifyListeners();
-      _showMessage(context, "OTP verified successfully");
-    } else {
-      final error =
-          jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
-      throw Exception(error);
+
+  Future<void> verifyOtp(BuildContext context, String email, String otp) async {
+    if (otp.isEmpty) {
+      _showMessage(context, "Please enter the OTP");
+      return;
     }
-  } catch (e) {
-    _setLoading(false);
-    _showMessage(context, "Error verifying OTP: ${e.toString()}");
+    final String baseUrl = "${ApiConstants.baseUrl}/auth";
+    _setLoading(true);
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-otp'), // ✅ Corrected here
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp}),
+      );
+      _setLoading(false);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _isOtpVerified = true;
+        notifyListeners();
+        _showMessage(context, "OTP verified successfully");
+      } else {
+        final error =
+            jsonDecode(response.body)['error'] ?? 'Error verifying OTP';
+        throw Exception(error);
+      }
+    } catch (e) {
+      _setLoading(false);
+      _showMessage(context, "Error verifying OTP: ${e.toString()}");
+    }
   }
-}
 
   Future<void> resetPassword(
       BuildContext context, String email, String otp, String password) async {
@@ -155,14 +155,15 @@ Future<void> verifyOtp(BuildContext context, String email, String otp) async {
     await prefs.remove('token');
     notifyListeners();
   }
-  
+
   Future<void> restoreSessionFromPrefs() async {
-  final prefs = await SharedPreferences.getInstance();
-  _token = prefs.getString("jwt_token");
-  _userId = prefs.getString("user_id");
-  notifyListeners();
-  debugPrint("✅ Restored session: userId=$_userId, token=$_token");
-}
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString("jwt_token");
+    _userId = prefs.getString("user_id");
+    notifyListeners();
+    debugPrint("✅ Restored session: userId=$_userId, token=$_token");
+  }
+
   Future<bool> registerUser(
       String name,
       String email,
@@ -216,7 +217,8 @@ Future<void> verifyOtp(BuildContext context, String email, String otp) async {
     }
   }
 
-  Future<bool> addUserPreferences(UserPreferences preferences) async {
+  Future<bool> addUserPreferences(
+      UserPreferences preferences, String userid) async {
     if (_userId == null) {
       debugPrint("User ID not set. Cannot add preferences.");
       return false;
@@ -245,7 +247,8 @@ Future<void> verifyOtp(BuildContext context, String email, String otp) async {
   }
 
   Future<UserPreferences?> getUserPreferences(String userId) async {
-    String apiUrl = "${ApiConstants.baseUrl}/users/$userId/preferences"; // Updated endpoint
+    String apiUrl =
+        "${ApiConstants.baseUrl}/users/$userId/preferences"; // Updated endpoint
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -266,7 +269,8 @@ Future<void> verifyOtp(BuildContext context, String email, String otp) async {
 
   Future<bool> updateUserPreferences(
       String userId, UserPreferences preferences) async {
-    String apiUrl = "${ApiConstants.baseUrl}/users/$userId/preferences"; // Updated endpoint
+    String apiUrl =
+        "${ApiConstants.baseUrl}/users/$userId/preferences"; // Updated endpoint
 
     try {
       final response = await http.put(
@@ -295,69 +299,69 @@ Future<void> verifyOtp(BuildContext context, String email, String otp) async {
   }
 
   Future<void> sendOtp(BuildContext context, String email) async {
-  if (email.isEmpty) {
-    _showMessage(context, 'Please enter your email');
-    return;
-  }
-
-  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-  if (!emailRegex.hasMatch(email)) {
-    _showMessage(context, 'Please enter a valid email address');
-    return;
-  }
-
-  _isLoading = true;
-  notifyListeners();
-
-  try {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/forgot-password'), // ✅ Pas de double /auth
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
-
-    _isLoading = false;
-    notifyListeners();
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      String message;
-
-      try {
-        // ✅ Tente de lire le JSON
-        final json = jsonDecode(response.body);
-        message = json['message'] ?? 'OTP sent successfully';
-      } catch (e) {
-        // ✅ Si ce n'est pas du JSON, utilise le texte brut
-        message = response.body;
-      }
-
-      _showMessage(context, message);
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => ResetPasswordScreen(email: email)),
-      );
-    } else {
-      String errorMessage;
-      try {
-        final errorResponse = jsonDecode(response.body);
-        errorMessage =
-            errorResponse['error'] ?? 'Failed to send OTP. Please try again.';
-      } catch (e) {
-        errorMessage = response.body;
-      }
-
-      _showMessage(context, errorMessage);
-      throw Exception(errorMessage);
+    if (email.isEmpty) {
+      _showMessage(context, 'Please enter your email');
+      return;
     }
-  } catch (e) {
-    _isLoading = false;
-    notifyListeners();
-    _showMessage(context, 'Error: ${e.toString()}');
-  }
-}
 
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      _showMessage(context, 'Please enter a valid email address');
+      return;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+            '${ApiConstants.baseUrl}/auth/forgot-password'), // ✅ Pas de double /auth
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      _isLoading = false;
+      notifyListeners();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        String message;
+
+        try {
+          // ✅ Tente de lire le JSON
+          final json = jsonDecode(response.body);
+          message = json['message'] ?? 'OTP sent successfully';
+        } catch (e) {
+          // ✅ Si ce n'est pas du JSON, utilise le texte brut
+          message = response.body;
+        }
+
+        _showMessage(context, message);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(email: email)),
+        );
+      } else {
+        String errorMessage;
+        try {
+          final errorResponse = jsonDecode(response.body);
+          errorMessage =
+              errorResponse['error'] ?? 'Failed to send OTP. Please try again.';
+        } catch (e) {
+          errorMessage = response.body;
+        }
+
+        _showMessage(context, errorMessage);
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      _showMessage(context, 'Error: ${e.toString()}');
+    }
+  }
 
   Future<bool> checkUserVerification(String email) async {
     const String apiUrl = "${ApiConstants.baseUrl}/users/checkverification";

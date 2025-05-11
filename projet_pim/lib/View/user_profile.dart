@@ -53,8 +53,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   List<Carnet> userCarnet = [];
   Map<String, dynamic>? travelerData;
   List<Trip> acceptedTrips = [];
-int _selectedIndex =4; // 4 = Messages/Profile selon ta logique
-
+  int _selectedIndex = 0; // 4 = Messages/Profile selon ta logique
 
   @override
   void initState() {
@@ -296,13 +295,14 @@ int _selectedIndex =4; // 4 = Messages/Profile selon ta logique
   Widget build(BuildContext context) {
     final carnetProvider = Provider.of<CarnetProvider>(context, listen: true);
     final eventProvider = Provider.of<EventProvider>(context);
-final List<Widget> _pages = [
-  HomeScreen(userId: widget.userId!, token: widget.token!),        // index 0
-  ExploreScreen(userId: widget.userId!),                     // index 1
-  TripPlanningScreen(userId: widget.userId!),                // index 2
-  CalendarEventsScreen(userId: widget.userId!, token: widget.token!), // index 3
-  ConversationListScreen(),                            // index 4
-];
+    final List<Widget> _pages = [
+      HomeScreen(userId: widget.userId!, token: widget.token!), // index 0
+      ExploreScreen(userId: widget.userId!), // index 1
+      TripPlanningScreen(userId: widget.userId!), // index 2
+      CalendarEventsScreen(
+          userId: widget.userId!, token: widget.token!), // index 3
+      ConversationListScreen(), // index 4
+    ];
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -929,54 +929,69 @@ final List<Widget> _pages = [
                 ),
               ),
             ),
-             bottomNavigationBar: CustomBottomNavigationBar(
-    selectedIndex: _selectedIndex,
-    userId: widget.userId,
-    unreadNotifications: 0, // Mets ici la valeur réelle si dispo
-    onItemTapped: (index) {
-      setState(() {
-        _selectedIndex = index;
-      });
-      // Navigation en fonction de l’index
-      switch (index) {
-        case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainScreen(initialIndex: 0,),
-            ),
-            ) ;         
-          break;
-        case 1:
-Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainScreen(initialIndex: 1,),
-            ),
-            ) ;         
-        break;
-        case 2:
-          Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainScreen(initialIndex: 2,),
-            ),
-            ) ;         
-          break;
-        case 3:
-          Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainScreen(initialIndex: 3,),
-            ),
-            ) ;         
-          break;
-        case 4:
-          // On est déjà sur le profil, ne rien faire ou faire un refresh
-          break;
-      }
-    },
-  ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        selectedIndex: _selectedIndex,
+        userId: widget.userId,
+        unreadNotifications: 0, // Mets ici la valeur réelle si dispo
+        onItemTapped: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          // Navigation en fonction de l’index
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainScreen(
+                    initialIndex: 0,
+                  ),
+                ),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainScreen(
+                    initialIndex: 1,
+                  ),
+                ),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainScreen(
+                    initialIndex: 2,
+                  ),
+                ),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainScreen(
+                    initialIndex: 3,
+                  ),
+                ),
+              );
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainScreen(
+                    initialIndex: 4,
+                  ),
+                ),
+              );
+              break;
+          }
+        },
+      ),
     );
   }
 }

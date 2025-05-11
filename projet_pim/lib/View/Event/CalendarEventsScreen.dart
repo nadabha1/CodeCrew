@@ -1062,7 +1062,9 @@ class _CalendarEventsScreenState extends State<CalendarEventsScreen>
                   padding: const EdgeInsets.all(16),
                   child: ListView(
                     children: _filteredEvents
-                        .where((event) => event.isParticipating)
+                        .where((event) =>
+                            event.isParticipating &&
+                            event.creatorId != widget.userId)
                         .map(_buildStyledEventCard)
                         .toList(),
                   ),

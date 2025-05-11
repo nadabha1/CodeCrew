@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-
 import 'package:projet_pim/ViewModel/api_constants.dart';
 
 class CallScreen extends StatefulWidget {
@@ -25,11 +24,10 @@ class CallScreen extends StatefulWidget {
 class _CallScreenState extends State<CallScreen> {
   static const String appId = '6d5a203e2d024f2c92c9e9f44bc37390';
   late final RtcEngine _engine;
-  int? _remoteUid;
   bool _isJoined = false;
   bool _isCameraOn = false;
   bool _isMicOn = true;
-  bool _isRemoteVideoOn = false;
+  List<int> _remoteUids = [];
 
   @override
   void initState() {
@@ -43,7 +41,6 @@ class _CallScreenState extends State<CallScreen> {
         Uri.parse(
             '${ApiConstants.baseUrl}/agora/token?channelName=$channelName&uid=0&role=PUBLISHER'),
       );
-
       if (response.statusCode == 200) {
         final token = response.body;
         debugPrint('🪪 Token retrieved: $token');
@@ -71,8 +68,8 @@ class _CallScreenState extends State<CallScreen> {
     );
 
     await _engine.enableVideo();
-    await _engine.enableLocalVideo(false); // Caméra désactivée au démarrage
-    await _engine.muteLocalAudioStream(false); // Micro activé
+    await _engine.enableLocalVideo(false);
+    await _engine.muteLocalAudioStream(false);
 
     _engine.registerEventHandler(
       RtcEngineEventHandler(
@@ -85,36 +82,17 @@ class _CallScreenState extends State<CallScreen> {
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           debugPrint('👤 [Agora] Remote user joined: $remoteUid');
           setState(() {
-            _remoteUid = remoteUid;
-            _isRemoteVideoOn = false; // Supposé désactivé au départ
+            if (!_remoteUids.contains(remoteUid)) {
+              _remoteUids.add(remoteUid);
+            }
           });
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
           debugPrint('❌ [Agora] User left: $remoteUid');
           setState(() {
-            _remoteUid = null;
-            _isRemoteVideoOn = false;
+            _remoteUids.remove(remoteUid);
           });
-        },
-        onRemoteVideoStateChanged: (
-          RtcConnection connection,
-          int remoteUid,
-          RemoteVideoState state,
-          RemoteVideoStateReason reason,
-          int elapsed,
-        ) {
-          debugPrint("📺 Remote video state: $state, reason: $reason");
-          if (state == RemoteVideoState.remoteVideoStateDecoding ||
-              state == RemoteVideoState.remoteVideoStateStarting) {
-            setState(() {
-              _isRemoteVideoOn = true;
-            });
-          } else if (state == RemoteVideoState.remoteVideoStateStopped) {
-            setState(() {
-              _isRemoteVideoOn = false;
-            });
-          }
         },
       ),
     );
@@ -170,45 +148,55 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
+  Widget _buildVideoGrid() {
+    final views = <Widget>[];
+
+    // Vue locale
+    views.add(
+      _isCameraOn
+          ? AgoraVideoView(
+              controller: VideoViewController(
+                rtcEngine: _engine,
+                canvas: const VideoCanvas(uid: 0),
+              ),
+            )
+          : const Center(child: Text("🎥 Caméra locale désactivée")),
+    );
+
+    // Vues distantes
+    for (final uid in _remoteUids) {
+      views.add(
+        AgoraVideoView(
+          controller: VideoViewController.remote(
+            rtcEngine: _engine,
+            canvas: VideoCanvas(uid: uid),
+            connection: RtcConnection(channelId: widget.channelName),
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      itemCount: views.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: views.length <= 2 ? 1 : 2,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (_, index) => Container(
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(border: Border.all(color: Colors.black26)),
+        child: views[index],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appel vidéo'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isJoined
-                ? (_isCameraOn
-                    ? AgoraVideoView(
-                        controller: VideoViewController(
-                          rtcEngine: _engine,
-                          canvas: const VideoCanvas(uid: 0),
-                        ),
-                      )
-                    : const Center(child: Text("🎥 Caméra locale désactivée")))
-                : const Center(child: Text("Connexion à la vidéo locale...")),
-          ),
-          Expanded(
-            child: _remoteUid != null
-                ? (_isRemoteVideoOn
-                    ? AgoraVideoView(
-                        controller: VideoViewController.remote(
-                          rtcEngine: _engine,
-                          canvas: VideoCanvas(uid: _remoteUid!),
-                          connection:
-                              RtcConnection(channelId: widget.channelName),
-                        ),
-                      )
-                    : const Center(
-                        child: Text(
-                            "🎥 Caméra de l'autre utilisateur désactivée")))
-                : const Center(
-                    child: Text("En attente de l'autre utilisateur...")),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Appel vidéo')),
+      body: _isJoined
+          ? _buildVideoGrid()
+          : const Center(child: Text("Connexion à l'appel...")),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -232,9 +220,7 @@ class _CallScreenState extends State<CallScreen> {
           const SizedBox(width: 16),
           FloatingActionButton(
             heroTag: 'endCall',
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             backgroundColor: const Color.fromARGB(255, 255, 47, 32),
             child: const Icon(Icons.call_end),
           ),

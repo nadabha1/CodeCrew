@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/View/profile.dart';
+import 'package:projet_pim/ViewModel/api_constants.dart';
 import 'package:projet_pim/ViewModel/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,7 +8,8 @@ class FollowingScreen extends StatefulWidget {
   final List<String> userIds;
   final String token;
 
-  const FollowingScreen({required this.userIds, required this.token, super.key});
+  const FollowingScreen(
+      {required this.userIds, required this.token, super.key});
 
   @override
   _FollowingScreenState createState() => _FollowingScreenState();
@@ -105,7 +107,8 @@ class _FollowingScreenState extends State<FollowingScreen> {
                     radius: 24,
                     backgroundImage: user['profileImage'] != null &&
                             user['profileImage'].toString().isNotEmpty
-                        ? NetworkImage(user['profileImage'])
+                        ? NetworkImage(
+                            '${ApiConstants.baseUrl}' + user!['profileImage'])
                         : const AssetImage('assets/default_profile.png')
                             as ImageProvider,
                   ),

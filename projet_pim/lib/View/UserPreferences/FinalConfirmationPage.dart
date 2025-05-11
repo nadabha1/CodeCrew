@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projet_pim/Providers/UserPreferences.dart';
 import 'package:projet_pim/Providers/auth_provider.dart';
+import 'package:projet_pim/View/login.dart';
 import 'package:provider/provider.dart';
 
 class FinalConfirmationPage extends StatelessWidget {
@@ -63,7 +64,7 @@ class FinalConfirmationPage extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 16),
+                        horizontal: 40, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -78,7 +79,7 @@ class FinalConfirmationPage extends StatelessWidget {
                   onPressed: () => _finishOnboarding(context, fromSignup),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 70, vertical: 16),
+                        horizontal: 40, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -110,7 +111,8 @@ class FinalConfirmationPage extends StatelessWidget {
       return;
     }
 
-    bool success = await authProvider.addUserPreferences(userPrefs);
+    bool success =
+        await authProvider.addUserPreferences(userPrefs, authProvider.userId!);
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -119,13 +121,12 @@ class FinalConfirmationPage extends StatelessWidget {
             backgroundColor: Colors.green),
       );
 
-      if (fromSignup) {
-        // Navigate to Login after Signup
-        Navigator.pushReplacementNamed(context, "/login");
-      } else {
-        // Navigate to Settings after completing profile (from inside the app)
-        Navigator.pushReplacementNamed(context, "/settings");
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginView(),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
