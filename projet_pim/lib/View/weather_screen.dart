@@ -116,10 +116,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
   void _loadPlacesBasedOnWeather(String weatherCondition) async {
     List<String> categories = [];
 
+    // Normaliser la condition météorologique en minuscule pour une comparaison plus cohérente
+    weatherCondition = weatherCondition.toLowerCase();
+
     // Décider des catégories selon la condition météorologique
-    if (weatherCondition == 'Clear') {
+    if (weatherCondition == 'clear') {
       categories = ['Sports', 'Food', 'Plages', 'Aventure', 'Nature', 'Plages'];
-    } else if (weatherCondition == 'Rain') {
+    } else if (weatherCondition == 'rain') {
       categories = [
         'Shopping',
         'Café',
@@ -128,7 +131,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
         'Musique Live',
         'Art & Expositions'
       ];
-    } else if (weatherCondition == 'Clouds') {
+    } else if (weatherCondition == 'clouds') {
       categories = [
         'Indoor',
         'Sports',
@@ -137,8 +140,40 @@ class _WeatherScreenState extends State<WeatherScreen> {
         'Yoga & Bien-être',
         'Relaxation'
       ];
+    } else if (weatherCondition == 'drizzle') {
+      categories = [
+        'Café',
+        'Culture',
+        'Shopping',
+        'Food',
+        'Musée',
+        'Art & Expositions'
+      ];
+    } else if (weatherCondition == 'thunderstorm') {
+      categories = ['Café', 'Shopping', 'Culture', 'Art & Expositions', 'Food'];
+    } else if (weatherCondition == 'snow') {
+      categories = ['Sports', 'Shopping', 'Restaurants', 'Hôtels', 'Café'];
+    } else if (weatherCondition == 'mist') {
+      categories = ['Culture', 'Shopping', 'Food', 'Restaurants'];
+    } else if (weatherCondition == 'fog') {
+      categories = ['Café', 'Food', 'Yoga & Bien-être', 'Relaxation'];
+    } else if (weatherCondition == 'haze') {
+      categories = ['Shopping', 'Café', 'Food', 'Culture'];
+    } else if (weatherCondition == 'smoke') {
+      categories = ['Shopping', 'Culture', 'Food', 'Restaurants'];
+    } else if (weatherCondition == 'dust') {
+      categories = ['Shopping', 'Café', 'Food', 'Culture'];
+    } else if (weatherCondition == 'sand') {
+      categories = ['Shopping', 'Food', 'Culture', 'Restaurants'];
+    } else if (weatherCondition == 'ash') {
+      categories = ['Shopping', 'Culture', 'Restaurants'];
+    } else if (weatherCondition == 'squall') {
+      categories = ['Restaurants', 'Café', 'Shopping', 'Art & Expositions'];
+    } else if (weatherCondition == 'tornado') {
+      categories = ['Restaurants', 'Shopping', 'Café'];
     } else {
-      categories = ['Food', 'Food', 'Transport', 'Nightlife'];
+      // Condition par défaut si la météo n'est pas reconnue
+      categories = ['Food', 'Shopping', 'Transport', 'Nightlife'];
     }
 
     // Charger les lieux selon les catégories

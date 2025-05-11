@@ -275,6 +275,31 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
+  Future<void> leaveEvent() async {
+    final response = await http.patch(
+      Uri.parse(
+          '${ApiConstants.baseUrl}/events/${widget.event.id}/leave'), // Remplace par ton URL
+      headers: {
+        'Authorization': 'Bearer ${widget.token}',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'userId': widget.userId}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("🚪 You've left the event.")),
+      );
+      Navigator.pop(context);
+    } else {
+      print("Erreur lors de la requête : ${response.statusCode}");
+      print("Détails de la réponse : ${response.body}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("❌ Impossible de quitter l'événement.")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,10 +316,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Souhaites-tu partager ce souvenir ?'),
+                  title: const Text('Would you like to share this memory?'),
                   actions: [
                     TextButton(
-                      child: const Text('Privé 🔒'),
+                      child: const Text('Private 🔒'),
                       onPressed: () {
                         Navigator.pop(context);
                         _uploadAndGenerateReel(isShared: false);
@@ -543,7 +568,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     onPressed: _openStoryView,
                     icon: const Icon(Icons.movie),
                     label: const Text(
-                      "🎬 Voir souvenirs",
+                      "🎬memories",
                       selectionColor: Colors.white,
                     ),
                     style: ElevatedButton.styleFrom(
@@ -552,7 +577,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 if (!_reelExists)
                   const Center(
                     child: Text(
-                      "Pas encore de souvenirs 🎬",
+                      "Still no memories",
                       style: TextStyle(color: Colors.grey),
                     ),
                   ),
@@ -583,6 +608,34 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       ),
                     ),
                   ),
+                IconButton(
+                  icon: const Icon(Icons.exit_to_app,
+                      color: Color.fromARGB(255, 0, 0, 0)),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Confirm"),
+                        content: const Text(
+                            "Are you sure you want to dip out early? We were having fun!"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              leaveEvent();
+                              Navigator.pop(context, true);
+                            },
+                            child: const Text("Leave"),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  tooltip: 'Leave the event',
+                ),
               ],
             ),
           ),
