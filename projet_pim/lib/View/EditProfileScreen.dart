@@ -197,13 +197,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       Navigator.pop(context, {
-        'name': nameController.text.isNotEmpty ? nameController.text : widget.name,
+        'name':
+            nameController.text.isNotEmpty ? nameController.text : widget.name,
         'job': jobController.text.isNotEmpty ? jobController.text : widget.job,
         'bio': bioController.text.isNotEmpty
             ? bioController.text
             : widget.userData?['bio'] ?? '',
         'profileImage': profileImageUrl, // ✅ Pass _profileImageUrl as-is
-        'location': latitudeLongitude ?? widget.location, // ✅ Pass updated location
+        'location':
+            latitudeLongitude ?? widget.location, // ✅ Pass updated location
       });
     }
   }
@@ -272,7 +274,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: ListView(
           children: [
             GestureDetector(
               onTap: _pickImage,

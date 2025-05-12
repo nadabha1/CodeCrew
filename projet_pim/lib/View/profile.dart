@@ -96,7 +96,7 @@ class _TravelerProfileScreenState extends State<TravelerProfileScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 40),
       itemCount: travelerEvents.length,
       itemBuilder: (context, index) {
         final event = travelerEvents[index];

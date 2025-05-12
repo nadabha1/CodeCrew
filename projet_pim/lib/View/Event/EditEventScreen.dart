@@ -4,7 +4,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:projet_pim/Model/event.dart';
 import 'package:intl/intl.dart';
+import 'package:projet_pim/Providers/event_provider.dart';
+import 'package:projet_pim/View/Event/EventDetailsScreen.dart';
 import 'package:projet_pim/View/select_location_screen.dart';
+import 'package:projet_pim/ViewModel/agora_service.dart';
 
 class EditEventScreen extends StatefulWidget {
   final Event event;
@@ -24,10 +27,13 @@ class _EditEventScreenState extends State<EditEventScreen> {
   late DateTime endDate;
   String location = ''; // Initialize as an empty string
   bool _useAutoLocation = false;
+  late EventProvider _eventProvider;
 
   @override
   void initState() {
     super.initState();
+    _eventProvider = EventProvider(userId: widget.event.creatorId);
+
     titleController = TextEditingController(text: widget.event.title);
     descriptionController =
         TextEditingController(text: widget.event.description);
@@ -145,11 +151,12 @@ class _EditEventScreenState extends State<EditEventScreen> {
         conversationId: widget.event.conversationId,
         type: widget.event.type,
       );
-
+      updatedEvent.imagePath = widget.event.imagePath;
       // Pass the updated Event object to the onSave callback
       widget.onSave(updatedEvent);
 
-      Navigator.pop(context);
+      // Navigate back to the EventDetailsScreen
+      Navigator.pop(context, updatedEvent);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

@@ -28,7 +28,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class EventDetailsScreen extends StatefulWidget {
-  final Event event;
+  final event;
   final String userId;
   final String token;
   final EventProvider eventProvider;
@@ -53,12 +53,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   bool _reelExists = false;
   List<String> reelsUrls = [];
   bool isShared = true; // ✅ valeur choisie par l'utilisateur
-
+  late Event eventdetails;
   @override
   void initState() {
     super.initState();
     _checkReels();
-
+    eventdetails = widget.event;
     _fetchParticipants();
     fetchReels(); // ✅ récupérer tous les reels
   }
@@ -382,7 +382,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ? FloatingActionButton(
               backgroundColor: const Color(0x03FFF3C7F9),
               child: const Icon(Icons.edit),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -390,7 +390,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       event: widget.event,
                       onSave: (updatedEvent) {
                         widget.eventProvider.updateEvent(updatedEvent);
-                        Navigator.pop(context);
+                        setState(() {
+                          eventdetails = updatedEvent;
+                        });
                       },
                     ),
                   ),
@@ -407,7 +409,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             right: 0,
             child: widget.event.imagePath != null
                 ? Image.network(
-                    '${ApiConstants.baseUrl}' + widget.event.imagePath!,
+                    '${ApiConstants.baseUrl}' + eventdetails.imagePath!,
                     fit: BoxFit.cover,
                     height: 500,
                     width: double.infinity,
@@ -435,34 +437,34 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.event.title,
+                        Text(eventdetails.title,
                             style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black)),
                         const SizedBox(height: 10),
-                        Text(widget.event.description,
+                        Text(eventdetails.description,
                             style: TextStyle(
                                 fontSize: 16, color: Colors.grey[800])),
                         const SizedBox(height: 15),
                         _buildLocationDetailRow(
-                            "${widget.event.location.latitude},${widget.event.location.longitude}"),
+                            "${eventdetails.location.latitude},${eventdetails.location.longitude}"),
                         const SizedBox(height: 15),
                         _buildDetailRow(
                           Icons.event,
                           "Start",
-                          _formatDate(widget.event.startDate),
+                          _formatDate(eventdetails.startDate),
                           iconColor: const Color(0xFF4CAF50),
                         ),
                         const SizedBox(height: 6),
                         _buildDetailRow(
                           Icons.event_available,
                           "End",
-                          _formatDate(widget.event.endDate),
+                          _formatDate(eventdetails.endDate),
                           iconColor: const Color(0xFF81C784),
                         ),
                         _buildDetailRow(Icons.people, "Participants",
-                            "${widget.event.participants.length} Registered",
+                            "${eventdetails.participants.length} Registered",
                             iconColor: const Color(0xFF29B6F6)),
                       ],
                     ),
@@ -482,8 +484,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   ),
                   child: FlutterMap(
                     options: MapOptions(
-                      center: LatLng(widget.event.location.latitude ?? 0.0,
-                          widget.event.location.longitude ?? 0.0),
+                      center: LatLng(eventdetails.location.latitude ?? 0.0,
+                          eventdetails.location.longitude ?? 0.0),
                       zoom: 15.0,
                     ),
                     children: [
@@ -495,8 +497,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: LatLng(widget.event.location.latitude ?? 0.0,
-                                widget.event.location.longitude ?? 0.0),
+                            point: LatLng(eventdetails.location.latitude ?? 0.0,
+                                eventdetails.location.longitude ?? 0.0),
                             width: 40.0,
                             height: 40.0,
                             child: const Icon(
@@ -513,8 +515,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    _openInGoogleMaps(widget.event.location.latitude,
-                        widget.event.location.longitude);
+                    _openInGoogleMaps(eventdetails.location.latitude,
+                        eventdetails.location.longitude);
                   },
                   child: const Text("Open in Google Maps"),
                 ),

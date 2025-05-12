@@ -406,7 +406,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     final hasImage = event.imagePath != null && event.imagePath!.isNotEmpty;
 
     return InkWell(
-      onTap: () {
+      onTap: () async {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -418,6 +418,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
             ),
           ),
         );
+        await _loadUserEvents(widget.userId, widget.token);
       },
       child: Card(
         margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),

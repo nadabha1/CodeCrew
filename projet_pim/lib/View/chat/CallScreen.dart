@@ -28,6 +28,7 @@ class _CallScreenState extends State<CallScreen> {
   bool _isCameraOn = false;
   bool _isMicOn = true;
   List<int> _remoteUids = [];
+  Map<int, bool> _remoteCameraStates = {};
 
   @override
   void initState() {
@@ -92,6 +93,21 @@ class _CallScreenState extends State<CallScreen> {
           debugPrint('❌ [Agora] User left: $remoteUid');
           setState(() {
             _remoteUids.remove(remoteUid);
+          });
+        },
+        onRemoteVideoStateChanged: (
+          RtcConnection connection,
+          int remoteUid,
+          RemoteVideoState state,
+          RemoteVideoStateReason reason,
+          int elapsed,
+        ) {
+          debugPrint("🎥 [Agora] État vidéo de $remoteUid : $state");
+
+          setState(() {
+            // Caméra active = toute valeur sauf Stopped
+            _remoteCameraStates[remoteUid] =
+                state != RemoteVideoState.values[0];
           });
         },
       ),
@@ -160,40 +176,75 @@ class _CallScreenState extends State<CallScreen> {
                 canvas: const VideoCanvas(uid: 0),
               ),
             )
-          : const Center(child: Text("🎥 Caméra locale désactivée")),
+          : const Center(child: Text("🎥 Camera Disabled")),
     );
 
     // Vues distantes
     for (final uid in _remoteUids) {
+      final isCameraOn = _remoteCameraStates[uid] ??
+          false; // Par défaut, on suppose qu’elle est activée
       views.add(
-        AgoraVideoView(
-          controller: VideoViewController.remote(
-            rtcEngine: _engine,
-            canvas: VideoCanvas(uid: uid),
-            connection: RtcConnection(channelId: widget.channelName),
-          ),
-        ),
+        isCameraOn
+            ? AgoraVideoView(
+                controller: VideoViewController.remote(
+                  rtcEngine: _engine,
+                  canvas: VideoCanvas(uid: uid),
+                  connection: RtcConnection(channelId: widget.channelName),
+                ),
+              )
+            : const Center(child: Text("🎥 Camera Disabled")),
       );
     }
 
-    return GridView.builder(
-      itemCount: views.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: views.length <= 2 ? 1 : 2,
-        childAspectRatio: 1,
-      ),
-      itemBuilder: (_, index) => Container(
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(border: Border.all(color: Colors.black26)),
-        child: views[index],
-      ),
-    );
+    final total = views.length;
+
+    if (total == 1) {
+      return Center(child: views[0]);
+    } else if (total == 2) {
+      return Column(
+        children: [
+          Expanded(child: views[0]),
+          Expanded(child: views[1]),
+        ],
+      );
+    } else if (total == 3) {
+      return Column(
+        children: [
+          Expanded(child: Row(children: [Expanded(child: views[0])])),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: views[1]),
+                Expanded(child: views[2]),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else if (total == 4) {
+      return GridView.count(
+        crossAxisCount: 2,
+        children: views,
+      );
+    } else {
+      return GridView.builder(
+        itemCount: views.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: (total <= 6) ? 3 : 4,
+        ),
+        itemBuilder: (_, index) => Container(
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(border: Border.all(color: Colors.black26)),
+          child: views[index],
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Appel vidéo')),
+      appBar: AppBar(title: const Text('Video Call')),
       body: _isJoined
           ? _buildVideoGrid()
           : const Center(child: Text("Connexion à l'appel...")),

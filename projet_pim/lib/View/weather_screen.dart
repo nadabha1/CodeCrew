@@ -243,8 +243,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the dialog
-                try {
-                  // Check if provider is null
+
+                /*    // Check if provider is null
                   if (provider == null) {
                     _showErrorDialog('Provider is missing.');
                     return;
@@ -254,37 +254,37 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   if (place == null) {
                     _showErrorDialog('Place information is missing.');
                     return;
-                  }
+                  }*/
 
-                  // Ensure place.id is valid and use the correct method
-                  String placeId = place.id; // Assuming place has an 'id' field
-                  print('Unlocking place with ID: $placeId'); // Debugging
-                  print('User ID: $userId'); // Debugging
-                  await provider!
-                      .unlockPlace(userId!, placeId); // Déverrouiller l'endroit
+                // Ensure place.id is valid and use the correct method
+                String placeId = place.id; // Assuming place has an 'id' field
+                print('Unlocking place with ID: $placeId'); // Debugging
+                print('User ID: $userId'); // Debugging
+                await provider!
+                    .unlockPlace(userId!, placeId); // Déverrouiller l'endroit
 
-                  // Fetch unlocked places
-                  await provider!.fetchUnlockedPlaces(userId!);
+                // Fetch unlocked places
+                await provider!.fetchUnlockedPlaces(userId!);
 
-                  // Reload the entire page
-                  await _initializeScreen();
+                // Reload the entire page
+                await _initializeScreen();
 
-                  if (mounted) {
-                    setState(() {
-                      // Trigger a rebuild
-                    });
-                    _showUnlockDialog(
-                        placeName); // Afficher le message de succès après la mise à jour
-                  }
+                if (mounted) {
+                  setState(() {
+                    // Trigger a rebuild
+                  });
+                  _showUnlockDialog(
+                      placeName); // Afficher le message de succès après la mise à jour
+                }
 
-                  // Navigate back to HomeScreen
-                  Navigator.of(context).pop(); // Close the WeatherScreen
-                } catch (e) {
+                // Navigate back to HomeScreen
+                //Navigator.of(context).pop(); // Close the WeatherScreen
+                /*catch (e) {
                   // Show error dialog if something goes wrong
                   print('Error: $e'); // Debugging
                   _showErrorDialog(
                       'Unable to unlock. Missing required information.');
-                }
+                }*/
               },
               child: Text("Confirm"),
             ),
@@ -363,7 +363,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
           height: 20,
         ),
         Text(
-          "Lieux à visiter selon la météo",
+          "Places to Visit Based on the Weather",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 10),

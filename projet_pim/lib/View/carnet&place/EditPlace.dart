@@ -183,6 +183,7 @@ class _EditPlaceState extends State<EditPlace> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text("Edit location"),
         backgroundColor: const Color(0xFFDBD9FE),
@@ -191,8 +192,8 @@ class _EditPlaceState extends State<EditPlace> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
+            // crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 "Categories ",
@@ -362,15 +363,13 @@ class _EditPlaceState extends State<EditPlace> {
               ),
 
               const SizedBox(height: 8),
-
-              const SizedBox(height: 8),
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFE7B32)),
                 child: const Text("Save"),
               ),
+              const SizedBox(height: 8),
             ],
           ),
         ),

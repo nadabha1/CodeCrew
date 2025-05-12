@@ -379,32 +379,46 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      FutureBuilder<String>(
-                        future: getLocationName(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Text(
-                              "Loading...",
-                              style: TextStyle(
-                                  color: Colors.black54, fontSize: 14),
+                      Flexible(
+                        // ou Expanded si tu veux qu'il prenne toute la place dispo
+                        child: FutureBuilder<String>(
+                          future: getLocationName(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Text(
+                                "Loading...",
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            }
+                            if (snapshot.hasError) {
+                              print(
+                                  "❌ Error in FutureBuilder: ${snapshot.error}");
+                              return const Text(
+                                "Erreur de localisation",
+                                style:
+                                    TextStyle(color: Colors.red, fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            }
+                            print("📍 Location displayed: ${snapshot.data}");
+                            return Text(
+                              snapshot.data ?? "Unknown Location",
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             );
-                          }
-                          if (snapshot.hasError) {
-                            print(
-                                "❌ Error in FutureBuilder: ${snapshot.error}");
-                            return const Text(
-                              "Erreur de localisation",
-                              style: TextStyle(color: Colors.red, fontSize: 14),
-                            );
-                          }
-                          print("📍 Location displayed: ${snapshot.data}");
-                          return Text(
-                            snapshot.data ?? "Unknown Location ",
-                            style: const TextStyle(
-                                color: Colors.black54, fontSize: 14),
-                          );
-                        },
+                          },
+                        ),
                       ),
                     ],
                   ),
